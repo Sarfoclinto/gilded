@@ -14,9 +14,16 @@ export interface AppRoute {
 }
 
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
+const CalculatorPage = lazy(() => import('@/features/calculator/CalculatorPage'));
 
 export const appRoutes: AppRoute[] = [
   { path: '/', element: <DashboardPage />, nav: { label: 'Home' } },
+  {
+    path: '/calculator',
+    element: <CalculatorPage />,
+    access: { permission: 'calculator.use' },
+    nav: { label: 'Calculator' },
+  },
 ];
 
 export const guarded = (r: AppRoute) => (r.access ? <RequireAccess access={r.access}>{r.element}</RequireAccess> : r.element);
