@@ -1,3 +1,7 @@
+import { http } from '@/shared/api/client';
+import { mockAdapter } from './adapter';
+
 export function installMock() {
-  // Filled in with the auth work.
+  http.defaults.adapter = mockAdapter;
+  console.info('[mock] Using the in-browser mock API. Logins: director / manager / teller, password "gold".');
 }
