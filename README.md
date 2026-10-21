@@ -17,7 +17,7 @@ npm run typecheck
 npm run dev         # web on http://localhost:5173, uses the in-browser mock API
 ```
 Mock logins (password `gold`): `director`, `manager`, `teller` (teller sees only Tarkwa).
-Set `VITE_USE_MOCK=false` and `VITE_API_URL` in `web/.env.local` to talk to the real API later.
+`npm run dev` uses the mock automatically (see `web/.env.development`). To use the real API, create `web/.env.local` with `VITE_USE_MOCK=false` and `VITE_API_URL=...`.
 
 ## Web structure
 ```
