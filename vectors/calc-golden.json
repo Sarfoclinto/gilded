@@ -1,0 +1,36 @@
+{
+  "description": "Golden vectors for the ExcelV1 calculation, transcribed from the owner's Excel sheet (18 rows). Shared by the TypeScript and C# implementations. All values are strings to avoid floating-point drift. Purity is the fraction (97.33% = 0.9733).",
+  "formulaVersion": "ExcelV1",
+  "config": {
+    "correctionRate": "0.007",
+    "poundGrams": "7.75",
+    "priceReferenceKarat": "23",
+    "densityOffset": "10.51",
+    "densityScale": "52.838"
+  },
+  "rows": [
+    { "name": "MR ALEX",     "top": "7.77",   "down": "0.41", "price": "11650", "density": "18.95", "karat": "23.36", "purity": "0.9733", "netWeight": "7.56",   "pounds": "1.00",  "amount": "11832" },
+    { "name": "GODFRED",     "top": "8.38",   "down": "0.46", "price": "11650", "density": "18.21", "karat": "22.18", "purity": "0.9241", "netWeight": "7.74",   "pounds": "1.08",  "amount": "12133" },
+    { "name": "ALEX",        "top": "117.35", "down": "6.48", "price": "11664", "density": "18.10", "karat": "21.99", "purity": "0.9162", "netWeight": "107.51", "pounds": "15.14", "amount": "168838" },
+    { "name": "MR ABUU",     "top": "38.75",  "down": "2.06", "price": "11650", "density": "18.81", "karat": "23.14", "purity": "0.9641", "netWeight": "37.35",  "pounds": "5.00",  "amount": "58604" },
+    { "name": "KWAKYE",      "top": "18.16",  "down": "0.95", "price": "11620", "density": "19.11", "karat": "23.60", "purity": "0.9833", "netWeight": "17.85",  "pounds": "2.34",  "amount": "27900" },
+    { "name": "RICH",        "top": "12.31",  "down": "0.65", "price": "11620", "density": "18.93", "karat": "23.33", "purity": "0.9720", "netWeight": "11.96",  "pounds": "1.58",  "amount": "18623" },
+    { "name": "MR KINGSLEY", "top": "8.24",   "down": "0.44", "price": "11620", "density": "18.72", "karat": "23.00", "purity": "0.9583", "netWeight": "7.89",   "pounds": "1.06",  "amount": "12317" },
+    { "name": "EMMA",        "top": "16.24",  "down": "0.87", "price": "11620", "density": "18.66", "karat": "22.90", "purity": "0.9541", "netWeight": "15.49",  "pounds": "2.09",  "amount": "24180" },
+    { "name": "GODFRED 2",   "top": "11.65",  "down": "0.64", "price": "11620", "density": "18.20", "karat": "22.16", "purity": "0.9233", "netWeight": "10.75",  "pounds": "1.50",  "amount": "16793" },
+    { "name": "KOFI",        "top": "39.30",  "down": "2.10", "price": "11620", "density": "18.71", "karat": "22.98", "purity": "0.9575", "netWeight": "37.62",  "pounds": "5.07",  "amount": "58862" },
+    { "name": "AMIDU",       "top": "16.79",  "down": "0.89", "price": "11620", "density": "18.86", "karat": "23.22", "purity": "0.9675", "netWeight": "16.24",  "pounds": "2.16",  "amount": "25339" },
+    { "name": "AMOFAH",      "top": "13.99",  "down": "0.73", "price": "11620", "density": "19.16", "karat": "23.68", "purity": "0.9866", "netWeight": "13.80",  "pounds": "1.80",  "amount": "21534" },
+    { "name": "MAXWELL",     "top": "30.37",  "down": "1.62", "price": "11630", "density": "18.74", "karat": "23.03", "purity": "0.9595", "netWeight": "29.14",  "pounds": "3.91",  "amount": "45532" },
+    { "name": "BRO ALEX",    "top": "9.75",   "down": "0.52", "price": "11550", "density": "18.75", "karat": "23.05", "purity": "0.9604", "netWeight": "9.36",   "pounds": "1.25",  "amount": "14468" },
+    { "name": "BEN",         "top": "78.43",  "down": "4.23", "price": "11680", "density": "18.54", "karat": "22.71", "purity": "0.9462", "netWeight": "74.21",  "pounds": "10.12", "amount": "116711" },
+    { "name": "AT",          "top": "10.33",  "down": "0.55", "price": "11550", "density": "18.78", "karat": "23.09", "purity": "0.9620", "netWeight": "9.93",   "pounds": "1.33",  "amount": "15421" },
+    { "name": "MR ALEX 2",   "top": "45.17",  "down": "2.50", "price": "11580", "density": "18.06", "karat": "21.92", "purity": "0.9133", "netWeight": "41.25",  "pounds": "5.82",  "amount": "64230" },
+    { "name": "ANTWI",       "top": "37.87",  "down": "2.04", "price": "11550", "density": "18.56", "karat": "22.74", "purity": "0.9475", "netWeight": "35.88",  "pounds": "4.88",  "amount": "55726" }
+  ],
+  "sheetTotals": {
+    "description": "Totals shown on the sheet, used by reconciliation tests later.",
+    "goodsPurchase": "769043",
+    "stockGrossGrams": "520.85"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "description": "Shared note-solver cases for the TypeScript and C# implementations. Limits: a number is a maximum count, null is unlimited, a missing key means the note is unavailable. Expectations avoid tie-breaking: they check totals, the number of 100s, or exact lines only where the answer is unique.",
+  "cases": [
+    { "name": "only 100s, large amount", "amount": 168800, "limits": { "100": null }, "strategy": "fewest-notes",
+      "expect": { "ok": true, "totalNotes": 1688, "lines": { "100": 1688 } } },
+    { "name": "168,830 needs 10s for the tail", "amount": 168830, "limits": { "100": null, "10": null }, "strategy": "prefer-100s",
+      "expect": { "ok": true, "totalNotes": 1691, "lines": { "100": 1688, "10": 3 } } },
+    { "name": "168,830 with only 100s cannot be made", "amount": 168830, "limits": { "100": null }, "strategy": "fewest-notes",
+      "expect": { "ok": false, "code": "CANNOT_MAKE_AMOUNT", "nearestBelow": 168800, "nearestAbove": 168900 } },
+    { "name": "50s and 20s make 60 as three 20s", "amount": 60, "limits": { "50": null, "20": null }, "strategy": "fewest-notes",
+      "expect": { "ok": true, "totalNotes": 3, "lines": { "20": 3 } } },
+    { "name": "50s and 20s cannot make 30", "amount": 30, "limits": { "50": null, "20": null }, "strategy": "fewest-notes",
+      "expect": { "ok": false, "code": "CANNOT_MAKE_AMOUNT", "nearestBelow": 20, "nearestAbove": 40 } },
+    { "name": "all notes, fewest for 380", "amount": 380, "limits": { "200": null, "100": null, "50": null, "20": null, "10": null, "5": null }, "strategy": "fewest-notes",
+      "expect": { "ok": true, "totalNotes": 5 } },
+    { "name": "fewest uses 200s", "amount": 400, "limits": { "200": null, "100": null }, "strategy": "fewest-notes",
+      "expect": { "ok": true, "totalNotes": 2, "lines": { "200": 2 } } },
+    { "name": "prefer 100s over 200s", "amount": 400, "limits": { "200": null, "100": null }, "strategy": "prefer-100s",
+      "expect": { "ok": true, "hundreds": 4, "totalNotes": 4, "lines": { "100": 4 } } },
+    { "name": "limited stock of 100s", "amount": 500, "limits": { "200": null, "100": 3, "50": null }, "strategy": "prefer-100s",
+      "expect": { "ok": true, "hundreds": 3, "totalNotes": 4, "lines": { "100": 3, "200": 1 } } },
+    { "name": "stock too small", "amount": 1000, "limits": { "100": 5 }, "strategy": "fewest-notes",
+      "expect": { "ok": false, "code": "CANNOT_MAKE_AMOUNT", "nearestBelow": 500, "nearestAbove": null } },
+    { "name": "not a multiple of 5", "amount": 11832, "limits": { "100": null, "5": null }, "strategy": "fewest-notes",
+      "expect": { "ok": false, "code": "NOT_MULTIPLE_OF_5" } },
+    { "name": "zero amount", "amount": 0, "limits": { "100": null }, "strategy": "fewest-notes",
+      "expect": { "ok": true, "totalNotes": 0, "lines": {} } }
+  ],
+  "payable": [
+    { "amount": 11832, "policy": "down",    "payable": 11830, "difference": -2 },
+    { "amount": 11832, "policy": "up",      "payable": 11835, "difference": 3 },
+    { "amount": 11832, "policy": "nearest", "payable": 11830, "difference": -2 },
+    { "amount": 11834, "policy": "nearest", "payable": 11835, "difference": 1 },
+    { "amount": 12135, "policy": "down",    "payable": 12135, "difference": 0 }
+  ]
+}
