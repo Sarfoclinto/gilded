@@ -22,15 +22,16 @@ function makeClient() {
 }
 
 /**
- * Only reference data survives a reload (today's price, branches), so a teller who reloads or reopens
+ * Only reference data and the drawer snapshot survive a reload (today's price, branches, the last known drawer), so a teller who reloads or reopens
  * the app with no signal still has the price to work with. Customer data is NOT written here; the offline
  * outbox holds that. The cache is cleared on sign-out (see useLogout / AuthBootstrap).
  */
-const PERSISTED_ROOTS = new Set(['prices', 'branches']);
+const PERSISTED_ROOTS = new Set(['prices', 'branches', 'days']);
 
 const persister = createSyncStoragePersister({
   storage: typeof window === 'undefined' ? undefined : window.localStorage,
   key: 'gold.rq.v1',
+  throttleTime: 250, // write soon: a phone can be locked or killed right after a change
 });
 
 export function QueryProvider({ children }: PropsWithChildren) {

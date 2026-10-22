@@ -50,7 +50,7 @@ export const createTransactionSchema = z.object({
 });
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
-export const flagSchema = z.enum(['OFFLINE_ENTRY', 'CALC_MISMATCH', 'PRICE_STALE']);
+export const flagSchema = z.enum(['OFFLINE_ENTRY', 'CALC_MISMATCH', 'PRICE_STALE', 'NO_OPEN_DAY']);
 export type TransactionFlag = z.infer<typeof flagSchema>;
 
 export const transactionSchema = z.object({

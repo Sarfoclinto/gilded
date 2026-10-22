@@ -24,12 +24,18 @@ In the header, the green "Online (demo toggle)" badge pretends the server is unr
 while "Offline", reload the page (it survives, it is in IndexedDB), then tap the badge again: it syncs, gets its number
 (e.g. TKW-20261022-0001) and the "waiting" chip disappears.
 
+## Try the cash drawer
+1. Sign in as `teller` (Tarkwa), go to **Cash drawer**, **Open the day** and count the notes. Until a day is open, saving a transaction is blocked.
+2. Take the demo offline and save a payout or two. The drawer balance drops straight away (it is the server's last answer minus what is still waiting on this device), and the payout screen only offers notes the drawer still holds.
+3. **Close the day**, enter what you really have. A difference needs a reason and makes the day wait for a manager (`manager` or `director`) to **Sign off** in Day history. A pending sign-off never stops the next day.
+Mock data lives in your browser's localStorage (`mock.*`); clear site data to start over.
+
 ## Web structure
 ```
 web/src
   app/            providers (query, auth), router and guards, route table
   config/         paths.ts (every URL), permissions.ts (resource:action keys)
-  features/       auth, branches, prices, calculator, transactions, dashboard (each owns its api, hooks, pages)
+  features/       auth, branches, prices, calculator, transactions, drawer, dashboard (each owns its api, hooks, pages)
   layouts/        AppShell (phone tabs, desktop rail, branch switcher, online badge)
   shared/api/     client (validated requests, ApiError, refresh), hooks, createResource (CRUD helper)
   shared/ui/      small components

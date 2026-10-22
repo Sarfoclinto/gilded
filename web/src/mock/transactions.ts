@@ -2,6 +2,7 @@
 import { calculate, solveNotes, type NoteLimits } from '@gold/core';
 import type { Transaction } from '@/features/transactions/schemas';
 import { branches } from './data';
+import { recordPayout } from './days';
 
 /**
  * Server-side behaviour of /transactions, as the real API must implement it:
@@ -93,6 +94,8 @@ export async function createTransaction(
   if (String(total) !== String(body.clientAmount)) flags.push('CALC_MISMATCH');
   if (now.getTime() - new Date(body.capturedAt).getTime() > OFFLINE_MS) flags.push('OFFLINE_ENTRY');
   if (now.getTime() - new Date(body.priceAsOf).getTime() > STALE_PRICE_MS) flags.push('PRICE_STALE');
+
+  if (!recordPayout(body.branchId, body.id, lines)) flags.push('NO_OPEN_DAY');
 
   const branch = branches.find((b) => b.id === body.branchId);
   const day = now.toISOString().slice(0, 10).replace(/-/g, '');

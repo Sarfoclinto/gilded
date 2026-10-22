@@ -84,4 +84,5 @@ export const flagText: Record<TransactionFlag, string> = {
   OFFLINE_ENTRY: 'Saved offline, synced later',
   CALC_MISMATCH: 'Server amount differs from the device',
   PRICE_STALE: 'Price was old when used',
+  NO_OPEN_DAY: 'No open day when this reached the server',
 };

@@ -36,6 +36,11 @@ describe('menu filtering', () => {
     expect(k).not.toContain('/transactions/new');
   });
 
+  it('shows the Cash section only to people who may read the drawer', () => {
+    expect(keysOf(user([PERMISSIONS.DAYS_READ]))).toEqual(expect.arrayContaining(['group-cash', '/drawer', '/drawer/history']));
+    expect(keysOf(user([PERMISSIONS.CALCULATOR_USE]))).not.toContain('/drawer');
+  });
+
   it('shows nothing guarded to a signed-out user', () => {
     expect(keysOf(null)).not.toContain('/calculator');
   });
@@ -46,6 +51,7 @@ describe('selection helpers', () => {
     expect(selectedKey('/transactions/abc-123', appMenu)).toBe('/transactions');
     expect(selectedKey('/transactions/new', appMenu)).toBe('/transactions/new');
     expect(selectedKey('/', appMenu)).toBe('/');
+    expect(selectedKey('/drawer/close', appMenu)).toBe('/drawer');
   });
   it('opens the submenu that holds the selected item', () => {
     expect(openKeysFor('/transactions/new', appMenu)).toEqual(['transactions']);

@@ -2,6 +2,7 @@ import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRe
 import { PERMISSIONS } from '@/config/permissions';
 import { branches, prices, users } from './data';
 import { isMockDown } from './control';
+import { addMovement, closeDay, currentState, listDays, openDay, signOff } from './days';
 import { createTransaction, getTransaction, listTransactions } from './transactions';
 
 /**
@@ -103,6 +104,45 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   const can = (p: string) => user.permissions.includes(p);
   const failer = (status: number, code: string, message: string, fieldErrors?: Record<string, string[]>) =>
     fail(config, status, code, message, fieldErrors);
+
+  const jsonBody = () => (typeof config.data === 'string' ? JSON.parse(config.data) : config.data);
+  const needDays = (perm: string) =>
+    can(perm) ? null : fail(config, 403, 'FORBIDDEN', 'You do not have permission for this.');
+  const branchOk = (id: string) =>
+    user.branchIds.includes(id) ? null : fail(config, 403, 'BRANCH_NOT_ASSIGNED', 'You are not assigned to this branch.');
+
+  if (method === 'get' && path === '/days/current') {
+    const denied = needDays(PERMISSIONS.DAYS_READ) ?? branchOk(String(config.params?.branchId ?? ''));
+    if (denied) return denied;
+    return ok(config, 200, { data: currentState(String(config.params.branchId)) });
+  }
+  if (method === 'get' && path === '/days') {
+    const denied = needDays(PERMISSIONS.DAYS_READ) ?? branchOk(String(config.params?.branchId ?? ''));
+    if (denied) return denied;
+    return ok(config, 200, { data: listDays(String(config.params.branchId), Number(config.params?.limit ?? 60)) });
+  }
+  if (method === 'post' && path === '/days/open') {
+    const denied = needDays(PERMISSIONS.DAYS_MANAGE);
+    if (denied) return denied;
+    const res = await openDay(jsonBody(), user, failer);
+    return ok(config, res.status, { data: res.data });
+  }
+  const dayAction = /^\/days\/([^/]+)\/(close|movements|signoff)$/.exec(path);
+  if (method === 'post' && dayAction) {
+    const [, dayId, action] = dayAction as unknown as [string, string, string];
+    const denied = needDays(action === 'signoff' ? PERMISSIONS.DAYS_SIGNOFF : PERMISSIONS.DAYS_MANAGE);
+    if (denied) return denied;
+    if (action === 'close') {
+      const res = await closeDay(dayId, jsonBody(), user, failer);
+      return ok(config, res.status, { data: res.data });
+    }
+    if (action === 'movements') {
+      const res = await addMovement(dayId, jsonBody(), user, failer);
+      return ok(config, res.status, { data: res.data });
+    }
+    const res = await signOff(dayId, user, failer);
+    return ok(config, res.status, { data: res.data });
+  }
 
   if (method === 'get' && path === '/transactions') {
     if (!can(PERMISSIONS.TRANSACTIONS_READ)) return fail(config, 403, 'FORBIDDEN', 'You cannot view transactions.');

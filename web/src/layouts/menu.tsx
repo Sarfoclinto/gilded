@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CalculatorIcon, HomeIcon, ListIcon, PlusCircleIcon, ReceiptIcon } from 'lucide-react';
+import { CalculatorIcon, HistoryIcon, HomeIcon, ListIcon, PlusCircleIcon, ReceiptIcon, WalletIcon } from 'lucide-react';
 import paths from '@/config/paths';
 import { PERMISSIONS, type Permission } from '@/config/permissions';
 import type { Role } from '@/features/auth/schemas';
@@ -63,6 +63,26 @@ export const appMenu: AppMenuItem[] = [
             permission: PERMISSIONS.TRANSACTIONS_CREATE,
           },
         ],
+      },
+    ],
+  },
+  {
+    key: 'group-cash',
+    type: 'group',
+    label: 'Cash',
+    children: [
+      {
+        key: paths.drawer.home.href,
+        label: link(paths.drawer.home.href, paths.drawer.home.label),
+        title: paths.drawer.home.label,
+        icon: <WalletIcon className={icon} />,
+        permission: PERMISSIONS.DAYS_READ,
+      },
+      {
+        key: paths.drawer.history.href,
+        label: link(paths.drawer.history.href, paths.drawer.history.label),
+        icon: <HistoryIcon className={icon} />,
+        permission: PERMISSIONS.DAYS_READ,
       },
     ],
   },

@@ -20,6 +20,10 @@ const CalculatorPage = lazy(() => import('@/features/calculator/CalculatorPage')
 const TransactionsPage = lazy(() => import('@/features/transactions/pages/TransactionsPage'));
 const NewTransactionPage = lazy(() => import('@/features/transactions/pages/NewTransactionPage'));
 const TransactionDetailPage = lazy(() => import('@/features/transactions/pages/TransactionDetailPage'));
+const DrawerPage = lazy(() => import('@/features/drawer/pages/DrawerPage'));
+const OpenDayPage = lazy(() => import('@/features/drawer/pages/OpenDayPage'));
+const CloseDayPage = lazy(() => import('@/features/drawer/pages/CloseDayPage'));
+const DayHistoryPage = lazy(() => import('@/features/drawer/pages/DayHistoryPage'));
 
 export const appRoutes: AppRoute[] = [
   { path: paths.home.href, element: <DashboardPage />, nav: { label: paths.home.label } },
@@ -44,6 +48,20 @@ export const appRoutes: AppRoute[] = [
     path: paths.transactions.detail.href,
     element: <TransactionDetailPage />,
     access: { permission: PERMISSIONS.TRANSACTIONS_READ },
+  },
+  {
+    path: paths.drawer.home.href,
+    element: <DrawerPage />,
+    access: { permission: PERMISSIONS.DAYS_READ },
+    nav: { label: paths.drawer.home.label },
+  },
+  { path: paths.drawer.open.href, element: <OpenDayPage />, access: { permission: PERMISSIONS.DAYS_MANAGE } },
+  { path: paths.drawer.close.href, element: <CloseDayPage />, access: { permission: PERMISSIONS.DAYS_MANAGE } },
+  {
+    path: paths.drawer.history.href,
+    element: <DayHistoryPage />,
+    access: { permission: PERMISSIONS.DAYS_READ },
+    nav: { label: paths.drawer.history.label },
   },
 ];
 

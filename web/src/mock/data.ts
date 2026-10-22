@@ -9,7 +9,7 @@ export const branches = [
   { id: TARKWA, name: 'Tarkwa', code: 'TKW', isMain: false },
 ];
 
-const base: string[] = [P.CALCULATOR_USE, P.TRANSACTIONS_READ, P.TRANSACTIONS_CREATE];
+const base: string[] = [P.CALCULATOR_USE, P.TRANSACTIONS_READ, P.TRANSACTIONS_CREATE, P.DAYS_READ, P.DAYS_MANAGE];
 
 export const users: Array<{
   id: string;
@@ -24,7 +24,7 @@ export const users: Array<{
     username: 'director',
     displayName: 'Director',
     role: 'director',
-    permissions: [...base, P.PRICES_APPROVE, P.KUMASI_SET_VALUE, P.REPORTS_READ, P.USERS_MANAGE],
+    permissions: [...base, P.DAYS_SIGNOFF, P.PRICES_APPROVE, P.KUMASI_SET_VALUE, P.REPORTS_READ, P.USERS_MANAGE],
     branchIds: [KUMASI, TARKWA],
   },
   {
@@ -32,7 +32,7 @@ export const users: Array<{
     username: 'manager',
     displayName: 'Manager',
     role: 'manager',
-    permissions: [...base, P.KUMASI_SET_VALUE, P.REPORTS_READ],
+    permissions: [...base, P.DAYS_SIGNOFF, P.KUMASI_SET_VALUE, P.REPORTS_READ],
     branchIds: [KUMASI, TARKWA],
   },
   {

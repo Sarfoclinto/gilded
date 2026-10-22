@@ -149,6 +149,8 @@ paths:
         connection can never double-pay. The server recomputes every figure with the same ExcelV1 rules; if its
         amount differs from `clientAmount` it keeps its own and adds the flag `CALC_MISMATCH`. A transaction
         captured offline is never rejected for being late: it is saved and flagged `OFFLINE_ENTRY`.
+        The payout notes are taken out of the branch's open day at the moment the server processes it. If the branch
+        has no open day then, the transaction is still saved and flagged `NO_OPEN_DAY`, and no drawer is changed.
       parameters:
         - in: header
           name: Idempotency-Key
@@ -191,6 +193,146 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/TransactionResponse' }
         '404': { $ref: '#/components/responses/Error' }
+  /days/current:
+    get:
+      tags: [Cash drawer]
+      summary: The branch's current day with its drawer balance
+      description: |
+        Returns the open day if there is one, otherwise the most recent day (closed) or `day: null` if the branch never
+        opened one. `balance` is what the drawer should hold according to the server (opening + top-ups - withdrawals -
+        payouts applied to this day). `appliedIds` lists the ids of the commands already included, so a device that still
+        holds some of them in its offline queue does not subtract them twice. Needs `days:read`.
+      parameters:
+        - in: query
+          name: branchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Day state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/DayState' }
+        '403': { $ref: '#/components/responses/Error' }
+  /days:
+    get:
+      tags: [Cash drawer]
+      summary: Day history for a branch, newest first
+      parameters:
+        - in: query
+          name: branchId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 60 }
+      responses:
+        '200':
+          description: Days
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Day' }
+        '403': { $ref: '#/components/responses/Error' }
+  /days/open:
+    post:
+      tags: [Cash drawer]
+      summary: Open the day with a counted opening balance (idempotent)
+      description: |
+        The client chooses the day id (`id`) and repeats it as `Idempotency-Key`. One open day per branch and one day per
+        branch per `businessDate`. If the count differs from the previous day's closing count the day is flagged
+        `OPENING_DIFFERS` (never rejected). A command captured offline is flagged `OFFLINE_ENTRY`. Needs `days:manage`.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OpenDayRequest' }
+      responses:
+        '201': { description: Opened, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '200': { description: Already opened with this id (replay), content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /days/{id}/close:
+    post:
+      tags: [Cash drawer]
+      summary: Close the day with a counted closing balance (idempotent)
+      description: |
+        The server works out `expected` itself and stores expected, counted and the difference per note. A count is never
+        rejected for being different: a difference makes the sign-off `pending` for a manager (`days:signoff`), and a
+        pending sign-off never stops the next day from opening. Closing an already closed day with the same command id
+        returns it (200); with a different id it is `409 DAY_ALREADY_CLOSED`. Needs `days:manage`.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CloseDayRequest' }
+      responses:
+        '200': { description: Closed, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /days/{id}/movements:
+    post:
+      tags: [Cash drawer]
+      summary: Record cash put into or taken out of the drawer (idempotent)
+      description: Needs `days:manage`. The day must be open (`409 DAY_CLOSED` otherwise).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MovementRequest' }
+      responses:
+        '201': { description: Recorded, content: { application/json: { schema: { $ref: '#/components/schemas/MovementResponse' } } } }
+        '200': { description: Already recorded (replay), content: { application/json: { schema: { $ref: '#/components/schemas/MovementResponse' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /days/{id}/signoff:
+    post:
+      tags: [Cash drawer]
+      summary: A manager signs off a closing difference
+      description: Needs `days:signoff`. `409 NOTHING_TO_SIGN` when the day has no pending difference.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Signed off, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     bearerAuth:
@@ -356,12 +498,126 @@ components:
             displayName: { type: string }
         flags:
           type: array
-          items: { type: string, enum: [OFFLINE_ENTRY, CALC_MISMATCH, PRICE_STALE] }
+          items: { type: string, enum: [OFFLINE_ENTRY, CALC_MISMATCH, PRICE_STALE, NO_OPEN_DAY] }
     TransactionResponse:
       type: object
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/Transaction' }
+    DrawerLines:
+      type: object
+      description: 'Notes by denomination, e.g. {"100": 1688}. Keys are 200, 100, 50, 20, 10, 5. Counts are whole numbers; a balance can be negative (see NEGATIVE_NOTES).'
+      additionalProperties: { type: integer }
+    CountLines:
+      type: object
+      description: A count of notes. Counts are positive whole numbers; zero counts are left out.
+      additionalProperties: { type: integer, minimum: 1 }
+    Person:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+    Day:
+      type: object
+      required: [id, branchId, businessDate, status, opening, openedAt, openedBy, closing, flags]
+      properties:
+        id: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        businessDate: { type: string, format: date, description: 'Date in the branch local time' }
+        status: { type: string, enum: [open, closed] }
+        opening:
+          type: object
+          required: [lines, source]
+          properties:
+            lines: { $ref: '#/components/schemas/CountLines' }
+            source: { type: string, enum: [counted, carried], description: '`carried` = taken from the previous closing count unchanged' }
+        openedAt: { type: string, format: date-time }
+        openedBy: { $ref: '#/components/schemas/Person' }
+        closing:
+          nullable: true
+          type: object
+          required: [expected, counted, variance, varianceAmount, closedAt, closedBy, signoff]
+          properties:
+            expected: { $ref: '#/components/schemas/DrawerLines' }
+            counted: { $ref: '#/components/schemas/CountLines' }
+            variance: { $ref: '#/components/schemas/DrawerLines' }
+            varianceAmount: { type: string, description: 'Value of counted minus expected in GHS. Negative = short.' }
+            reason: { type: string, nullable: true }
+            closedAt: { type: string, format: date-time }
+            closedBy: { $ref: '#/components/schemas/Person' }
+            signoff:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [not_required, pending, signed] }
+                by: { allOf: [{ $ref: '#/components/schemas/Person' }], nullable: true }
+                at: { type: string, format: date-time, nullable: true }
+        flags:
+          type: array
+          items: { type: string, enum: [OFFLINE_ENTRY, OPENING_DIFFERS] }
+    Movement:
+      type: object
+      required: [id, dayId, kind, lines, note, capturedAt, createdBy]
+      properties:
+        id: { type: string, format: uuid }
+        dayId: { type: string, format: uuid }
+        kind: { type: string, enum: [topup, withdrawal] }
+        lines: { $ref: '#/components/schemas/CountLines' }
+        note: { type: string, maxLength: 200 }
+        capturedAt: { type: string, format: date-time }
+        createdBy: { $ref: '#/components/schemas/Person' }
+    DayState:
+      type: object
+      required: [day, balance, movements, appliedIds, carryOver, asOf]
+      properties:
+        day: { allOf: [{ $ref: '#/components/schemas/Day' }], nullable: true }
+        balance: { allOf: [{ $ref: '#/components/schemas/DrawerLines' }], nullable: true, description: 'Only while the day is open' }
+        movements: { type: array, items: { $ref: '#/components/schemas/Movement' } }
+        appliedIds: { type: array, items: { type: string }, description: 'Ids of transactions, movements and day commands already included' }
+        carryOver: { allOf: [{ $ref: '#/components/schemas/CountLines' }], nullable: true, description: 'Closing count of the last closed day' }
+        asOf: { type: string, format: date-time }
+    OpenDayRequest:
+      type: object
+      required: [id, branchId, businessDate, lines, source, capturedAt]
+      properties:
+        id: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        businessDate: { type: string, format: date }
+        lines: { $ref: '#/components/schemas/CountLines' }
+        source: { type: string, enum: [counted, carried] }
+        capturedAt: { type: string, format: date-time }
+    CloseDayRequest:
+      type: object
+      required: [id, dayId, branchId, counted, capturedAt]
+      properties:
+        id: { type: string, format: uuid, description: Command id, also the Idempotency-Key }
+        dayId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        counted: { $ref: '#/components/schemas/CountLines' }
+        reason: { type: string, nullable: true, maxLength: 500, description: 'The app asks for one whenever counted differs from what it expects' }
+        capturedAt: { type: string, format: date-time }
+    MovementRequest:
+      type: object
+      required: [id, dayId, branchId, kind, lines, note, capturedAt]
+      properties:
+        id: { type: string, format: uuid }
+        dayId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        kind: { type: string, enum: [topup, withdrawal] }
+        lines: { $ref: '#/components/schemas/CountLines' }
+        note: { type: string, minLength: 1, maxLength: 200 }
+        capturedAt: { type: string, format: date-time }
+    DayResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Day' }
+    MovementResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Movement' }
     ErrorResponse:
       type: object
       required: [error]
@@ -376,6 +632,7 @@ components:
                 Stable code. Slice 1: AUTH_INVALID_CREDENTIALS, AUTH_TOKEN_EXPIRED, AUTH_REFRESH_INVALID, AUTH_LOCKED,
                 FORBIDDEN, BRANCH_NOT_ASSIGNED, VALIDATION_FAILED, RATE_LIMITED, NOT_FOUND, INTERNAL.
                 Transactions add PAYOUT_MISMATCH (lines do not add up to payable, or payable is not a multiple of 5).
+                Cash drawer adds DAY_ALREADY_OPEN, DAY_ALREADY_CLOSED, DAY_CLOSED, NOTHING_TO_SIGN (all 409).
             message: { type: string, description: Safe to show to a person }
             fieldErrors:
               type: object

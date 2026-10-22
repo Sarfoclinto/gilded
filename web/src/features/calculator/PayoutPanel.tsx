@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { DENOMINATIONS, solveNotes, toPayable, type PayablePolicy, type SolveStrategy } from '@gold/core';
 import { Card } from '@/shared/ui/Card';
 import { cedis } from './format';
+import { useActiveDrawer } from '@/features/drawer/hooks';
+import { limitsFromBalance } from '@/features/drawer/projection';
+import { packText } from '@/features/transactions/format';
 import { useNoteLimits } from './useNoteLimits';
 
 const policyLabels: Record<PayablePolicy, string> = {
@@ -23,7 +26,11 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
   const [policy, setPolicy] = useState<PayablePolicy>('down');
   const [strategy, setStrategy] = useState<SolveStrategy>('prefer-100s');
   const [override, setOverride] = useState<{ forAmount: number; value: number } | null>(null);
-  const { draft, update, limits } = useNoteLimits();
+  const { draft, update, limits: draftLimits } = useNoteLimits();
+  // With an open day the drawer decides which notes exist. Without one, the per-device draft below is used.
+  const { view: drawer } = useActiveDrawer();
+  const balance = drawer.status === 'open' ? drawer.balance : null;
+  const limits = useMemo(() => (balance ? limitsFromBalance(balance) : draftLimits), [balance, draftLimits]);
 
   const rounded = useMemo(() => toPayable(amount, policy), [amount, policy]);
   // An override only applies to the amount it was chosen for.
@@ -137,34 +144,46 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
         </div>
       )}
 
-      <details className="text-sm">
-        <summary className="min-h-10 cursor-pointer py-2 font-medium">Notes available in the drawer</summary>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {DENOMINATIONS.map((d) => (
-            <div key={d} className="rounded-lg border border-border p-2">
-              <label className="flex items-center gap-2 font-medium">
+      {balance ? (
+        <details className="text-sm">
+          <summary className="min-h-10 cursor-pointer py-2 font-medium">Notes in the drawer</summary>
+          <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
+            {DENOMINATIONS.filter((d) => (balance[`${d}`] ?? 0) > 0).map((d) => (
+              <li key={d} className="flex items-center justify-between px-3 py-2">
+                <span className="font-medium">GHS {d}</span>
+                <span className="tnum text-muted-foreground">
+                  {balance[`${d}`]!.toLocaleString('en-GH')} · {packText(balance[`${d}`]!)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">From today's cash drawer, including payouts not sent yet.</p>
+        </details>
+      ) : (
+        <details className="text-sm">
+          <summary className="min-h-10 cursor-pointer py-2 font-medium">Notes available (no open day)</summary>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {DENOMINATIONS.map((d) => (
+              <div key={d} className="rounded-lg border border-border p-2">
+                <label className="flex items-center gap-2 font-medium">
+                  <input type="checkbox" className="h-5 w-5" checked={draft[d].enabled} onChange={(e) => update(d, { enabled: e.target.checked })} />
+                  GHS {d}
+                </label>
                 <input
-                  type="checkbox"
-                  className="h-5 w-5"
-                  checked={draft[d].enabled}
-                  onChange={(e) => update(d, { enabled: e.target.checked })}
+                  inputMode="numeric"
+                  placeholder="No limit"
+                  aria-label={`Count of GHS ${d} notes`}
+                  disabled={!draft[d].enabled}
+                  value={draft[d].count}
+                  onChange={(e) => update(d, { count: e.target.value.replace(/\D/g, '') })}
+                  className="tnum mt-2 min-h-10 w-full rounded-lg border border-border bg-card px-2 disabled:opacity-40"
                 />
-                GHS {d}
-              </label>
-              <input
-                inputMode="numeric"
-                placeholder="No limit"
-                aria-label={`Count of GHS ${d} notes`}
-                disabled={!draft[d].enabled}
-                value={draft[d].count}
-                onChange={(e) => update(d, { count: e.target.value.replace(/\D/g, '') })}
-                className="tnum mt-2 min-h-10 w-full rounded-lg border border-border bg-card px-2 disabled:opacity-40"
-              />
-            </div>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">Saved on this device until the cash drawer count is connected.</p>
-      </details>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Open the day in Cash drawer and the real notes are used instead.</p>
+        </details>
+      )}
     </Card>
   );
 }

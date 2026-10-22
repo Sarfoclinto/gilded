@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { calculate } from '@gold/core';
 import paths from '@/config/paths';
 import { useAuth } from '@/features/auth/store';
+import { useActiveDrawer } from '@/features/drawer/hooks';
 import { useCurrentPrice } from '@/features/prices/api';
 import { cedis } from '@/features/calculator/format';
 import { PayoutPanel, type PayoutSelection } from '@/features/calculator/PayoutPanel';
@@ -34,6 +35,9 @@ export default function NewTransactionPage() {
   const online = useConnectivity((s) => s.online);
   const priceQuery = useCurrentPrice(branchId);
   const outbox = useOutbox();
+  const { view: drawer, settled } = useActiveDrawer();
+  // Block only when we KNOW there is no open day. If the drawer was never loaded (first launch offline), allow it; the server flags it.
+  const dayBlocked = settled && (drawer.status === 'none' || drawer.status === 'closed');
 
   // One id per form session: tapping Save twice can only ever create one transaction.
   const txId = useRef(crypto.randomUUID());
@@ -60,7 +64,7 @@ export default function NewTransactionPage() {
     [],
   );
 
-  const canSave = !!branchId && name.trim().length > 0 && complete && total > 0 && payout !== null && outbox.ready && !saving;
+  const canSave = !!branchId && name.trim().length > 0 && complete && total > 0 && payout !== null && outbox.ready && !saving && !dayBlocked;
 
   async function save() {
     if (!canSave || !branchId || !payout) return;
@@ -91,6 +95,15 @@ export default function NewTransactionPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
       <h1 className="text-xl font-bold">New transaction</h1>
+
+      {dayBlocked ? (
+        <Card role="alert" className="flex items-center justify-between gap-3 border-amber-500/60 bg-amber-500/10">
+          <p className="text-sm">{drawer.status === 'closed' ? 'Today is closed.' : 'The day is not open.'} Open the day before paying customers.</p>
+          <Link to={paths.drawer.open.href}>
+            <Button variant="secondary">Open day</Button>
+          </Link>
+        </Card>
+      ) : null}
 
       <Card className="grid gap-3 sm:grid-cols-2">
         <TextField label="Customer name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />

@@ -107,3 +107,8 @@
     font-size: 16px !important;
   }
 }
+
+/* Table headers sit on navy, so their text must be light (SchoolMate sets this per table with .setup-table). */
+.ant-table-thead > tr > th {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
