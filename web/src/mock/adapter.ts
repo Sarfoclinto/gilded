@@ -1,6 +1,7 @@
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { PERMISSIONS } from '@/config/permissions';
 import { branches, prices, users } from './data';
+import { isMockDown } from './control';
 import { createTransaction, getTransaction, listTransactions } from './transactions';
 
 /**
@@ -43,6 +44,7 @@ const session = (userId: string) => {
 
 export const mockAdapter: AxiosAdapter = async (config) => {
   await sleep(120 + Math.random() * 180);
+  if (isMockDown()) return Promise.reject(new AxiosError('Network Error', 'ERR_NETWORK', config));
   const method = (config.method ?? 'get').toLowerCase();
   const path = (config.url ?? '').replace(/\?.*$/, '');
 

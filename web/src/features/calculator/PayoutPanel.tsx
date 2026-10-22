@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DENOMINATIONS, solveNotes, toPayable, type PayablePolicy, type SolveStrategy } from '@gold/core';
 import { Card } from '@/shared/ui/Card';
 import { cedis } from './format';
@@ -10,7 +10,16 @@ const policyLabels: Record<PayablePolicy, string> = {
   up: 'Round up (we absorb it)',
 };
 
-export function PayoutPanel({ amount }: { amount: number }) {
+export interface PayoutSelection {
+  policy: PayablePolicy;
+  strategy: SolveStrategy;
+  payable: string;
+  lines: Record<string, number>;
+  totalNotes: number;
+}
+
+/** Pass `onResult` to receive the current payout (or null when the drawer cannot make it), e.g. to save it. */
+export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (p: PayoutSelection | null) => void }) {
   const [policy, setPolicy] = useState<PayablePolicy>('down');
   const [strategy, setStrategy] = useState<SolveStrategy>('prefer-100s');
   const [override, setOverride] = useState<{ forAmount: number; value: number } | null>(null);
@@ -21,6 +30,13 @@ export function PayoutPanel({ amount }: { amount: number }) {
   const payable = override && override.forAmount === amount ? override.value : rounded.payable;
   const difference = payable - amount;
   const result = useMemo(() => solveNotes(payable, limits, strategy), [payable, limits, strategy]);
+
+  useEffect(() => {
+    if (!onResult) return;
+    if (!result.ok) return onResult(null);
+    const lines = Object.fromEntries(Object.entries(result.lines).filter(([, n]) => (n ?? 0) > 0)) as Record<string, number>;
+    onResult({ policy, strategy, payable: String(payable), lines, totalNotes: result.totalNotes });
+  }, [result, policy, strategy, payable, onResult]);
 
   return (
     <Card className="space-y-4">

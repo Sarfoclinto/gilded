@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { DENOMINATIONS, type Denomination, type NoteLimits } from '@gold/core';
 
 /**
@@ -45,5 +45,7 @@ export function useNoteLimits() {
       return next;
     });
   }, []);
-  return { draft, update, limits: toLimits(draft) };
+  // Memoised: the solver and the payout callback re-run when this changes, so it must be stable between renders.
+  const limits = useMemo(() => toLimits(draft), [draft]);
+  return { draft, update, limits };
 }

@@ -26,6 +26,7 @@ export function OutboxProvider({ handlers, onSynced, children }: Props) {
   const [outbox, setOutbox] = useState<Outbox | null>(null);
   const status = useAuth((s) => s.status);
   const setOnline = useConnectivity((s) => s.setOnline);
+  const online = useConnectivity((s) => s.online);
 
   useEffect(() => {
     instance ??= (async () => {
@@ -62,6 +63,13 @@ export function OutboxProvider({ handlers, onSynced, children }: Props) {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [outbox, status, setOnline]);
+
+  // The connection came back (browser event or our own detection): send what is waiting right away.
+  useEffect(() => {
+    if (online && outbox && status === 'authenticated' && outbox.getSnapshot().some((e) => e.status !== 'failed')) {
+      void outbox.flush({ force: true });
+    }
+  }, [online, outbox, status]);
 
   const value = useMemo(() => ({ outbox }), [outbox]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

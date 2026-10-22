@@ -19,14 +19,21 @@ npm run dev         # web on http://localhost:5173, uses the in-browser mock API
 Mock logins (password `gold`): `director`, `manager`, `teller` (teller sees only Tarkwa).
 `npm run dev` uses the mock automatically (see `web/.env.development`). To use the real API, create `web/.env.local` with `VITE_USE_MOCK=false` and `VITE_API_URL=...`.
 
+## Try the offline behaviour
+In the header, the green "Online (demo toggle)" badge pretends the server is unreachable when tapped. Save a transaction
+while "Offline", reload the page (it survives, it is in IndexedDB), then tap the badge again: it syncs, gets its number
+(e.g. TKW-20261022-0001) and the "waiting" chip disappears.
+
 ## Web structure
 ```
 web/src
   app/            providers (query, auth), router and guards, route table
-  features/       auth, branches, prices, calculator, dashboard (each owns its api, hooks, pages)
+  config/         paths.ts (every URL), permissions.ts (resource:action keys)
+  features/       auth, branches, prices, calculator, transactions, dashboard (each owns its api, hooks, pages)
   layouts/        AppShell (phone tabs, desktop rail, branch switcher, online badge)
   shared/api/     client (validated requests, ApiError, refresh), hooks, createResource (CRUD helper)
-  shared/ui/      small components     shared/offline/  connectivity
+  shared/ui/      small components
+  shared/offline/ connectivity, outbox (IndexedDB command queue), OutboxProvider
   mock/           in-browser API for development
 ```
 Adding a page: create it under `features/<name>/`, add one entry to `app/router/routes.tsx` with its `access` rule.

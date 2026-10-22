@@ -17,6 +17,9 @@ export interface AppRoute {
 
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const CalculatorPage = lazy(() => import('@/features/calculator/CalculatorPage'));
+const TransactionsPage = lazy(() => import('@/features/transactions/pages/TransactionsPage'));
+const NewTransactionPage = lazy(() => import('@/features/transactions/pages/NewTransactionPage'));
+const TransactionDetailPage = lazy(() => import('@/features/transactions/pages/TransactionDetailPage'));
 
 export const appRoutes: AppRoute[] = [
   { path: paths.home.href, element: <DashboardPage />, nav: { label: paths.home.label } },
@@ -25,6 +28,22 @@ export const appRoutes: AppRoute[] = [
     element: <CalculatorPage />,
     access: { permission: PERMISSIONS.CALCULATOR_USE },
     nav: { label: paths.calculator.label },
+  },
+  {
+    path: paths.transactions.list.href,
+    element: <TransactionsPage />,
+    access: { permission: PERMISSIONS.TRANSACTIONS_READ },
+    nav: { label: paths.transactions.list.label },
+  },
+  {
+    path: paths.transactions.create.href,
+    element: <NewTransactionPage />,
+    access: { permission: PERMISSIONS.TRANSACTIONS_CREATE },
+  },
+  {
+    path: paths.transactions.detail.href,
+    element: <TransactionDetailPage />,
+    access: { permission: PERMISSIONS.TRANSACTIONS_READ },
   },
 ];
 
