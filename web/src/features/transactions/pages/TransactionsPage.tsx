@@ -16,11 +16,11 @@ import { SyncChip } from '../SyncChip';
 function Row({ t }: { t: TransactionView }) {
   return (
     <li>
-      <Link to={paths.transactions.detail.to(t.id)} className="block rounded-xl border border-line bg-surface p-3 active:bg-line/40">
+      <Link to={paths.transactions.detail.to(t.id)} className="block rounded-xl border border-border bg-card p-3 active:bg-muted">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="truncate font-semibold">{t.customerName}</div>
-            <div className="text-xs text-muted">
+            <div className="text-xs text-muted-foreground">
               {t.reference ?? 'Not numbered yet'} · {when(t.capturedAt)} · {t.items.length} item{t.items.length > 1 ? 's' : ''}
             </div>
           </div>
@@ -64,7 +64,7 @@ export default function TransactionsPage() {
       {outbox.failed.map((e) => (
         <Card key={e.id} className="space-y-2 border-red-500/50 bg-red-500/10" role="alert">
           <p className="text-sm font-medium">The server refused one transaction</p>
-          <p className="text-xs text-muted">{e.lastError?.message ?? 'Unknown reason'}</p>
+          <p className="text-xs text-muted-foreground">{e.lastError?.message ?? 'Unknown reason'}</p>
           <div className="flex gap-2">
             <Link to={paths.transactions.detail.to(e.id)}>
               <Button variant="secondary">View</Button>
@@ -76,9 +76,9 @@ export default function TransactionsPage() {
         </Card>
       ))}
 
-      {query.isLoading && rows.length === 0 ? <p className="text-sm text-muted">Loading…</p> : null}
+      {query.isLoading && rows.length === 0 ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
       {query.error && rows.length === 0 ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{errorMessage(query.error)}</p> : null}
-      {!query.isLoading && !query.error && rows.length === 0 ? <p className="text-sm text-muted">No transactions yet.</p> : null}
+      {!query.isLoading && !query.error && rows.length === 0 ? <p className="text-sm text-muted-foreground">No transactions yet.</p> : null}
 
       <ul className="space-y-2">
         {rows.map((t) => (

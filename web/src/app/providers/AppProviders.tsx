@@ -4,6 +4,7 @@ import { AppErrorFallback } from '@/shared/ui/ErrorPages';
 import { ToastViewport } from '@/shared/ui/toast';
 import { AuthBootstrap } from '@/features/auth/AuthBootstrap';
 import { OutboxProvider } from '@/shared/offline/OutboxProvider';
+import { AntdConfig } from './AntdConfig';
 import { QueryProvider } from './QueryProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -14,9 +15,11 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <ErrorBoundary FallbackComponent={AppErrorFallback}>
       <QueryProvider>
+        <AntdConfig>
         <AuthBootstrap>
           <WithOutbox>{children}</WithOutbox>
         </AuthBootstrap>
+        </AntdConfig>
         <ToastViewport />
       </QueryProvider>
     </ErrorBoundary>

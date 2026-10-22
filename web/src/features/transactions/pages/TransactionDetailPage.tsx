@@ -15,7 +15,7 @@ export default function TransactionDetailPage() {
   const { view: t, isLoading, error } = useTransactionView(id);
   const outbox = useOutbox();
 
-  if (isLoading) return <p className="p-4 text-sm text-muted">Loading…</p>;
+  if (isLoading) return <p className="p-4 text-sm text-muted-foreground">Loading…</p>;
   if (!t) {
     return (
       <div className="p-4" role="alert">
@@ -30,13 +30,13 @@ export default function TransactionDetailPage() {
   const diff = Number(t.payout.difference);
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
-      <Link to={paths.transactions.list.href} className="text-sm text-muted underline">
+      <Link to={paths.transactions.list.href} className="text-sm text-muted-foreground underline">
         ← Transactions
       </Link>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{t.customerName}</h1>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {t.reference ?? 'Not numbered yet'} · {when(t.capturedAt)}
             {t.customerPhone ? ` · ${t.customerPhone}` : ''}
           </p>
@@ -57,7 +57,7 @@ export default function TransactionDetailPage() {
       {t.sync === 'failed' ? (
         <Card className="space-y-2 border-red-500/50 bg-red-500/10 text-sm" role="alert">
           <p className="font-medium">The server refused this transaction.</p>
-          <p className="text-muted">{t.error}</p>
+          <p className="text-muted-foreground">{t.error}</p>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => void outbox.retry(t.id)}>
               Try again
@@ -80,24 +80,24 @@ export default function TransactionDetailPage() {
       ))}
 
       <Card>
-        <div className="text-sm text-muted">Calculated</div>
+        <div className="text-sm text-muted-foreground">Calculated</div>
         <div className="tnum text-xl font-semibold">{cedis(t.calculatedAmount)}</div>
-        <div className="mt-3 text-sm text-muted">To pay</div>
+        <div className="mt-3 text-sm text-muted-foreground">To pay</div>
         <div className="tnum text-3xl font-bold">{cedis(t.payout.payable)}</div>
         {diff !== 0 ? (
-          <div className="tnum text-xs text-muted">{diff < 0 ? `${cedis(-diff)} less than calculated` : `${cedis(diff)} absorbed by the business`}</div>
+          <div className="tnum text-xs text-muted-foreground">{diff < 0 ? `${cedis(-diff)} less than calculated` : `${cedis(diff)} absorbed by the business`}</div>
         ) : null}
       </Card>
 
       <Card className="space-y-3">
         <h2 className="text-base font-semibold">Items</h2>
         {t.items.map((i, n) => (
-          <div key={i.id} className="rounded-lg border border-line p-3 text-sm">
+          <div key={i.id} className="rounded-lg border border-border p-3 text-sm">
             <div className="flex justify-between font-medium">
               <span>{i.label || `Item ${n + 1}`}</span>
               <span className="tnum">{i.result ? cedis(i.result.amount) : '—'}</span>
             </div>
-            <div className="tnum mt-1 text-xs text-muted">
+            <div className="tnum mt-1 text-xs text-muted-foreground">
               Top {i.top} g · Down {i.down} g · {cedis(i.price)}/lb
               {i.result ? ` · ${i.result.karat} karat · ${percent(i.result.purity)} · net ${i.result.netWeight} g · ${i.result.pounds} lb` : ''}
             </div>
@@ -107,21 +107,21 @@ export default function TransactionDetailPage() {
 
       <Card>
         <h2 className="mb-2 text-base font-semibold">Notes paid out</h2>
-        <ul className="divide-y divide-line text-sm">
+        <ul className="divide-y divide-border text-sm">
           {Object.entries(t.payout.lines)
             .sort((a, b) => Number(b[0]) - Number(a[0]))
             .map(([d, n]) => (
               <li key={d} className="flex items-center justify-between py-2">
                 <div>
                   <div className="font-semibold">GHS {d} × {n}</div>
-                  <div className="text-xs text-muted">{packText(n)}</div>
+                  <div className="text-xs text-muted-foreground">{packText(n)}</div>
                 </div>
-                <div className="tnum text-muted">{cedis(Number(d) * n)}</div>
+                <div className="tnum text-muted-foreground">{cedis(Number(d) * n)}</div>
               </li>
             ))}
         </ul>
         <p className="tnum mt-2 text-right text-sm">
-          <span className="text-muted">Total pieces </span>
+          <span className="text-muted-foreground">Total pieces </span>
           <strong>{t.payout.totalNotes.toLocaleString('en-GH')}</strong>
         </p>
       </Card>

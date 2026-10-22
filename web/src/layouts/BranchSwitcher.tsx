@@ -16,7 +16,7 @@ export function BranchSwitcher() {
       aria-label="Branch"
       value={activeBranchId ?? ''}
       onChange={(e) => setActiveBranch(e.target.value)}
-      className="min-h-10 rounded-lg border border-line bg-surface px-2 text-sm"
+      className="min-h-10 rounded-lg border border-border bg-card px-2 text-sm font-medium"
     >
       {mine.map((b) => (
         <option key={b.id} value={b.id}>

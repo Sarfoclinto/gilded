@@ -105,7 +105,7 @@ export default function NewTransactionPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">Item {idx + 1}</h2>
               {items.length > 1 ? (
-                <button className="min-h-10 rounded-lg px-3 text-sm text-muted hover:bg-line/40" onClick={() => setItems((p) => p.filter((x) => x.id !== it.id))}>
+                <button className="min-h-10 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted" onClick={() => setItems((p) => p.filter((x) => x.id !== it.id))}>
                   Remove
                 </button>
               ) : null}
@@ -129,7 +129,7 @@ export default function NewTransactionPage() {
               </p>
             ))}
             <div className="tnum flex items-baseline justify-between text-sm">
-              <span className="text-muted">{r.karat ? `${r.karat} karat · ${r.netWeight} g net` : 'Fill in the weights'}</span>
+              <span className="text-muted-foreground">{r.karat ? `${r.karat} karat · ${r.netWeight} g net` : 'Fill in the weights'}</span>
               <strong className="text-lg">{r.amount ? cedis(r.amount) : '—'}</strong>
             </div>
           </Card>
@@ -141,18 +141,18 @@ export default function NewTransactionPage() {
       </Button>
 
       <Card className="flex items-baseline justify-between">
-        <span className="text-sm text-muted">Total ({items.length} item{items.length > 1 ? 's' : ''})</span>
+        <span className="text-sm text-muted-foreground">Total ({items.length} item{items.length > 1 ? 's' : ''})</span>
         <span className="tnum text-3xl font-bold">{complete && total > 0 ? cedis(total) : '—'}</span>
       </Card>
 
       {complete && total > 0 ? <PayoutPanel amount={total} onResult={onPayout} /> : null}
 
-      <div className="sticky bottom-0 -mx-4 border-t border-line bg-bg/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
         {!online ? <p className="mb-2 text-center text-xs text-amber-700 dark:text-amber-300">Offline: this will be saved on this device and sent later.</p> : null}
         <Button className="w-full" onClick={() => void save()} disabled={!canSave} loading={saving}>
           Save transaction
         </Button>
-        {!outbox.durable ? <p className="mt-2 text-center text-xs text-muted">This browser cannot keep offline data after you close it.</p> : null}
+        {!outbox.durable ? <p className="mt-2 text-center text-xs text-muted-foreground">This browser cannot keep offline data after you close it.</p> : null}
       </div>
     </div>
   );

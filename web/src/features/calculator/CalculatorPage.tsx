@@ -72,7 +72,7 @@ export default function CalculatorPage() {
       ))}
 
       <Card>
-        <div className="text-sm text-muted">Amount</div>
+        <div className="text-sm text-muted-foreground">Amount</div>
         <div className="tnum text-4xl font-bold">{amount === null ? '—' : cedis(amount)}</div>
         <dl className="tnum mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
           {[
@@ -83,7 +83,7 @@ export default function CalculatorPage() {
             ['Pounds', r.pounds],
           ].map(([label, value]) => (
             <div key={label}>
-              <dt className="text-muted">{label}</dt>
+              <dt className="text-muted-foreground">{label}</dt>
               <dd className="font-semibold">{value ?? '—'}</dd>
             </div>
           ))}

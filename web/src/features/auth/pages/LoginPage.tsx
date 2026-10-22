@@ -27,7 +27,7 @@ export default function LoginPage() {
     <main className="grid min-h-full place-items-center p-4">
       <Card className="w-full max-w-sm">
         <h1 className="text-xl font-bold">Gold Valuation</h1>
-        <p className="mb-4 text-sm text-muted">Sign in to continue</p>
+        <p className="mb-4 text-sm text-muted-foreground">Sign in to continue</p>
         <form onSubmit={submit} className="space-y-3" noValidate>
           <TextField
             label="Username"

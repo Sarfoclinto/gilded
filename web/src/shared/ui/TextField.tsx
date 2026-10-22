@@ -18,14 +18,14 @@ export function TextField({
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-e` : hint ? `${id}-h` : undefined}
         {...rest}
-        className="min-h-11 w-full rounded-lg border border-line bg-surface px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 aria-[invalid=true]:border-red-500"
+        className="min-h-11 w-full rounded-lg border border-border bg-card px-3 text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 aria-[invalid=true]:border-red-500"
       />
       {error ? (
         <p id={`${id}-e`} className="mt-1 text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-h`} className="mt-1 text-xs text-muted">
+        <p id={`${id}-h`} className="mt-1 text-xs text-muted-foreground">
           {hint}
         </p>
       ) : null}

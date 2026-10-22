@@ -46,7 +46,7 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
         <label className="text-sm">
           <span className="mb-1 block font-medium">Rounding</span>
           <select
-            className="min-h-11 w-full rounded-lg border border-line bg-surface px-2"
+            className="min-h-11 w-full rounded-lg border border-border bg-card px-2"
             value={policy}
             onChange={(e) => {
               setOverride(null);
@@ -63,7 +63,7 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
         <label className="text-sm">
           <span className="mb-1 block font-medium">Notes</span>
           <select
-            className="min-h-11 w-full rounded-lg border border-line bg-surface px-2"
+            className="min-h-11 w-full rounded-lg border border-border bg-card px-2"
             value={strategy}
             onChange={(e) => setStrategy(e.target.value as SolveStrategy)}
           >
@@ -74,23 +74,23 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
       </div>
 
       <div className="flex items-baseline justify-between">
-        <span className="text-sm text-muted">To pay</span>
+        <span className="text-sm text-muted-foreground">To pay</span>
         <span className="tnum text-2xl font-bold">{cedis(payable)}</span>
       </div>
       {difference !== 0 ? (
-        <p className="tnum -mt-3 text-right text-xs text-muted">
+        <p className="tnum -mt-3 text-right text-xs text-muted-foreground">
           {difference < 0 ? `${cedis(-difference)} less than calculated` : `${cedis(difference)} absorbed by the business`}
         </p>
       ) : null}
 
       {result.ok ? (
         <div>
-          <ul className="divide-y divide-line rounded-lg border border-line">
+          <ul className="divide-y divide-border rounded-lg border border-border">
             {result.display.map((row) => (
               <li key={row.denomination} className="flex items-center justify-between gap-3 px-3 py-2.5">
                 <div>
                   <div className="font-semibold">GHS {row.denomination} × {row.total}</div>
-                  <div className="text-xs text-muted">
+                  <div className="text-xs text-muted-foreground">
                     {[
                       row.packs ? `${row.packs} pack${row.packs > 1 ? 's' : ''}` : null,
                       row.bundles ? `${row.bundles} bundle${row.bundles > 1 ? 's' : ''}` : null,
@@ -100,12 +100,12 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
                       .join(', ')}
                   </div>
                 </div>
-                <div className="tnum text-sm text-muted">{cedis(row.value)}</div>
+                <div className="tnum text-sm text-muted-foreground">{cedis(row.value)}</div>
               </li>
             ))}
           </ul>
           <p className="tnum mt-2 text-right text-sm">
-            <span className="text-muted">Total pieces </span>
+            <span className="text-muted-foreground">Total pieces </span>
             <strong>{result.totalNotes.toLocaleString('en-GH')}</strong>
           </p>
         </div>
@@ -118,7 +118,7 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
             <div className="mt-2 flex flex-wrap gap-2">
               {result.nearestBelow != null ? (
                 <button
-                  className="min-h-10 rounded-lg border border-line bg-surface px-3"
+                  className="min-h-10 rounded-lg border border-border bg-card px-3"
                   onClick={() => setOverride({ forAmount: amount, value: result.nearestBelow! })}
                 >
                   Pay {cedis(result.nearestBelow)}
@@ -126,7 +126,7 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
               ) : null}
               {result.nearestAbove != null ? (
                 <button
-                  className="min-h-10 rounded-lg border border-line bg-surface px-3"
+                  className="min-h-10 rounded-lg border border-border bg-card px-3"
                   onClick={() => setOverride({ forAmount: amount, value: result.nearestAbove! })}
                 >
                   Pay {cedis(result.nearestAbove)}
@@ -141,7 +141,7 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
         <summary className="min-h-10 cursor-pointer py-2 font-medium">Notes available in the drawer</summary>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {DENOMINATIONS.map((d) => (
-            <div key={d} className="rounded-lg border border-line p-2">
+            <div key={d} className="rounded-lg border border-border p-2">
               <label className="flex items-center gap-2 font-medium">
                 <input
                   type="checkbox"
@@ -158,12 +158,12 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
                 disabled={!draft[d].enabled}
                 value={draft[d].count}
                 onChange={(e) => update(d, { count: e.target.value.replace(/\D/g, '') })}
-                className="tnum mt-2 min-h-10 w-full rounded-lg border border-line bg-surface px-2 disabled:opacity-40"
+                className="tnum mt-2 min-h-10 w-full rounded-lg border border-border bg-card px-2 disabled:opacity-40"
               />
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">Saved on this device until the cash drawer count is connected.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Saved on this device until the cash drawer count is connected.</p>
       </details>
     </Card>
   );

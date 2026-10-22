@@ -1,44 +1,109 @@
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/dm-sans/700.css";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./styles/antd-theme.css";
+
+@custom-variant dark (&: is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  /* Gold: accent for links, active states and highlights. */
+  --color-brand: #8b6914;
+  --color-brand-ink: #ffffff;
+  --color-gold: #c9a84c;
+  --color-navy: #0d1b2e;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", serif;
+}
 
 :root {
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-ink: #0f172a;
-  --color-muted: #64748b;
-  --color-line: #e2e8f0;
-  --color-brand: #b45309;
-  --color-brand-ink: #ffffff;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-bg: #0b1220;
-    --color-surface: #111a2e;
-    --color-ink: #e5e7eb;
-    --color-muted: #94a3b8;
-    --color-line: #1e293b;
-    --color-brand: #f59e0b;
-    --color-brand-ink: #0b1220;
-  }
-}
-@theme inline {
-  --color-bg: var(--color-bg);
-  --color-surface: var(--color-surface);
-  --color-ink: var(--color-ink);
-  --color-muted: var(--color-muted);
-  --color-line: var(--color-line);
-  --color-brand: var(--color-brand);
-  --color-brand-ink: var(--color-brand-ink);
+  --radius: 0.625rem;
+  --background: #f4f6fa;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+  --primary: #0d1b2e;
+  --primary-foreground: #ffffff;
+  --secondary: #e8edf5;
+  --secondary-foreground: #0d1b2e;
+  --muted: #eef2f8;
+  --muted-foreground: #64748b;
+  --accent: #eef2f8;
+  --accent-foreground: #0d1b2e;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #1e3a5f;
 }
 
-html, body, #root { height: 100%; }
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  -webkit-text-size-adjust: 100%;
-  overscroll-behavior-y: none;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
-/* 16px inputs stop iOS Safari zooming the page when a field is focused. */
-input, select, textarea { font-size: 16px; }
-.tnum { font-variant-numeric: tabular-nums; }
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The theme sets inputs to 13.5px. iOS Safari zooms the page when a focused field is under 16px,
+   which is painful on the till, so on phones and tablets inputs stay at 16px. */
+@media (max-width: 1023px) {
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-input-number-input,
+  .ant-picker,
+  .ant-picker input,
+  .ant-select-selection-search-input,
+  .ant-select-selection-item,
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

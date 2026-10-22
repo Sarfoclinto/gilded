@@ -31,7 +31,8 @@ export function ConnectionBadge() {
           className={cls}
         >
           {dot}
-          {online ? 'Online' : 'Offline'} (demo toggle)
+          {online ? 'Online' : 'Offline'}
+          <span className="hidden sm:inline"> (demo toggle)</span>
         </button>
       ) : (
         <span role="status" className={cls}>

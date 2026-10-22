@@ -47,7 +47,7 @@ export function AuthBootstrap({ children }: PropsWithChildren) {
 
   if (status === 'booting') {
     return (
-      <div className="grid h-full place-items-center text-sm text-muted" role="status">
+      <div className="grid h-full place-items-center text-sm text-muted-foreground" role="status">
         Starting…
       </div>
     );
