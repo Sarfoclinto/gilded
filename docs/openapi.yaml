@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
-    Slice 1 only: authentication, current user, branches and the current price.
+    Slices 1 and 2: authentication, current user, branches, the current price and saved transactions.
 
     Conventions
     - Success: HTTP 2xx with `{ "data": ..., "meta": { ... } }`. `meta` is optional.
@@ -21,6 +21,7 @@ tags:
   - name: Me
   - name: Branches
   - name: Prices
+  - name: Transactions
 security:
   - bearerAuth: []
 paths:
@@ -114,6 +115,82 @@ paths:
                   data: { $ref: '#/components/schemas/CurrentPrice' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
+  /transactions:
+    get:
+      tags: [Transactions]
+      summary: Transactions for a branch, newest first
+      parameters:
+        - in: query
+          name: branchId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Transaction' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Transactions]
+      summary: Save a transaction (idempotent)
+      description: |
+        The client generates the transaction id and sends it again as `Idempotency-Key`. Sending the same key twice
+        returns the stored transaction (200) instead of creating a second one (201), so a retry after a lost
+        connection can never double-pay. The server recomputes every figure with the same ExcelV1 rules; if its
+        amount differs from `clientAmount` it keeps its own and adds the flag `CALC_MISMATCH`. A transaction
+        captured offline is never rejected for being late: it is saved and flagged `OFFLINE_ENTRY`.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: X-Client-Time
+          schema: { type: string, format: date-time }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTransactionRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransactionResponse' }
+        '200':
+          description: Already saved (idempotent replay)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransactionResponse' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /transactions/{id}:
+    get:
+      tags: [Transactions]
+      summary: One transaction
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The transaction
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransactionResponse' }
+        '404': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     bearerAuth:
@@ -184,6 +261,107 @@ components:
           enum: [approved, provisional]
           description: Provisional means the director has not approved the margin yet.
         asOf: { type: string, format: date-time }
+    PayoutPolicy:
+      type: string
+      enum: [down, up, nearest]
+    SolveStrategy:
+      type: string
+      enum: [fewest-notes, prefer-100s]
+    NoteLines:
+      type: object
+      description: 'Notes handed over, keyed by denomination, for example 100 maps to 1688'
+      additionalProperties: { type: integer, minimum: 1 }
+    ItemInput:
+      type: object
+      required: [id, top, down, price]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, nullable: true, maxLength: 80 }
+        top: { type: string, example: '7.77' }
+        down: { type: string, example: '0.41' }
+        price: { type: string, example: '11650' }
+    ItemResult:
+      type: object
+      required: [density, karat, purity, netWeight, pounds, amount]
+      properties:
+        density: { type: string }
+        karat: { type: string }
+        purity: { type: string, description: 'Fraction, for example 0.9733' }
+        netWeight: { type: string }
+        pounds: { type: string }
+        amount: { type: string }
+    Item:
+      allOf:
+        - $ref: '#/components/schemas/ItemInput'
+        - type: object
+          required: [result]
+          properties:
+            result: { $ref: '#/components/schemas/ItemResult' }
+    PayoutInput:
+      type: object
+      required: [policy, strategy, payable, lines]
+      properties:
+        policy: { $ref: '#/components/schemas/PayoutPolicy' }
+        strategy: { $ref: '#/components/schemas/SolveStrategy' }
+        payable: { type: string, description: 'Whole cedis, a multiple of 5' }
+        lines: { $ref: '#/components/schemas/NoteLines' }
+    Payout:
+      allOf:
+        - $ref: '#/components/schemas/PayoutInput'
+        - type: object
+          required: [difference, totalNotes]
+          properties:
+            difference: { type: string, description: 'payable minus calculated amount; negative when the customer is paid less' }
+            totalNotes: { type: integer }
+    CreateTransactionRequest:
+      type: object
+      required: [id, branchId, customerName, items, clientAmount, payout, capturedAt, priceAsOf]
+      properties:
+        id: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        customerName: { type: string, minLength: 1, maxLength: 120 }
+        customerPhone: { type: string, nullable: true, maxLength: 32 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: '#/components/schemas/ItemInput' }
+        clientAmount: { type: string, description: 'Total the device calculated, used to detect disagreement' }
+        payout: { $ref: '#/components/schemas/PayoutInput' }
+        capturedAt: { type: string, format: date-time, description: 'Device time when the teller saved it' }
+        priceAsOf: { type: string, format: date-time, description: 'When the price used was published' }
+    Transaction:
+      type: object
+      required: [id, branchId, reference, customerName, status, items, formulaVersion, calculatedAmount, payout, capturedAt, createdAt, createdBy, flags]
+      properties:
+        id: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        reference: { type: string, example: TKW-20261022-0007 }
+        customerName: { type: string }
+        customerPhone: { type: string, nullable: true }
+        status: { type: string, enum: [saved, paid, void] }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Item' }
+        formulaVersion: { type: string, example: ExcelV1 }
+        calculatedAmount: { type: string }
+        payout: { $ref: '#/components/schemas/Payout' }
+        capturedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdBy:
+          type: object
+          required: [id, displayName]
+          properties:
+            id: { type: string, format: uuid }
+            displayName: { type: string }
+        flags:
+          type: array
+          items: { type: string, enum: [OFFLINE_ENTRY, CALC_MISMATCH, PRICE_STALE] }
+    TransactionResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Transaction' }
     ErrorResponse:
       type: object
       required: [error]
@@ -197,6 +375,7 @@ components:
               description: |
                 Stable code. Slice 1: AUTH_INVALID_CREDENTIALS, AUTH_TOKEN_EXPIRED, AUTH_REFRESH_INVALID, AUTH_LOCKED,
                 FORBIDDEN, BRANCH_NOT_ASSIGNED, VALIDATION_FAILED, RATE_LIMITED, NOT_FOUND, INTERNAL.
+                Transactions add PAYOUT_MISMATCH (lines do not add up to payable, or payable is not a multiple of 5).
             message: { type: string, description: Safe to show to a person }
             fieldErrors:
               type: object

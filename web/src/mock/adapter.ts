@@ -1,5 +1,7 @@
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+import { PERMISSIONS } from '@/config/permissions';
 import { branches, prices, users } from './data';
+import { createTransaction, getTransaction, listTransactions } from './transactions';
 
 /**
  * In-browser stand-in for the API, following docs/openapi.yaml. It lets the whole UI be built and
@@ -94,6 +96,32 @@ export const mockAdapter: AxiosAdapter = async (config) => {
         asOf: new Date().toISOString(),
       },
     });
+  }
+
+  const can = (p: string) => user.permissions.includes(p);
+  const failer = (status: number, code: string, message: string, fieldErrors?: Record<string, string[]>) =>
+    fail(config, status, code, message, fieldErrors);
+
+  if (method === 'get' && path === '/transactions') {
+    if (!can(PERMISSIONS.TRANSACTIONS_READ)) return fail(config, 403, 'FORBIDDEN', 'You cannot view transactions.');
+    const branchId = String(config.params?.branchId ?? '');
+    if (!user.branchIds.includes(branchId)) return fail(config, 403, 'BRANCH_NOT_ASSIGNED', 'You are not assigned to this branch.');
+    return ok(config, 200, { data: listTransactions(branchId, Number(config.params?.limit ?? 50)) });
+  }
+
+  if (method === 'post' && path === '/transactions') {
+    if (!can(PERMISSIONS.TRANSACTIONS_CREATE)) return fail(config, 403, 'FORBIDDEN', 'You cannot create transactions.');
+    const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+    const res = await createTransaction(body, user, failer);
+    return ok(config, res.status, { data: res.data });
+  }
+
+  const one = /^\/transactions\/([^/]+)$/.exec(path);
+  if (method === 'get' && one) {
+    if (!can(PERMISSIONS.TRANSACTIONS_READ)) return fail(config, 403, 'FORBIDDEN', 'You cannot view transactions.');
+    const tx = getTransaction(decodeURIComponent(one[1]!));
+    if (!tx || !user.branchIds.includes(tx.branchId)) return fail(config, 404, 'NOT_FOUND', 'Transaction not found.');
+    return ok(config, 200, { data: tx });
   }
 
   return fail(config, 404, 'NOT_FOUND', `Mock has no ${method.toUpperCase()} ${path}`);
