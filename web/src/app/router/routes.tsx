@@ -1,4 +1,6 @@
 import { lazy, type ReactNode } from 'react';
+import paths from '@/config/paths';
+import { PERMISSIONS } from '@/config/permissions';
 import type { Access } from '@/features/auth/access';
 import { RequireAccess } from './guards';
 
@@ -10,19 +12,19 @@ export interface AppRoute {
   path: string;
   element: ReactNode;
   access?: Access;
-  nav?: { label: string; short?: string };
+  nav?: { label: string };
 }
 
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const CalculatorPage = lazy(() => import('@/features/calculator/CalculatorPage'));
 
 export const appRoutes: AppRoute[] = [
-  { path: '/', element: <DashboardPage />, nav: { label: 'Home' } },
+  { path: paths.home.href, element: <DashboardPage />, nav: { label: paths.home.label } },
   {
-    path: '/calculator',
+    path: paths.calculator.href,
     element: <CalculatorPage />,
-    access: { permission: 'calculator.use' },
-    nav: { label: 'Calculator' },
+    access: { permission: PERMISSIONS.CALCULATOR_USE },
+    nav: { label: paths.calculator.label },
   },
 ];
 

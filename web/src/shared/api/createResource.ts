@@ -26,8 +26,10 @@ export function createResource<TItem extends { id: string }>(cfg: ResourceConfig
   const listSchema = z.array(cfg.itemSchema);
 
   const api = {
-    list: (params?: Record<string, unknown>) => request({ method: 'get', url: cfg.path, params }, listSchema),
-    get: (id: string) => request({ method: 'get', url: `${cfg.path}/${id}` }, cfg.itemSchema),
+    list: (params?: Record<string, unknown>, signal?: AbortSignal) =>
+      request({ method: 'get', url: cfg.path, params, signal }, listSchema),
+    get: (id: string, signal?: AbortSignal) =>
+      request({ method: 'get', url: `${cfg.path}/${id}`, signal }, cfg.itemSchema),
     create: <TBody>(body: TBody, idempotencyKey?: string) =>
       request(
         {
@@ -47,9 +49,9 @@ export function createResource<TItem extends { id: string }>(cfg: ResourceConfig
     keys,
     api,
     useList: (params?: Record<string, unknown>) =>
-      useApiQuery({ queryKey: keys.list(params), queryFn: () => api.list(params) }),
+      useApiQuery({ queryKey: keys.list(params), queryFn: ({ signal }) => api.list(params, signal) }),
     useDetail: (id: string | undefined) =>
-      useApiQuery({ queryKey: keys.detail(id ?? ''), queryFn: () => api.get(id as string), enabled: !!id }),
+      useApiQuery({ queryKey: keys.detail(id ?? ''), queryFn: ({ signal }) => api.get(id as string, signal), enabled: !!id }),
     useCreate: <TBody>() =>
       useApiMutation<TItem, TBody>({
         mutationFn: (body) => api.create(body, crypto.randomUUID()),

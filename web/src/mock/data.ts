@@ -1,3 +1,4 @@
+import { PERMISSIONS as P } from '@/config/permissions';
 import type { Role } from '@/features/auth/schemas';
 
 export const KUMASI = '11111111-1111-4111-8111-111111111111';
@@ -8,7 +9,7 @@ export const branches = [
   { id: TARKWA, name: 'Tarkwa', code: 'TKW', isMain: false },
 ];
 
-const base = ['calculator.use', 'transactions.view', 'transactions.create'];
+const base: string[] = [P.CALCULATOR_USE, P.TRANSACTIONS_READ, P.TRANSACTIONS_CREATE];
 
 export const users: Array<{
   id: string;
@@ -23,7 +24,7 @@ export const users: Array<{
     username: 'director',
     displayName: 'Director',
     role: 'director',
-    permissions: [...base, 'prices.approve', 'kumasi.setValue', 'reports.view', 'users.manage'],
+    permissions: [...base, P.PRICES_APPROVE, P.KUMASI_SET_VALUE, P.REPORTS_READ, P.USERS_MANAGE],
     branchIds: [KUMASI, TARKWA],
   },
   {
@@ -31,7 +32,7 @@ export const users: Array<{
     username: 'manager',
     displayName: 'Manager',
     role: 'manager',
-    permissions: [...base, 'kumasi.setValue', 'reports.view'],
+    permissions: [...base, P.KUMASI_SET_VALUE, P.REPORTS_READ],
     branchIds: [KUMASI, TARKWA],
   },
   {

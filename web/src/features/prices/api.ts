@@ -20,7 +20,8 @@ export const priceKeys = {
 export function useCurrentPrice(branchId: string | null) {
   return useApiQuery({
     queryKey: priceKeys.current(branchId ?? ''),
-    queryFn: () => request({ method: 'get', url: '/prices/current', params: { branchId } }, currentPriceSchema),
+    queryFn: ({ signal }) =>
+      request({ method: 'get', url: '/prices/current', params: { branchId }, signal }, currentPriceSchema),
     enabled: !!branchId,
     staleTime: 60_000,
   });

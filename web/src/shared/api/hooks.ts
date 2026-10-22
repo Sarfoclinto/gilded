@@ -14,7 +14,8 @@ import { toast } from '@/shared/ui/toast';
 export function useApiQuery<TData>(
   options: Omit<UseQueryOptions<TData, ApiError, TData, QueryKey>, 'queryKey' | 'queryFn'> & {
     queryKey: QueryKey;
-    queryFn: () => Promise<TData>;
+    /** Receives the AbortSignal so a request is cancelled when the screen leaves or the key changes. */
+    queryFn: (ctx: { signal: AbortSignal }) => Promise<TData>;
   },
 ) {
   return useQuery<TData, ApiError, TData, QueryKey>(options);

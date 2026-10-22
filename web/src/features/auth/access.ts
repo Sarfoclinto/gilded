@@ -1,9 +1,10 @@
+import type { Permission } from '@/config/permissions';
 import type { Role, User } from './schemas';
 
 /** Declarative access rule attached to a route or a UI element. All given conditions must hold. */
 export interface Access {
   roles?: Role[];
-  permission?: string;
+  permission?: Permission;
 }
 
 export function hasAccess(user: User | null, access?: Access): boolean {

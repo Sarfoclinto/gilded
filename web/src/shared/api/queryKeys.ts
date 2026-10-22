@@ -6,5 +6,7 @@ export function createKeys<Name extends string>(name: Name) {
     list: (params?: Record<string, unknown>) => [name, 'list', params ?? {}] as const,
     details: () => [name, 'detail'] as const,
     detail: (id: string) => [name, 'detail', id] as const,
+    /** Anything that is not a plain list or detail, e.g. keys.custom('summary', { branchId }). */
+    custom: (scope: string, params?: Record<string, unknown>) => [name, scope, params ?? {}] as const,
   };
 }

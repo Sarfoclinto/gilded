@@ -157,7 +157,7 @@ components:
         role: { $ref: '#/components/schemas/Role' }
         permissions:
           type: array
-          description: Fine-grained permissions such as `transactions.create` or `kumasi.setValue`. The UI hides what the user cannot do; the API enforces it.
+          description: Fine-grained permissions such as `transactions:create` or `kumasi:set-value` (`resource:action`). The UI hides what the user cannot do; the API enforces it.
           items: { type: string }
         branchIds:
           type: array

@@ -1,0 +1,15 @@
+/**
+ * Permission keys, `resource:action`. The API owns who has what; the UI only hides what a person cannot do.
+ * Keep this file and the backend's list in step.
+ */
+export const PERMISSIONS = {
+  CALCULATOR_USE: 'calculator:use',
+  TRANSACTIONS_READ: 'transactions:read',
+  TRANSACTIONS_CREATE: 'transactions:create',
+  PRICES_APPROVE: 'prices:approve',
+  KUMASI_SET_VALUE: 'kumasi:set-value',
+  REPORTS_READ: 'reports:read',
+  USERS_MANAGE: 'users:manage',
+} as const;
+
+export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
