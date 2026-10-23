@@ -1,6 +1,11 @@
-import { calculate } from '@gold/core';
-import type { OutboxEntry } from '@/shared/offline/outboxStore';
-import type { CreateTransaction, Transaction, TransactionFlag } from './schemas';
+import { calculate } from "@gold/core";
+import type { OutboxEntry } from "@/shared/offline/outboxStore";
+import type {
+  CreateTransaction,
+  Payment,
+  Transaction,
+  TransactionFlag,
+} from "./schemas";
 
 /** One shape for the screens, whether the transaction is on the server or still only on this device. */
 export interface TransactionView {
@@ -15,13 +20,28 @@ export interface TransactionView {
     top: string;
     down: string;
     price: string;
-    result: { density: string; karat: string; purity: string; netWeight: string; pounds: string; amount: string } | null;
+    result: {
+      density: string;
+      karat: string;
+      purity: string;
+      netWeight: string;
+      pounds: string;
+      amount: string;
+    } | null;
   }>;
   calculatedAmount: string;
-  payout: { payable: string; difference: string; lines: Record<string, number>; totalNotes: number };
+  payout: {
+    payable: string;
+    difference: string;
+    lines: Record<string, number>;
+    totalNotes: number;
+  };
+  /** How it was paid: cash, mobile money, owed, gold against a debt. While waiting on this device they are not confirmed yet. */
+  payments: Payment[];
+  customerId: string | null;
   capturedAt: string;
   flags: TransactionFlag[];
-  sync: 'synced' | 'waiting' | 'failed';
+  sync: "synced" | "waiting" | "failed";
   error?: string;
   createdBy?: string;
 }
@@ -32,14 +52,55 @@ export const fromServer = (t: Transaction): TransactionView => ({
   reference: t.reference,
   customerName: t.customerName,
   customerPhone: t.customerPhone ?? null,
-  items: t.items.map((i) => ({ id: i.id, label: i.label ?? null, top: i.top, down: i.down, price: i.price, result: i.result })),
+  customerId: t.customerId ?? null,
+  payments: t.payments,
+  items: t.items.map((i) => ({
+    id: i.id,
+    label: i.label ?? null,
+    top: i.top,
+    down: i.down,
+    price: i.price,
+    result: i.result,
+  })),
   calculatedAmount: t.calculatedAmount,
-  payout: { payable: t.payout.payable, difference: t.payout.difference, lines: t.payout.lines, totalNotes: t.payout.totalNotes },
+  payout: {
+    payable: t.payout.payable,
+    difference: t.payout.difference,
+    lines: t.payout.lines,
+    totalNotes: t.payout.totalNotes,
+  },
   capturedAt: t.capturedAt,
   flags: t.flags,
-  sync: 'synced',
+  sync: "synced",
   createdBy: t.createdBy.displayName,
 });
+
+const localPayments = (c: CreateTransaction): Payment[] => {
+  const split = c.payout.split ?? [];
+  const cash =
+    Number(c.payout.payable) - split.reduce((s, p) => s + Number(p.amount), 0);
+  return [
+    ...(cash > 0
+      ? [
+          {
+            id: `${c.id}-cash`,
+            method: "cash",
+            amount: String(cash),
+            status: "confirmed",
+          },
+        ]
+      : []),
+    ...split.map((p, i) => ({
+      id: `${c.id}-${i}`,
+      method: p.method,
+      amount: p.amount,
+      status: p.method === "mobile_money" ? "pending" : "confirmed",
+      paidByBranchId: p.paidByBranchId ?? null,
+      externalRef: p.externalRef ?? null,
+      debtId: p.debtId ?? null,
+    })),
+  ];
+};
 
 /** Rebuilds the figures from the saved inputs with the same engine, so a waiting entry looks like a real one. */
 export const fromOutbox = (e: OutboxEntry): TransactionView => {
@@ -54,7 +115,14 @@ export const fromOutbox = (e: OutboxEntry): TransactionView => {
       price: i.price,
       result:
         r.amount && r.density && r.karat && r.purity && r.netWeight && r.pounds
-          ? { density: r.density, karat: r.karat, purity: r.purity, netWeight: r.netWeight, pounds: r.pounds, amount: r.amount }
+          ? {
+              density: r.density,
+              karat: r.karat,
+              purity: r.purity,
+              netWeight: r.netWeight,
+              pounds: r.pounds,
+              amount: r.amount,
+            }
           : null,
     };
   });
@@ -65,6 +133,8 @@ export const fromOutbox = (e: OutboxEntry): TransactionView => {
     reference: null,
     customerName: c.customerName,
     customerPhone: c.customerPhone ?? null,
+    customerId: c.customerId ?? null,
+    payments: localPayments(c),
     items,
     calculatedAmount: String(total),
     payout: {
@@ -75,14 +145,32 @@ export const fromOutbox = (e: OutboxEntry): TransactionView => {
     },
     capturedAt: c.capturedAt,
     flags: [],
-    sync: e.status === 'failed' ? 'failed' : 'waiting',
+    sync: e.status === "failed" ? "failed" : "waiting",
     error: e.lastError?.message,
   };
 };
 
-export const flagText: Record<TransactionFlag, string> = {
-  OFFLINE_ENTRY: 'Saved offline, synced later',
-  CALC_MISMATCH: 'Server amount differs from the device',
-  PRICE_STALE: 'Price was old when used',
-  NO_OPEN_DAY: 'No open day when this reached the server',
+export const flagText: Record<string, string> = {
+  OFFLINE_ENTRY: "Saved offline, synced later",
+  CALC_MISMATCH: "Server amount differs from the device",
+  PRICE_STALE: "Price was old when used",
+  NO_OPEN_DAY:
+    "No open day when this reached the server. The cash still left the books.",
 };
+
+export const paymentMethodText: Record<string, string> = {
+  cash: "Cash",
+  mobile_money: "Mobile money",
+  owed: "Owed to the customer",
+  debt_offset: "Gold settles a debt",
+};
+
+export function paymentStatusLabel(method: string, status: string): string {
+  if (status === "pending") return "Waiting for confirmation";
+  if (status === "failed") return "Failed";
+  return method === "mobile_money"
+    ? "Received"
+    : method === "owed"
+      ? "Recorded as owed"
+      : "Done";
+}

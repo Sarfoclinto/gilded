@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
-import { DENOMINATIONS, solveNotes, toPayable, type PayablePolicy, type SolveStrategy } from '@gold/core';
-import { Card } from '@/shared/ui/Card';
-import { cedis } from './format';
-import { useActiveDrawer } from '@/features/drawer/hooks';
-import { limitsFromBalance } from '@/features/drawer/projection';
-import { packText } from '@/features/transactions/format';
-import { useNoteLimits } from './useNoteLimits';
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  DENOMINATIONS,
+  solveNotes,
+  toPayable,
+  type PayablePolicy,
+  type SolveStrategy,
+} from "@gold/core";
+import { Card } from "@/shared/ui/Card";
+import { cedis } from "./format";
+import { useActiveDrawer } from "@/features/drawer/hooks";
+import { limitsFromBalance } from "@/features/drawer/projection";
+import { packText } from "@/features/transactions/format";
+import { useNoteLimits } from "./useNoteLimits";
 
 const policyLabels: Record<PayablePolicy, string> = {
-  down: 'Round down (customer gets less)',
-  nearest: 'Nearest 5',
-  up: 'Round up (we absorb it)',
+  down: "Round down (customer gets less)",
+  nearest: "Nearest 5",
+  up: "Round up (we absorb it)",
 };
 
 export interface PayoutSelection {
@@ -22,28 +28,65 @@ export interface PayoutSelection {
 }
 
 /** Pass `onResult` to receive the current payout (or null when the drawer cannot make it), e.g. to save it. */
-export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (p: PayoutSelection | null) => void }) {
-  const [policy, setPolicy] = useState<PayablePolicy>('down');
-  const [strategy, setStrategy] = useState<SolveStrategy>('prefer-100s');
-  const [override, setOverride] = useState<{ forAmount: number; value: number } | null>(null);
+export function PayoutPanel({
+  amount,
+  onResult,
+  nonCash = 0,
+  split,
+}: {
+  amount: number;
+  onResult?: (p: PayoutSelection | null) => void;
+  /** Part of the payable paid another way (mobile money, owed, gold against a debt). Only the rest is paid in notes. */
+  nonCash?: number;
+  /** Where the editor for those other parts goes. It is given the payable, so it can offer "all that is left". */
+  split?: (payable: number) => ReactNode;
+}) {
+  const [policy, setPolicy] = useState<PayablePolicy>("down");
+  const [strategy, setStrategy] = useState<SolveStrategy>("prefer-100s");
+  const [override, setOverride] = useState<{
+    forAmount: number;
+    value: number;
+  } | null>(null);
   const { draft, update, limits: draftLimits } = useNoteLimits();
   // With an open day the drawer decides which notes exist. Without one, the per-device draft below is used.
   const { view: drawer } = useActiveDrawer();
-  const balance = drawer.status === 'open' ? drawer.balance : null;
-  const limits = useMemo(() => (balance ? limitsFromBalance(balance) : draftLimits), [balance, draftLimits]);
+  const balance = drawer.status === "open" ? drawer.balance : null;
+  const limits = useMemo(
+    () => (balance ? limitsFromBalance(balance) : draftLimits),
+    [balance, draftLimits],
+  );
 
   const rounded = useMemo(() => toPayable(amount, policy), [amount, policy]);
   // An override only applies to the amount it was chosen for.
-  const payable = override && override.forAmount === amount ? override.value : rounded.payable;
+  const payable =
+    override && override.forAmount === amount
+      ? override.value
+      : rounded.payable;
   const difference = payable - amount;
-  const result = useMemo(() => solveNotes(payable, limits, strategy), [payable, limits, strategy]);
+  const cashPart = payable - nonCash;
+  const tooMuch = cashPart < 0;
+  const result = useMemo(
+    () =>
+      cashPart > 0
+        ? solveNotes(cashPart, limits, strategy)
+        : ({ ok: true, lines: {}, totalNotes: 0, display: [] } as const),
+    [cashPart, limits, strategy],
+  );
 
   useEffect(() => {
     if (!onResult) return;
-    if (!result.ok) return onResult(null);
-    const lines = Object.fromEntries(Object.entries(result.lines).filter(([, n]) => (n ?? 0) > 0)) as Record<string, number>;
-    onResult({ policy, strategy, payable: String(payable), lines, totalNotes: result.totalNotes });
-  }, [result, policy, strategy, payable, onResult]);
+    if (tooMuch || !result.ok) return onResult(null);
+    const lines = Object.fromEntries(
+      Object.entries(result.lines).filter(([, n]) => (n ?? 0) > 0),
+    ) as Record<string, number>;
+    onResult({
+      policy,
+      strategy,
+      payable: String(payable),
+      lines,
+      totalNotes: result.totalNotes,
+    });
+  }, [result, tooMuch, policy, strategy, payable, onResult]);
 
   return (
     <Card className="space-y-4">
@@ -86,47 +129,83 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
       </div>
       {difference !== 0 ? (
         <p className="tnum -mt-3 text-right text-xs text-muted-foreground">
-          {difference < 0 ? `${cedis(-difference)} less than calculated` : `${cedis(difference)} absorbed by the business`}
+          {difference < 0
+            ? `${cedis(-difference)} less than calculated`
+            : `${cedis(difference)} absorbed by the business`}
         </p>
       ) : null}
 
-      {result.ok ? (
+      {split ? split(payable) : null}
+
+      {nonCash > 0 && !tooMuch ? (
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-muted-foreground">Paid in cash</span>
+          <span className="tnum text-xl font-bold">{cedis(cashPart)}</span>
+        </div>
+      ) : null}
+
+      {cashPart === 0 && !tooMuch ? (
+        <p className="text-sm text-muted-foreground">
+          Nothing is paid in cash, so no notes leave the drawer.
+        </p>
+      ) : result.ok && !tooMuch ? (
         <div>
           <ul className="divide-y divide-border rounded-lg border border-border">
             {result.display.map((row) => (
-              <li key={row.denomination} className="flex items-center justify-between gap-3 px-3 py-2.5">
+              <li
+                key={row.denomination}
+                className="flex items-center justify-between gap-3 px-3 py-2.5"
+              >
                 <div>
-                  <div className="font-semibold">GHS {row.denomination} × {row.total}</div>
+                  <div className="font-semibold">
+                    GHS {row.denomination} × {row.total}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {[
-                      row.packs ? `${row.packs} pack${row.packs > 1 ? 's' : ''}` : null,
-                      row.bundles ? `${row.bundles} bundle${row.bundles > 1 ? 's' : ''}` : null,
+                      row.packs
+                        ? `${row.packs} pack${row.packs > 1 ? "s" : ""}`
+                        : null,
+                      row.bundles
+                        ? `${row.bundles} bundle${row.bundles > 1 ? "s" : ""}`
+                        : null,
                       row.loose ? `${row.loose} loose` : null,
                     ]
                       .filter(Boolean)
-                      .join(', ')}
+                      .join(", ")}
                   </div>
                 </div>
-                <div className="tnum text-sm text-muted-foreground">{cedis(row.value)}</div>
+                <div className="tnum text-sm text-muted-foreground">
+                  {cedis(row.value)}
+                </div>
               </li>
             ))}
           </ul>
           <p className="tnum mt-2 text-right text-sm">
             <span className="text-muted-foreground">Total pieces </span>
-            <strong>{result.totalNotes.toLocaleString('en-GH')}</strong>
+            <strong>{result.totalNotes.toLocaleString("en-GH")}</strong>
           </p>
         </div>
-      ) : (
-        <div role="alert" className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+      ) : tooMuch ? null : !result.ok ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+        >
           <p className="font-medium">
-            {result.code === 'CANNOT_MAKE_AMOUNT' ? 'The notes in the drawer cannot make this exact amount.' : result.message}
+            {result.code === "CANNOT_MAKE_AMOUNT"
+              ? "The notes in the drawer cannot make this exact amount."
+              : result.message}
           </p>
-          {result.code === 'CANNOT_MAKE_AMOUNT' ? (
+          {result.code === "CANNOT_MAKE_AMOUNT" ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {result.nearestBelow != null ? (
                 <button
                   className="min-h-10 rounded-lg border border-border bg-card px-3"
-                  onClick={() => setOverride({ forAmount: amount, value: result.nearestBelow! })}
+                  onClick={() =>
+                    setOverride({
+                      forAmount: amount,
+                      value: result.nearestBelow! + nonCash,
+                    })
+                  }
                 >
                   Pay {cedis(result.nearestBelow)}
                 </button>
@@ -134,7 +213,12 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
               {result.nearestAbove != null ? (
                 <button
                   className="min-h-10 rounded-lg border border-border bg-card px-3"
-                  onClick={() => setOverride({ forAmount: amount, value: result.nearestAbove! })}
+                  onClick={() =>
+                    setOverride({
+                      forAmount: amount,
+                      value: result.nearestAbove! + nonCash,
+                    })
+                  }
                 >
                   Pay {cedis(result.nearestAbove)}
                 </button>
@@ -142,31 +226,48 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
             </div>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       {balance ? (
         <details className="text-sm">
-          <summary className="min-h-10 cursor-pointer py-2 font-medium">Notes in the drawer</summary>
+          <summary className="min-h-10 cursor-pointer py-2 font-medium">
+            Notes in the drawer
+          </summary>
           <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
-            {DENOMINATIONS.filter((d) => (balance[`${d}`] ?? 0) > 0).map((d) => (
-              <li key={d} className="flex items-center justify-between px-3 py-2">
-                <span className="font-medium">GHS {d}</span>
-                <span className="tnum text-muted-foreground">
-                  {balance[`${d}`]!.toLocaleString('en-GH')} · {packText(balance[`${d}`]!)}
-                </span>
-              </li>
-            ))}
+            {DENOMINATIONS.filter((d) => (balance[`${d}`] ?? 0) > 0).map(
+              (d) => (
+                <li
+                  key={d}
+                  className="flex items-center justify-between px-3 py-2"
+                >
+                  <span className="font-medium">GHS {d}</span>
+                  <span className="tnum text-muted-foreground">
+                    {balance[`${d}`]!.toLocaleString("en-GH")} ·{" "}
+                    {packText(balance[`${d}`]!)}
+                  </span>
+                </li>
+              ),
+            )}
           </ul>
-          <p className="mt-2 text-xs text-muted-foreground">From today's cash drawer, including payouts not sent yet.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            From today's cash drawer, including payouts not sent yet.
+          </p>
         </details>
       ) : (
         <details className="text-sm">
-          <summary className="min-h-10 cursor-pointer py-2 font-medium">Notes available (no open day)</summary>
+          <summary className="min-h-10 cursor-pointer py-2 font-medium">
+            Notes available (no open day)
+          </summary>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {DENOMINATIONS.map((d) => (
               <div key={d} className="rounded-lg border border-border p-2">
                 <label className="flex items-center gap-2 font-medium">
-                  <input type="checkbox" className="h-5 w-5" checked={draft[d].enabled} onChange={(e) => update(d, { enabled: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5"
+                    checked={draft[d].enabled}
+                    onChange={(e) => update(d, { enabled: e.target.checked })}
+                  />
                   GHS {d}
                 </label>
                 <input
@@ -175,13 +276,17 @@ export function PayoutPanel({ amount, onResult }: { amount: number; onResult?: (
                   aria-label={`Count of GHS ${d} notes`}
                   disabled={!draft[d].enabled}
                   value={draft[d].count}
-                  onChange={(e) => update(d, { count: e.target.value.replace(/\D/g, '') })}
+                  onChange={(e) =>
+                    update(d, { count: e.target.value.replace(/\D/g, "") })
+                  }
                   className="tnum mt-2 min-h-10 w-full rounded-lg border border-border bg-card px-2 disabled:opacity-40"
                 />
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Open the day in Cash drawer and the real notes are used instead.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Open the day in Cash drawer and the real notes are used instead.
+          </p>
         </details>
       )}
     </Card>
