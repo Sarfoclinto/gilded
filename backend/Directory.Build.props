@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <!-- One place to change the .NET version. net10.0 is the current LTS; if `dotnet list-sdks` shows only 9 or 8, change it here and in global.json. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- ASP.NET Core packages that are not part of the shared framework (JWT bearer) follow the same major version. Change both together. -->
+    <AspNetPackagesVersion>10.0.0</AspNetPackagesVersion>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Flip to true once the first build is green (and in CI). -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

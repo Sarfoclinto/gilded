@@ -1,4 +1,5 @@
-import { Toaster, toast as sonner } from 'sonner';
+import { useIsDesktop } from "@/hooks/useMediaQuery";
+import { Toaster, toast as sonner } from "sonner";
 
 /** Same tiny API as before (toast.success/error/info), now on sonner like SchoolMate. Works outside React too. */
 export const toast = {
@@ -8,5 +9,12 @@ export const toast = {
 };
 
 export function ToastViewport() {
-  return <Toaster richColors closeButton position="top-center" offset={{ top: 'max(12px, env(safe-area-inset-top))' }} />;
+  return (
+    <Toaster
+      richColors
+      closeButton
+      position={useIsDesktop() ? "top-right" : "top-center"}
+      offset={{ top: "max(12px, env(safe-area-inset-top))" }}
+    />
+  );
 }

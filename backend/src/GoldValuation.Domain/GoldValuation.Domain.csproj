@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pure business rules. No database, no web, no packages: it must stay trivially testable and reusable. -->
+</Project>

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\GoldValuation.Application\GoldValuation.Application.csproj" />
+    <PackageReference Include="Npgsql" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The SQL files in /backend/db/migrations ship inside the assembly, so a deployment is one artifact. -->
+    <EmbeddedResource Include="..\..\db\migrations\*.sql" LogicalName="migrations.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

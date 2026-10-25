@@ -1,8 +1,8 @@
-import { lazy, type ReactNode } from "react";
-import paths from "@/config/paths";
-import { PERMISSIONS } from "@/config/permissions";
-import type { Access } from "@/features/auth/access";
-import { RequireAccess } from "./guards";
+import { lazy, type ReactNode } from 'react';
+import paths from '@/config/paths';
+import { PERMISSIONS } from '@/config/permissions';
+import type { Access } from '@/features/auth/access';
+import { RequireAccess } from './guards';
 
 /**
  * The route table is data. Each entry may carry an `access` rule; the table renders the guard for you,
@@ -15,40 +15,27 @@ export interface AppRoute {
   nav?: { label: string };
 }
 
-const DashboardPage = lazy(() => import("@/features/dashboard/DashboardPage"));
-const CalculatorPage = lazy(
-  () => import("@/features/calculator/CalculatorPage"),
-);
-const TransactionsPage = lazy(
-  () => import("@/features/transactions/pages/TransactionsPage"),
-);
-const NewTransactionPage = lazy(
-  () => import("@/features/transactions/pages/NewTransactionPage"),
-);
-const TransactionDetailPage = lazy(
-  () => import("@/features/transactions/pages/TransactionDetailPage"),
-);
-const DrawerPage = lazy(() => import("@/features/drawer/pages/DrawerPage"));
-const OpenDayPage = lazy(() => import("@/features/drawer/pages/OpenDayPage"));
-const CloseDayPage = lazy(() => import("@/features/drawer/pages/CloseDayPage"));
-const DayHistoryPage = lazy(
-  () => import("@/features/drawer/pages/DayHistoryPage"),
-);
-const PricesPage = lazy(() => import("@/features/prices/pages/PricesPage"));
-const PendingPaymentsPage = lazy(
-  () => import("@/features/payments/PendingPaymentsPage"),
-);
-const DebtsPage = lazy(() => import("@/features/debts/pages/DebtsPage"));
-const CollateralPage = lazy(
-  () => import("@/features/debts/pages/CollateralPage"),
-);
+const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
+const CalculatorPage = lazy(() => import('@/features/calculator/CalculatorPage'));
+const TransactionsPage = lazy(() => import('@/features/transactions/pages/TransactionsPage'));
+const NewTransactionPage = lazy(() => import('@/features/transactions/pages/NewTransactionPage'));
+const TransactionDetailPage = lazy(() => import('@/features/transactions/pages/TransactionDetailPage'));
+const DrawerPage = lazy(() => import('@/features/drawer/pages/DrawerPage'));
+const OpenDayPage = lazy(() => import('@/features/drawer/pages/OpenDayPage'));
+const CloseDayPage = lazy(() => import('@/features/drawer/pages/CloseDayPage'));
+const DayHistoryPage = lazy(() => import('@/features/drawer/pages/DayHistoryPage'));
+const ChangePasswordPage = lazy(() => import('@/features/auth/pages/ChangePasswordPage'));
+const CustomersPage = lazy(() => import('@/features/customers/pages/CustomersPage'));
+const CustomerDetailPage = lazy(() => import('@/features/customers/pages/CustomerDetailPage'));
+const UsersPage = lazy(() => import('@/features/users/pages/UsersPage'));
+const BranchesPage = lazy(() => import('@/features/branches/pages/BranchesPage'));
+const PricesPage = lazy(() => import('@/features/prices/pages/PricesPage'));
+const PendingPaymentsPage = lazy(() => import('@/features/payments/PendingPaymentsPage'));
+const DebtsPage = lazy(() => import('@/features/debts/pages/DebtsPage'));
+const CollateralPage = lazy(() => import('@/features/debts/pages/CollateralPage'));
 
 export const appRoutes: AppRoute[] = [
-  {
-    path: paths.home.href,
-    element: <DashboardPage />,
-    nav: { label: paths.home.label },
-  },
+  { path: paths.home.href, element: <DashboardPage />, nav: { label: paths.home.label } },
   {
     path: paths.calculator.href,
     element: <CalculatorPage />,
@@ -77,47 +64,23 @@ export const appRoutes: AppRoute[] = [
     access: { permission: PERMISSIONS.DAYS_READ },
     nav: { label: paths.drawer.home.label },
   },
-  {
-    path: paths.drawer.open.href,
-    element: <OpenDayPage />,
-    access: { permission: PERMISSIONS.DAYS_MANAGE },
-  },
-  {
-    path: paths.drawer.close.href,
-    element: <CloseDayPage />,
-    access: { permission: PERMISSIONS.DAYS_MANAGE },
-  },
+  { path: paths.drawer.open.href, element: <OpenDayPage />, access: { permission: PERMISSIONS.DAYS_MANAGE } },
+  { path: paths.drawer.close.href, element: <CloseDayPage />, access: { permission: PERMISSIONS.DAYS_MANAGE } },
   {
     path: paths.drawer.history.href,
     element: <DayHistoryPage />,
     access: { permission: PERMISSIONS.DAYS_READ },
     nav: { label: paths.drawer.history.label },
   },
-  {
-    path: paths.payments.href,
-    element: <PendingPaymentsPage />,
-    access: { permission: PERMISSIONS.TRANSACTIONS_READ },
-  },
-  {
-    path: paths.debts.href,
-    element: <DebtsPage />,
-    access: { permission: PERMISSIONS.DEBTS_READ },
-  },
-  {
-    path: paths.collateral.href,
-    element: <CollateralPage />,
-    access: { permission: PERMISSIONS.DEBTS_READ },
-  },
-  {
-    path: paths.prices.href,
-    element: <PricesPage />,
-    access: { permission: PERMISSIONS.TRANSACTIONS_READ },
-  },
+  { path: paths.payments.href, element: <PendingPaymentsPage />, access: { permission: PERMISSIONS.TRANSACTIONS_READ } },
+  { path: paths.debts.href, element: <DebtsPage />, access: { permission: PERMISSIONS.DEBTS_READ } },
+  { path: paths.collateral.href, element: <CollateralPage />, access: { permission: PERMISSIONS.DEBTS_READ } },
+  { path: paths.people.customers.href, element: <CustomersPage />, access: { permission: PERMISSIONS.CUSTOMERS_READ } },
+  { path: paths.people.customer.href, element: <CustomerDetailPage />, access: { permission: PERMISSIONS.CUSTOMERS_READ } },
+  { path: paths.people.users.href, element: <UsersPage />, access: { permission: PERMISSIONS.USERS_MANAGE } },
+  { path: paths.people.branches.href, element: <BranchesPage />, access: { permission: PERMISSIONS.BRANCHES_MANAGE } },
+  { path: paths.changePassword.href, element: <ChangePasswordPage /> },
+  { path: paths.prices.href, element: <PricesPage />, access: { permission: PERMISSIONS.TRANSACTIONS_READ } },
 ];
 
-export const guarded = (r: AppRoute) =>
-  r.access ? (
-    <RequireAccess access={r.access}>{r.element}</RequireAccess>
-  ) : (
-    r.element
-  );
+export const guarded = (r: AppRoute) => (r.access ? <RequireAccess access={r.access}>{r.element}</RequireAccess> : r.element);

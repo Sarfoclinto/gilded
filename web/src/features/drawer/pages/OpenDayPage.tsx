@@ -1,85 +1,165 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Alert } from 'antd';
-import { lineTotal, type Lines } from '@gold/core';
-import paths from '@/config/paths';
-import { useAuth } from '@/features/auth/store';
-import { cedis } from '@/features/calculator/format';
-import { useOutbox } from '@/shared/offline/OutboxProvider';
-import { Button } from '@/shared/ui/Button';
-import { Card } from '@/shared/ui/Card';
-import { toast } from '@/shared/ui/toast';
-import { useActiveDrawer } from '../hooks';
-import { NoteCountInput } from '../NoteCountInput';
-import { localDate } from '../projection';
-import { openDaySchema, OUTBOX } from '../schemas';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Alert, Input } from "antd";
+import { lineTotal, subtractLines, type Lines } from "@gold/core";
+import paths from "@/config/paths";
+import { useAuth } from "@/features/auth/store";
+import { cedis } from "@/features/calculator/format";
+import { useApiMutation } from "@/shared/api/hooks";
+import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
+import { dayKeys, daysApi } from "../api";
+import { linesText, signed } from "../format";
+import { useActiveDrawer } from "../hooks";
+import { NoteCountInput } from "../NoteCountInput";
+import { localDate } from "../projection";
 
-const same = (a: Lines, b: Lines) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
+const same = (a: Lines, b: Lines) =>
+  Object.keys(subtractLines(a, b)).length === 0;
 
 export default function OpenDayPage() {
   const navigate = useNavigate();
-  const outbox = useOutbox();
   const branchId = useAuth((s) => s.activeBranchId);
-  const { view } = useActiveDrawer();
+  const { view, state } = useActiveDrawer();
   const [lines, setLines] = useState<Lines>({});
-  const [busy, setBusy] = useState(false);
+  const [explanation, setExplanation] = useState("");
+  // One id per form: pressing the button twice, or retrying after a lost answer, can only open one day.
+  const [commandId] = useState(() => crypto.randomUUID());
   const today = localDate();
 
-  const blocked =
-    view.status === 'open'
-      ? 'A day is already open for this branch.'
-      : view.status === 'closed' && view.businessDate === today
-        ? 'Today was already opened and closed. The next day can be opened tomorrow.'
-        : null;
-  const carried = view.carryOver && Object.keys(view.carryOver).length > 0 ? view.carryOver : null;
-  const canSave = !!branchId && Object.keys(lines).length > 0 && !blocked && outbox.ready && !busy;
+  const open = useApiMutation({
+    mutationFn: daysApi.open,
+    invalidates: [dayKeys.all],
+    successMessage: "Day opened",
+    onSuccess: () => navigate(paths.drawer.home.href, { replace: true }),
+  });
 
-  async function submit() {
+  const blocked =
+    view.status === "open"
+      ? "A day is already open for this branch."
+      : view.status === "closed" && view.businessDate === today
+        ? "Today was already opened and closed. The next day can be opened tomorrow."
+        : null;
+
+  // What the books say the drawer holds. null before the branch's very first day (the count then sets the starting balance).
+  const books = state?.carryOver ?? null;
+  const first = state !== null && books === null;
+  const hasCount = Object.keys(lines).length > 0;
+  const differs = books !== null && hasCount && !same(lines, books);
+  const diffAmount = books ? lineTotal(lines) - lineTotal(books) : 0;
+  const needsReason = differs;
+  const canSave =
+    !!branchId &&
+    hasCount &&
+    !blocked &&
+    !open.isPending &&
+    (!needsReason || explanation.trim().length >= 5);
+
+  function submit() {
     if (!canSave || !branchId) return;
-    setBusy(true);
-    const cmd = {
-      id: crypto.randomUUID(),
+    open.mutate({
+      id: commandId,
       branchId,
       businessDate: today,
       lines,
-      source: carried && same(lines, carried) ? ('carried' as const) : ('counted' as const),
+      source: books && same(lines, books) ? "carried" : "counted",
       capturedAt: new Date().toISOString(),
-    };
-    const parsed = openDaySchema.safeParse(cmd);
-    if (!parsed.success) {
-      setBusy(false);
-      return toast.error(parsed.error.issues[0]?.message ?? 'Check the count.');
-    }
-    await outbox.enqueue(cmd.id, OUTBOX.OPEN, parsed.data);
-    void outbox.syncNow();
-    toast.success('Day opened');
-    navigate(paths.drawer.home.href, { replace: true });
+      explanation: needsReason ? explanation.trim() : null,
+    });
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
       <h1 className="text-xl font-bold">Open the day · {today}</h1>
-      {blocked ? <Alert type="info" showIcon title={blocked} action={<Link to={paths.drawer.home.href}>Back</Link>} /> : null}
+      {blocked ? (
+        <Alert
+          type="info"
+          showIcon
+          title={blocked}
+          action={<Link to={paths.drawer.home.href}>Back</Link>}
+        />
+      ) : null}
 
-      {carried ? (
+      {first ? (
+        <Alert
+          type="info"
+          showIcon
+          title="This is the first day for this branch. What you count now becomes the starting balance."
+        />
+      ) : books ? (
         <Card className="flex items-center justify-between gap-3">
           <div className="text-sm">
-            <div className="font-medium">Last closing count</div>
-            <div className="tnum text-muted-foreground">{cedis(lineTotal(carried))}</div>
+            <div className="font-medium">The books say the drawer holds</div>
+            <div className="tnum text-muted-foreground">
+              {cedis(lineTotal(books))} · {linesText(books)}
+            </div>
           </div>
-          <Button variant="secondary" onClick={() => setLines({ ...carried })} disabled={!!blocked}>
-            Use it
+          <Button
+            variant="secondary"
+            onClick={() => setLines({ ...books })}
+            disabled={!!blocked}
+          >
+            Same as the books
           </Button>
         </Card>
       ) : null}
 
-      <p className="text-sm text-muted-foreground">Count the notes in the drawer and enter them. If the count differs from last night, the manager will see it.</p>
-      <NoteCountInput value={lines} onChange={setLines} disabled={!!blocked} />
+      <p className="text-sm text-muted-foreground">
+        Count the notes in the drawer and enter what you really have.
+      </p>
+      <NoteCountInput
+        value={lines}
+        onChange={setLines}
+        disabled={!!blocked}
+        expected={books ?? undefined}
+      />
+
+      {differs ? (
+        <Card className="space-y-3 border-amber-500/60">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-medium">
+              {diffAmount === 0
+                ? "Same value, different notes"
+                : diffAmount < 0
+                  ? "Short by"
+                  : "Over by"}
+            </span>
+            <strong className="tnum text-xl">
+              {diffAmount === 0 ? "" : signed(diffAmount)}
+            </strong>
+          </div>
+          <Input.TextArea
+            rows={3}
+            maxLength={500}
+            placeholder="Explain why the count differs from the books (required)"
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            status={explanation.trim().length >= 5 ? undefined : "warning"}
+          />
+          <p className="text-xs text-muted-foreground">
+            The day still opens. The books are corrected to your count and the
+            manager can see why.
+          </p>
+        </Card>
+      ) : null}
+
+      {open.error?.code === "EXPLANATION_REQUIRED" ? (
+        <Alert type="warning" showIcon title={open.error.message} />
+      ) : null}
 
       <div className="sticky bottom-0 -mx-4 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <Button className="w-full" onClick={() => void submit()} disabled={!canSave} loading={busy}>
+        <Button
+          className="w-full"
+          onClick={submit}
+          disabled={!canSave}
+          loading={open.isPending}
+        >
           Open the day with {cedis(lineTotal(lines))}
         </Button>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Opening needs a connection, because the count is checked against the
+          books.
+        </p>
       </div>
     </div>
   );

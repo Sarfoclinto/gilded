@@ -14,3 +14,6 @@ export function useMediaQuery(query: string): boolean {
 
 /** Desktop layout (sidebar) from 1024px; below that it is the phone/tablet layout (bottom tabs + drawer). */
 export const useIsDesktop = () => useMediaQuery('(min-width: 1024px)');
+
+/** Mobile layout */
+export const useIsMobile = () => useMediaQuery('(max-width: 1023px)');

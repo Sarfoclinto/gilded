@@ -1,0 +1,91 @@
+using System.Text;
+using GoldValuation.Application.Abstractions;
+using GoldValuation.Application.Operations;
+using Microsoft.AspNetCore.Mvc;
+
+namespace GoldValuation.Api.Endpoints;
+
+/// <summary>A response whose body is JSON text already built by the database in the contract's shape.</summary>
+internal sealed class RawJsonResult(int status, string body) : IResult
+{
+    public Task ExecuteAsync(HttpContext http)
+    {
+        http.Response.StatusCode = status;
+        http.Response.ContentType = "application/json; charset=utf-8";
+        return http.Response.WriteAsync(body, Encoding.UTF8);
+    }
+}
+
+public static class OperationsEndpoints
+{
+    private static IResult Data(string json, int status = 200) => new RawJsonResult(status, $"{{\"data\":{json}}}");
+    private static IResult Created(DbResult r) => Data(r.DataJson, r.Replayed ? 200 : 201);
+    private static string? Key(HttpContext http) => http.Request.Headers["Idempotency-Key"].FirstOrDefault();
+
+    public static RouteGroupBuilder MapOperations(this RouteGroupBuilder api)
+    {
+        // ---- prices ----
+        api.MapGet("/prices/current", async (Guid branchId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.CurrentPriceAsync(me, branchId, ct)));
+        api.MapPost("/prices/base", async (BasePriceCommand body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+        {
+            await ops.SetBasePriceAsync(me, body, ct);
+            return Results.NoContent();
+        });
+        api.MapPut("/prices/margins/{branchId:guid}", async (Guid branchId, MarginCommand body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.SetMarginAsync(me, branchId, body, ct)));
+        api.MapPost("/prices/margins/{branchId:guid}/approve", async (Guid branchId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ApproveMarginAsync(me, branchId, ct)));
+
+        // ---- days and drawer ----
+        api.MapGet("/days/current", async (Guid branchId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.DayStateAsync(me, branchId, ct)));
+        api.MapPost("/days/open", async (OpenDayCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.OpenDayAsync(me, body, Key(http), ct)));
+        api.MapGet("/days", async (Guid branchId, [FromQuery(Name = "from")] string? fromDate, [FromQuery(Name = "to")] string? toDate, string? signoff, int? limit, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ListDaysAsync(me, branchId, fromDate, toDate, signoff, limit, ct)));
+        api.MapGet("/days/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.GetDayAsync(me, id, ct)));
+        api.MapGet("/days/{id:guid}/closing-preview", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ClosingPreviewAsync(me, id, ct)));
+        api.MapPost("/days/{id:guid}/close", async (Guid id, CloseDayCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.CloseDayAsync(me, id, body, Key(http), ct)));
+        api.MapPost("/days/{id:guid}/signoff", async (Guid id, SignoffCommand body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.SignoffDayAsync(me, id, body, ct)));
+        api.MapPost("/days/{id:guid}/movements", async (Guid id, MovementCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.RecordMovementAsync(me, id, body, Key(http), ct)));
+
+        // ---- purchases ----
+        api.MapGet("/transactions", async (Guid branchId, int? limit, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ListTransactionsAsync(me, branchId, limit, ct)));
+        api.MapPost("/transactions", async (CreateTransactionCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.CreateTransactionAsync(me, body, Key(http), ct)));
+        api.MapGet("/transactions/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.GetTransactionAsync(me, id, ct)));
+        api.MapPost("/transactions/{id:guid}/payments/{paymentId:guid}/confirm", async (Guid id, Guid paymentId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ResolvePaymentAsync(me, paymentId, true, null, ct)));
+        api.MapPost("/transactions/{id:guid}/payments/{paymentId:guid}/fail", async (Guid id, Guid paymentId, [FromBody] ResolvePaymentCommand? body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ResolvePaymentAsync(me, paymentId, false, body, ct)));
+        api.MapGet("/payments/pending", async (Guid branchId, string? role, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.PendingPaymentsAsync(me, branchId, role, ct)));
+        api.MapGet("/customers", async (string? q, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.SearchCustomersAsync(me, q, ct)));
+
+        // ---- debts, loans, security ----
+        api.MapGet("/debts", async (Guid branchId, string? direction, bool? openOnly, Guid? customerId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ListDebtsAsync(me, branchId, direction, openOnly ?? false, customerId, ct)));
+        api.MapGet("/debts/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.GetDebtAsync(me, id, ct)));
+        api.MapPost("/debts/loans", async (LoanCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.IssueLoanAsync(me, body, Key(http), ct)));
+        api.MapPost("/debts/{id:guid}/repayments", async (Guid id, RepaymentCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.RepayDebtAsync(me, id, body, Key(http), ct)));
+        api.MapGet("/collateral", async (Guid branchId, string? status, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ListCollateralAsync(me, branchId, status, ct)));
+        api.MapPost("/collateral/{id:guid}/return", async (Guid id, ReturnCollateralBody? body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ReturnCollateralAsync(me, id, body?.Note, ct)));
+        return api;
+    }
+}
+
+public sealed record ReturnCollateralBody(string? Note);

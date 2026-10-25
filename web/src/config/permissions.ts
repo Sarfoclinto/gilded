@@ -17,6 +17,9 @@ export const PERMISSIONS = {
   DEBTS_MANAGE: "debts:manage",
   PAYMENTS_CONFIRM: "payments:confirm",
   BRANCHES_ALL: "branches:all",
+  CUSTOMERS_READ: "customers:read",
+  CUSTOMERS_MANAGE: "customers:manage",
+  BRANCHES_MANAGE: "branches:manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

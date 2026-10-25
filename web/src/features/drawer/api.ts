@@ -13,6 +13,16 @@ import {
 
 export const dayKeys = createKeys("days");
 
+export type DayHistoryParams = {
+  branchId: string;
+  signoff?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+};
+
+/** The drawer is the branch's cash and goods state, plus the history of days. */
+
 /** Writes use the command id as the Idempotency-Key, so a resend can never double-apply. */
 export const daysApi = {
   current: (branchId: string, signal?: AbortSignal) =>
@@ -20,16 +30,7 @@ export const daysApi = {
       { method: "get", url: "/days/current", params: { branchId }, signal },
       dayStateSchema,
     ),
-  history: (
-    params: {
-      branchId: string;
-      signoff?: string;
-      from?: string;
-      to?: string;
-      limit?: number;
-    },
-    signal?: AbortSignal,
-  ) =>
+  history: (params: DayHistoryParams, signal?: AbortSignal) =>
     request(
       { method: "get", url: "/days", params: { limit: 60, ...params }, signal },
       z.array(daySchema),

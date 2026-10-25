@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GoldValuation.Domain/GoldValuation.Domain.csproj" />
+    <Project Path="src/GoldValuation.Application/GoldValuation.Application.csproj" />
+    <Project Path="src/GoldValuation.Infrastructure/GoldValuation.Infrastructure.csproj" />
+    <Project Path="src/GoldValuation.Api/GoldValuation.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GoldValuation.Domain.Tests/GoldValuation.Domain.Tests.csproj" />
+    <Project Path="tests/GoldValuation.Infrastructure.Tests/GoldValuation.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

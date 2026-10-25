@@ -28,6 +28,17 @@ const paths = {
     history: { href: "/drawer/history", label: "Day history" },
   },
   prices: { href: "/prices", label: "Prices" },
+  people: {
+    customers: { href: "/people/customers", label: "Customers" },
+    customer: {
+      href: "/people/customers/:id",
+      to: (id: string) => `/people/customers/${encodeURIComponent(id)}`,
+      label: "Customer",
+    },
+    users: { href: "/people/users", label: "Users" },
+    branches: { href: "/people/branches", label: "Branches" },
+  },
+  changePassword: { href: "/change-password", label: "Choose a new password" },
   payments: { href: "/payments", label: "Mobile money" },
   debts: { href: "/debts", label: "Debts and loans" },
   collateral: { href: "/collateral", label: "Held gold" },

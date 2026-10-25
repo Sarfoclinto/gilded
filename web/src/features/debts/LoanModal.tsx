@@ -148,6 +148,7 @@ export function LoanModal({
       footer={null}
       destroyOnHidden
       width={560}
+      styles={{ body: { padding: 15 }, container: { padding: 1 } }}
     >
       <Form onClose={onClose} />
     </Modal>
