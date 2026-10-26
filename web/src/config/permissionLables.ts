@@ -19,6 +19,10 @@ export const permissionLabels: Record<Permission, string> = {
   "customers:read": "See customers",
   "customers:manage": "Add and edit customers, merge duplicates",
   "branches:manage": "Add and switch off branches",
+  "transfers:read": "See transfers between branches",
+  "transfers:create": "Prepare, send and pay for transfers (sending end)",
+  "transfers:receive":
+    "Receive transfers and confirm what arrived (receiving end)",
 };
 
 export const allPermissions = Object.keys(permissionLabels) as Permission[];

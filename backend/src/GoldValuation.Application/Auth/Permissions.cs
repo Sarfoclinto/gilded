@@ -30,8 +30,16 @@ public static class Permissions
     /// <summary>Add branches and switch them on or off.</summary>
     public const string BranchesManage = "branches:manage";
 
+    /// <summary>See transfers that start or end at a branch the person works in.</summary>
+    public const string TransfersRead = "transfers:read";
+    /// <summary>Draft, release, pay and cancel transfers from a branch the person works in (the sending end).</summary>
+    public const string TransfersCreate = "transfers:create";
+    /// <summary>Receive transfers at a branch the person works in, confirming each line (the receiving end).</summary>
+    public const string TransfersReceive = "transfers:receive";
+
     private static readonly string[] Teller =
-        [CalculatorUse, TransactionsRead, TransactionsCreate, DaysRead, DaysManage, DebtsRead, DebtsManage, CustomersRead];
+        [CalculatorUse, TransactionsRead, TransactionsCreate, DaysRead, DaysManage, DebtsRead, DebtsManage, CustomersRead,
+         TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
         [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage];

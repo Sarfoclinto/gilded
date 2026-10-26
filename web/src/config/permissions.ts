@@ -20,6 +20,9 @@ export const PERMISSIONS = {
   CUSTOMERS_READ: "customers:read",
   CUSTOMERS_MANAGE: "customers:manage",
   BRANCHES_MANAGE: "branches:manage",
+  TRANSFERS_READ: "transfers:read",
+  TRANSFERS_CREATE: "transfers:create",
+  TRANSFERS_RECEIVE: "transfers:receive",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

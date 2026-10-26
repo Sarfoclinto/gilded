@@ -35,6 +35,7 @@ api.MapAuth();
 api.MapMe();
 api.MapOperations();
 api.MapPeople();
+api.MapTransfers();
 
 app.Run();
 

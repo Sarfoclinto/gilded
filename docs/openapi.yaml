@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -1302,6 +1302,469 @@ paths:
               },
           }
         "409": { $ref: "#/components/responses/Error" }
+  /transfers:
+    get:
+      tags: [Transfers]
+      summary: Transfers that start or end at a branch
+      description: Needs `transfers:read`. `direction` is `outgoing` (this branch sends), `incoming` (this branch receives) or `all`.
+      parameters:
+        - {
+            in: query,
+            name: branchId,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            in: query,
+            name: status,
+            schema:
+              {
+                type: string,
+                enum:
+                  [
+                    draft,
+                    released,
+                    received,
+                    received_with_discrepancy,
+                    cancelled,
+                  ],
+              },
+          }
+        - {
+            in: query,
+            name: direction,
+            schema:
+              { type: string, enum: [all, outgoing, incoming], default: all },
+          }
+      responses:
+        "200":
+          {
+            description: Rows without the timeline,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          {
+                            data:
+                              {
+                                type: array,
+                                items:
+                                  { $ref: "#/components/schemas/TransferRow" },
+                              },
+                          },
+                      },
+                  },
+              },
+          }
+    post:
+      tags: [Transfers]
+      summary: Start a transfer (draft)
+      description: |
+        Needs `transfers:create` and that the caller works at `originBranchId`. `Idempotency-Key` must equal `id`.
+        `kind` is `goods` (pass `itemIds`, pieces on hand at the sending branch) or `cash`. `collector` is optional here and can be set later:
+        `{type: staff, userId}` or `{type: external, name, phone, idType, idNumber, relationship}`.
+      responses:
+        "201":
+          {
+            description: The draft,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+        "409": { $ref: "#/components/responses/Error" }
+  /transfers/available-items:
+    get:
+      tags: [Transfers]
+      summary: Gold at a branch that can be put on a transfer
+      description: On hand at the branch and not on another open transfer. `value` is the piece's booked value. Needs `transfers:create`.
+      parameters:
+        - {
+            in: query,
+            name: branchId,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200":
+          {
+            description: Pieces,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          {
+                            data:
+                              {
+                                type: array,
+                                items:
+                                  {
+                                    $ref: "#/components/schemas/TransferableItem",
+                                  },
+                              },
+                          },
+                      },
+                  },
+              },
+          }
+  /transfers/staff:
+    get:
+      tags: [Transfers]
+      summary: Active staff who can carry a transfer
+      description: Needs `transfers:create`. Lets a sender pick a collector without being able to manage users.
+      responses:
+        "200":
+          {
+            description: Staff,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          {
+                            data:
+                              {
+                                type: array,
+                                items:
+                                  {
+                                    type: object,
+                                    properties:
+                                      {
+                                        id: { type: string, format: uuid },
+                                        displayName: { type: string },
+                                      },
+                                  },
+                              },
+                          },
+                      },
+                  },
+              },
+          }
+  /transfers/{id}:
+    parameters:
+      - {
+          in: path,
+          name: id,
+          required: true,
+          schema: { type: string, format: uuid },
+        }
+    get:
+      tags: [Transfers]
+      summary: One transfer with its lines, payments, cases and full timeline
+      description: Visible to people who work at either end. Needs `transfers:read`.
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Transfers]
+      summary: Change a draft (add or remove goods, purpose, expected arrival) or the collector
+      description: A draft can change anything below; a released transfer can only change `collector` (the change is recorded in the timeline). Needs `transfers:create` at the sending branch.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                properties:
+                  {
+                    addItemIds:
+                      { type: array, items: { type: string, format: uuid } },
+                    removeLineIds:
+                      { type: array, items: { type: string, format: uuid } },
+                    collector: { type: object },
+                    purpose: { type: string },
+                    purposeNote: { type: string },
+                    method: { type: string },
+                    expectedArrivalAt: { type: string, format: date-time },
+                  },
+              }
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+        "409": { $ref: "#/components/responses/Error" }
+  /transfers/{id}/release:
+    post:
+      tags: [Transfers]
+      summary: Hand the transfer to the collector
+      description: |
+        Goods leave the sending branch's books (or, for cash, the notes in `lines` leave its drawer) and the totals are frozen. Needs a collector and an
+        open day at the sending branch (`COLLECTOR_REQUIRED`, `DAY_NOT_OPEN`, `NO_GOODS`).
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                properties:
+                  {
+                    note: { type: string },
+                    collectedAt: { type: string, format: date-time },
+                    lines:
+                      {
+                        type: object,
+                        description: 'Cash transfers only: notes sent, {"100": 10}.',
+                      },
+                  },
+              }
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+  /transfers/{id}/payments:
+    post:
+      tags: [Transfers]
+      summary: Record money that changed hands because of the transfer
+      description: |
+        `direction` is `paid_to_collector` or `received_from_collector`. `branchId` is the end that made or received the payment. Cash needs `lines`
+        that add up to `amount` and an open day at that branch. Allowed once the transfer is released.
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                required: [branchId, direction, amount, purpose],
+                properties:
+                  {
+                    id: { type: string, format: uuid },
+                    branchId: { type: string, format: uuid },
+                    direction:
+                      {
+                        type: string,
+                        enum: [paid_to_collector, received_from_collector],
+                      },
+                    amount: { type: string },
+                    method:
+                      { type: string, enum: [cash, mobile_money, bank, other] },
+                    purpose: { type: string },
+                    externalRef: { type: string },
+                    note: { type: string },
+                    lines: { type: object },
+                  },
+              }
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+  /transfers/{id}/receive:
+    post:
+      tags: [Transfers]
+      summary: Receive at the destination, confirming each line
+      description: |
+        Needs `transfers:receive` and an open day at the receiving branch. Goods: every line must be given as `matched`, `differs` (with the weights found)
+        or `missing`; a line that differs or is missing needs a note and opens a discrepancy case. What is received is booked on the receiving branch
+        as stock. Cash: `lines` are the notes counted (`{}` for an empty envelope); a different total needs `note` and opens a case.
+        Refusals: `NOT_IN_TRANSIT`, `LINES_MISSING`, `EXPLANATION_REQUIRED`, `DAY_NOT_OPEN`.
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                properties:
+                  {
+                    note: { type: string },
+                    lines:
+                      {
+                        description: "Goods: array of {lineId, outcome, top, down, note}. Cash: notes counted.",
+                      },
+                  },
+              }
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+  /transfers/{id}/cancel:
+    post:
+      tags: [Transfers]
+      summary: Cancel a draft
+      description: Only a draft can be cancelled (`TRANSFER_LOCKED`). Needs a reason.
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      requestBody:
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  {
+                    type: object,
+                    required: [reason],
+                    properties: { reason: { type: string } },
+                  },
+              },
+          }
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
+  /transfers/{id}/notes:
+    post:
+      tags: [Transfers]
+      summary: Add a note to the timeline
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      requestBody:
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  {
+                    type: object,
+                    required: [text],
+                    properties: { text: { type: string } },
+                  },
+              },
+          }
+      responses:
+        "200":
+          {
+            description: The transfer,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { $ref: "#/components/schemas/Transfer" } },
+                      },
+                  },
+              },
+          }
   /debts:
     get:
       tags: [Customers and debts]
@@ -1642,6 +2105,148 @@ components:
                 type: array,
                 items: { $ref: "#/components/schemas/Collateral" },
               }
+    TransferRow:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        kind: { type: string, enum: [goods, cash] }
+        status:
+          {
+            type: string,
+            enum:
+              [draft, released, received, received_with_discrepancy, cancelled],
+          }
+        originBranchId: { type: string, format: uuid }
+        originBranchName: { type: string }
+        destinationBranchId: { type: string, format: uuid }
+        destinationBranchName: { type: string }
+        purpose: { type: string }
+        method: { type: string }
+        collectorName: { type: [string, "null"] }
+        lineCount: { type: integer }
+        declaredValue: { type: [string, "null"] }
+        receivedValue: { type: [string, "null"] }
+        hasDiscrepancy: { type: boolean }
+        releasedAt: { type: [string, "null"], format: date-time }
+        receivedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    TransferableItem:
+      type: object
+      properties:
+        itemId: { type: string, format: uuid }
+        transactionId: { type: string, format: uuid }
+        reference: { type: string }
+        customerName: { type: string }
+        label: { type: string }
+        top: { type: string }
+        down: { type: string }
+        value: { type: string }
+        purchasedAt: { type: string, format: date-time }
+    Transfer:
+      description: A transfer with everything about it. Weights and values are strings without trailing zeros.
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        kind: { type: string, enum: [goods, cash] }
+        status:
+          {
+            type: string,
+            enum:
+              [draft, released, received, received_with_discrepancy, cancelled],
+          }
+        originBranchId: { type: string, format: uuid }
+        originBranchName: { type: string }
+        destinationBranchId: { type: string, format: uuid }
+        destinationBranchName: { type: string }
+        purpose:
+          {
+            type: string,
+            enum:
+              [
+                stock_collection,
+                restock_funding,
+                cash_return,
+                payment_on_collection,
+                other,
+              ],
+          }
+        purposeNote: { type: [string, "null"] }
+        method:
+          {
+            type: string,
+            enum:
+              [
+                collector_from_destination,
+                staff_travelling,
+                designated_courier,
+                branch_delivery,
+                other,
+              ],
+          }
+        collector:
+          {
+            type: [object, "null"],
+            description: "type, userId, name, phone, idType, idNumber, relationship, collectedAt",
+          }
+        expectedArrivalAt: { type: [string, "null"], format: date-time }
+        release: { type: [object, "null"], description: "by, at, note" }
+        declared:
+          {
+            type: [object, "null"],
+            description: "top, down, value, cash, cashLines (frozen at release)",
+          }
+        receipt:
+          {
+            type: [object, "null"],
+            description: "by, at, note, top, down, value, cash, cashLines",
+          }
+        cancellation: { type: [object, "null"], description: "by, at, reason" }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              lineNo: { type: integer }
+              itemId: { type: [string, "null"], format: uuid }
+              description: { type: string }
+              reference: { type: [string, "null"] }
+              customerName: { type: [string, "null"] }
+              releasedTop: { type: string }
+              releasedDown: { type: string }
+              releasedValue: { type: string }
+              receivedTop: { type: [string, "null"] }
+              receivedDown: { type: [string, "null"] }
+              receivedValue: { type: [string, "null"] }
+              outcome:
+                { type: string, enum: [pending, matched, differs, missing] }
+        payments:
+          {
+            type: array,
+            items:
+              {
+                type: object,
+                description: "id, direction, amount, method, purpose, externalRef, paidAt, recordedBy, note, lines",
+              },
+          }
+        events:
+          {
+            type: array,
+            items: { type: object, description: "id, type, by, at, data" },
+          }
+        discrepancies:
+          {
+            type: array,
+            items:
+              {
+                type: object,
+                description: "id, status, asset, lineId, expected, actual, difference, explanation",
+              },
+          }
+        createdBy: { type: object }
+        createdAt: { type: string, format: date-time }
     ManagedBranch:
       type: object
       properties:

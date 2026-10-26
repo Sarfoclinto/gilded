@@ -38,6 +38,15 @@ const paths = {
     users: { href: "/people/users", label: "Users" },
     branches: { href: "/people/branches", label: "Branches" },
   },
+  transfers: {
+    list: { href: "/transfers", label: "Transfers" },
+    create: { href: "/transfers/new", label: "New transfer" },
+    detail: {
+      href: "/transfers/:id",
+      to: (id: string) => `/transfers/${encodeURIComponent(id)}`,
+      label: "Transfer",
+    },
+  },
   changePassword: { href: "/change-password", label: "Choose a new password" },
   payments: { href: "/payments", label: "Mobile money" },
   debts: { href: "/debts", label: "Debts and loans" },

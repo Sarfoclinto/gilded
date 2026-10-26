@@ -7,6 +7,7 @@ import {
   HistoryIcon,
   HomeIcon,
   KeyRoundIcon,
+  TruckIcon,
   UserCogIcon,
   UsersIcon,
   ListIcon,
@@ -97,6 +98,20 @@ export const appMenu: AppMenuItem[] = [
         title: paths.people.customers.label,
         icon: <UsersIcon className={icon} />,
         permission: PERMISSIONS.CUSTOMERS_READ,
+      },
+    ],
+  },
+  {
+    key: "group-transfers",
+    type: "group",
+    label: "Between branches",
+    children: [
+      {
+        key: paths.transfers.list.href,
+        label: link(paths.transfers.list.href, paths.transfers.list.label),
+        title: paths.transfers.list.label,
+        icon: <TruckIcon className={icon} />,
+        permission: PERMISSIONS.TRANSFERS_READ,
       },
     ],
   },
