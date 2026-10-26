@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+import { readPrefill } from "@/features/calculator/carryOver";
 import { Alert } from "antd";
 import { calculate } from "@gold/core";
 import paths from "@/config/paths";
@@ -104,7 +110,21 @@ export default function NewTransactionPage() {
     !!customer.id,
   );
   const customerDebts = customer.id ? (debts.data ?? []) : [];
-  const [items, setItems] = useState<DraftItem[]>([newItem()]);
+  // Arriving from a calculator ("Save as a purchase"): the first item starts with its values. Nothing is saved until Save here.
+  const location = useLocation();
+  const [items, setItems] = useState<DraftItem[]>(() => {
+    const pre = readPrefill(location.state);
+    return pre
+      ? [
+          {
+            ...newItem(pre.price),
+            top: pre.top,
+            down: pre.down,
+            priceTouched: pre.priceTouched,
+          },
+        ]
+      : [newItem()];
+  });
   const [payout, setPayout] = useState<PayoutSelection | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -116,6 +136,28 @@ export default function NewTransactionPage() {
         prev.map((i) => (i.priceTouched || i.price ? i : { ...i, price: p })),
       );
   }, [priceQuery.data]);
+
+  // Already on this page when the panel's "Save as a purchase" is used: add the values as one more item, keeping what is typed.
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    const pre = readPrefill(location.state);
+    if (!pre) return;
+    setItems((prev) =>
+      [
+        ...prev.filter((i) => i.top || i.down),
+        {
+          ...newItem(pre.price),
+          top: pre.top,
+          down: pre.down,
+          priceTouched: pre.priceTouched,
+        },
+      ].slice(0, MAX_ITEMS),
+    );
+  }, [location.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const patch = (id: string, change: Partial<DraftItem>) =>
     setItems((prev) =>
@@ -209,14 +251,12 @@ export default function NewTransactionPage() {
       return;
     }
     if (cmd.customerId)
-      useCustomerDirectory
-        .getState()
-        .remember({
-          id: cmd.customerId,
-          name: cmd.customerName,
-          phone: cmd.customerPhone,
-          atBranch: true,
-        });
+      useCustomerDirectory.getState().remember({
+        id: cmd.customerId,
+        name: cmd.customerName,
+        phone: cmd.customerPhone,
+        atBranch: true,
+      });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
     toast.success(
       online

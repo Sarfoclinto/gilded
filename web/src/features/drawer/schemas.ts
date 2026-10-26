@@ -156,3 +156,32 @@ export type MovementCommand = z.infer<typeof movementCommandSchema>;
 export const OUTBOX = {
   MOVEMENT: "drawer.movement",
 } as const;
+
+/** GET /days/{id}/activity: one day's own movements, apart from the running totals. */
+export const dayActivitySchema = z.object({
+  dayId: z.string(),
+  businessDate: z.string(),
+  status: z.string(),
+  cash: z.object({
+    opening: linesSchema,
+    in: linesSchema,
+    out: linesSchema,
+    net: linesSchema,
+    netValue: z.string(),
+  }),
+  goods: z.object({ top: z.string(), down: z.string(), value: z.string() }),
+  debts: z.object({
+    net: z.string(),
+    debtors: z.array(
+      z.object({
+        customerId: z.string().nullable().optional(),
+        name: z.string(),
+        issued: z.string(),
+        repaid: z.string(),
+        net: z.string(),
+      }),
+    ),
+  }),
+  payable: z.string(),
+});
+export type DayActivity = z.infer<typeof dayActivitySchema>;

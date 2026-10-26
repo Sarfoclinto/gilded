@@ -46,6 +46,8 @@ public static class OperationsEndpoints
             Data(await ops.ListDaysAsync(me, branchId, fromDate, toDate, signoff, limit, ct)));
         api.MapGet("/days/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.GetDayAsync(me, id, ct)));
+        api.MapGet("/days/{id:guid}/activity", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.DayActivityAsync(me, id, ct)));
         api.MapGet("/days/{id:guid}/closing-preview", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.ClosingPreviewAsync(me, id, ct)));
         api.MapPost("/days/{id:guid}/close", async (Guid id, CloseDayCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

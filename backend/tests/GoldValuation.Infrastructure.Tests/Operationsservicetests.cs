@@ -173,6 +173,16 @@ public class OperationsServiceTests
     }
 
     [Fact]
+    public async Task A_days_own_activity_needs_days_read_and_a_day_in_the_callers_branches()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _ops.DayActivityAsync(Teller(), DayId, default));   // no such day for them
+        DayIsInTarkwa();
+        Assert.Equal("{}", await _ops.DayActivityAsync(Teller(), DayId, default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.DayActivityAsync(new Ctx([], [Tarkwa]), DayId, default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.DayActivityAsync(new Ctx([Permissions.DaysRead], [Kumasi]), DayId, default));
+    }
+
+    [Fact]
     public async Task Only_a_signoff_holder_in_the_branch_can_sign_and_only_with_a_real_decision()
     {
         DayIsInTarkwa();
@@ -225,6 +235,7 @@ public class OperationsServiceTests
         public Task<DbResult> RecordMovementAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public string? StoredDay;
         public string? LastSignoff;
+        public Task<string> DayActivityAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
         public Task<string?> GetDayAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredDay);
         public Task<string> ListDaysAsync(ICurrentContext me, Guid b, DateOnly? f, DateOnly? t, string? s, int l, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> ClosingPreviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{\"expected\":{}}");

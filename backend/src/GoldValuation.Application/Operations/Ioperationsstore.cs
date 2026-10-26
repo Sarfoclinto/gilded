@@ -22,6 +22,7 @@ public interface IOperationsStore
     Task<DbResult> RecordMovementAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string?> GetDayAsync(ICurrentContext me, Guid dayId, CancellationToken ct);
     Task<string> ListDaysAsync(ICurrentContext me, Guid branchId, DateOnly? fromDate, DateOnly? toDate, string? signoff, int limit, CancellationToken ct);
+    Task<string> DayActivityAsync(ICurrentContext me, Guid dayId, CancellationToken ct);
     Task<string> ClosingPreviewAsync(ICurrentContext me, Guid dayId, CancellationToken ct);
     Task<DbResult> CloseDayAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> SignoffDayAsync(ICurrentContext me, Guid dayId, string decision, string? note, CancellationToken ct);

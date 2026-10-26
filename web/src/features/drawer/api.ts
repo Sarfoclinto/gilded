@@ -3,6 +3,7 @@ import { request } from "@/shared/api/client";
 import { createKeys } from "@/shared/api/queryKeys";
 import {
   closingPreviewSchema,
+  dayActivitySchema,
   daySchema,
   dayStateSchema,
   movementSchema,
@@ -13,16 +14,6 @@ import {
 
 export const dayKeys = createKeys("days");
 
-export type DayHistoryParams = {
-  branchId: string;
-  signoff?: string;
-  from?: string;
-  to?: string;
-  limit?: number;
-};
-
-/** The drawer is the branch's cash and goods state, plus the history of days. */
-
 /** Writes use the command id as the Idempotency-Key, so a resend can never double-apply. */
 export const daysApi = {
   current: (branchId: string, signal?: AbortSignal) =>
@@ -30,7 +21,16 @@ export const daysApi = {
       { method: "get", url: "/days/current", params: { branchId }, signal },
       dayStateSchema,
     ),
-  history: (params: DayHistoryParams, signal?: AbortSignal) =>
+  history: (
+    params: {
+      branchId: string;
+      signoff?: string;
+      from?: string;
+      to?: string;
+      limit?: number;
+    },
+    signal?: AbortSignal,
+  ) =>
     request(
       { method: "get", url: "/days", params: { limit: 60, ...params }, signal },
       z.array(daySchema),
@@ -39,6 +39,11 @@ export const daysApi = {
     request(
       { method: "get", url: `/days/${dayId}/closing-preview`, signal },
       closingPreviewSchema,
+    ),
+  activity: (dayId: string, signal?: AbortSignal) =>
+    request(
+      { method: "get", url: `/days/${dayId}/activity`, signal },
+      dayActivitySchema,
     ),
   open: (cmd: OpenDayInput) =>
     request(

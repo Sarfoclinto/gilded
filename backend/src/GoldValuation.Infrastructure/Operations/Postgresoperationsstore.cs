@@ -65,6 +65,9 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)signoff ?? DBNull.Value },
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, Value = limit }))!;
 
+    public async Task<string> DayActivityAsync(ICurrentContext me, Guid dayId, CancellationToken ct) =>
+        (await Scalar(me, "select gold.day_activity_json($1)", ct, Uuid(dayId)))!;
+
     public async Task<string> ClosingPreviewAsync(ICurrentContext me, Guid dayId, CancellationToken ct) =>
         (await Scalar(me, "select gold.closing_preview($1)", ct, Uuid(dayId)))!;
 

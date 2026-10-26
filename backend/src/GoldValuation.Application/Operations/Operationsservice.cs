@@ -80,6 +80,14 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return InScope(me, await store.GetDayAsync(me, id, ct)) ?? throw AppException.NotFound("Day");
     }
 
+    /// <summary>One day's own movements (cash by note, goods, who was lent what), apart from the running totals.</summary>
+    public async Task<string> DayActivityAsync(ICurrentContext me, Guid id, CancellationToken ct)
+    {
+        me.Require(Permissions.DaysRead);
+        _ = InScope(me, await store.GetDayAsync(me, id, ct)) ?? throw AppException.NotFound("Day");
+        return await store.DayActivityAsync(me, id, ct);
+    }
+
     public Task<string> ListDaysAsync(ICurrentContext me, Guid branchId, string? fromDate, string? toDate, string? signoff, int? limit, CancellationToken ct)
     {
         me.Require(Permissions.DaysRead);

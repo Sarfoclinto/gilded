@@ -52,6 +52,17 @@ export function useDayHistory(params: {
   });
 }
 
+/** One day's own movements ("This day only"). */
+export function useDayActivity(dayId: string | null) {
+  return useApiQuery({
+    queryKey: dayKeys.custom("activity", { dayId }),
+    queryFn: ({ signal }) => daysApi.activity(dayId as string, signal),
+    enabled: !!dayId,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+}
+
 /** What the books say the branch holds (cash, goods, debts, amounts owed, held gold). Needs an open day. */
 export function useClosingPreview(dayId: string | null) {
   return useApiQuery({
