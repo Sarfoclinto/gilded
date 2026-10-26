@@ -39,6 +39,7 @@ export interface TransactionView {
   /** How it was paid: cash, mobile money, owed, gold against a debt. While waiting on this device they are not confirmed yet. */
   payments: Payment[];
   customerId: string | null;
+  representative: { name: string; phone: string | null } | null;
   capturedAt: string;
   flags: TransactionFlag[];
   sync: "synced" | "waiting" | "failed";
@@ -53,6 +54,9 @@ export const fromServer = (t: Transaction): TransactionView => ({
   customerName: t.customerName,
   customerPhone: t.customerPhone ?? null,
   customerId: t.customerId ?? null,
+  representative: t.representative?.name
+    ? { name: t.representative.name, phone: t.representative.phone ?? null }
+    : null,
   payments: t.payments,
   items: t.items.map((i) => ({
     id: i.id,
@@ -134,6 +138,9 @@ export const fromOutbox = (e: OutboxEntry): TransactionView => {
     customerName: c.customerName,
     customerPhone: c.customerPhone ?? null,
     customerId: c.customerId ?? null,
+    representative: c.representative?.name
+      ? { name: c.representative.name, phone: c.representative.phone ?? null }
+      : null,
     payments: localPayments(c),
     items,
     calculatedAmount: String(total),

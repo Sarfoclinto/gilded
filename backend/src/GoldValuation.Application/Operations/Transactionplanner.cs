@@ -27,6 +27,9 @@ public static class TransactionPlanner
         if (c.BranchId == Guid.Empty) Bad("branchId", "Choose the branch.");
         if (string.IsNullOrWhiteSpace(c.CustomerName)) Bad("customerName", "Enter the customer name.");
         else if (c.CustomerName.Trim().Length > 120) Bad("customerName", "That name is too long.");
+        if (c.Representative is not null && !string.IsNullOrWhiteSpace(c.Representative.Phone) && string.IsNullOrWhiteSpace(c.Representative.Name))
+            Bad("representative.name", "Enter the name of the person bringing the gold.");
+        else if (c.Representative?.Name is { } rn && rn.Trim().Length > 120) Bad("representative.name", "That name is too long.");
         if (c.Items is null || c.Items.Count is < 1 or > 20) Bad("items", "Add 1 to 20 items.");
         if (c.Payout is null) Bad("payout", "The payout is missing.");
         if (fields.Count > 0) throw AppException.Invalid("Check the highlighted fields.", fields);
@@ -121,7 +124,7 @@ public static class TransactionPlanner
         if (now - c.CapturedAt > OfflineAfter) flags.Add("OFFLINE_ENTRY");
         if (now - c.PriceAsOf > PriceStaleAfter) flags.Add("PRICE_STALE");
 
-        return new JsonObject
+        var plan = new JsonObject
         {
             ["id"] = c.Id,
             ["branchId"] = c.BranchId,
@@ -140,6 +143,9 @@ public static class TransactionPlanner
             ["flags"] = flags,
             ["payments"] = payments,
         };
+        if (!string.IsNullOrWhiteSpace(c.Representative?.Name))
+            plan["representative"] = new JsonObject { ["name"] = c.Representative.Name.Trim(), ["phone"] = c.Representative.Phone?.Trim() };
+        return plan;
     }
 
     /// <summary>Whole cedis from text such as "11832". Anything else is a validation error.</summary>

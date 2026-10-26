@@ -8,6 +8,7 @@ export const customerSchema = z.object({
   id: z.string(),
   name: z.string(),
   phone: z.string().nullable().optional(),
+  atBranch: z.boolean().optional(),
 });
 export type Customer = z.infer<typeof customerSchema>;
 
@@ -16,13 +17,18 @@ export const customerKeys = {
 };
 
 /** Find existing customers by name or phone. Needs a connection; the forms still work without it (a new customer is created on save). */
-export function useCustomerSearch(q: string) {
+export function useCustomerSearch(q: string, branchId?: string | null) {
   const text = q.trim();
   return useApiQuery({
-    queryKey: customerKeys.search(text),
+    queryKey: customerKeys.search(`${branchId ?? ""}|${text}`),
     queryFn: ({ signal }) =>
       request(
-        { method: "get", url: "/customers", params: { q: text }, signal },
+        {
+          method: "get",
+          url: "/customers",
+          params: { q: text, branchId: branchId || undefined, limit: 8 },
+          signal,
+        },
         z.array(customerSchema),
       ),
     enabled: text.length >= 2,

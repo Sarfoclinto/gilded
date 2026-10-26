@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.6.0
+  version: 0.7.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -38,16 +38,16 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LoginRequest" }
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        "200":
+        '200':
           description: Signed in. The refresh token is set as an httpOnly, Secure, SameSite cookie scoped to /auth.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/SessionResponse" }
-        "401": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
-        "429": { $ref: "#/components/responses/Error" }
+              schema: { $ref: '#/components/schemas/SessionResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
       description: |
         Error codes: `INVALID_CREDENTIALS` (401, the same for a wrong name, wrong password, unknown company, locked or switched-off account, on purpose),
         `VALIDATION_FAILED` (422, with `fieldErrors`), `RATE_LIMITED` (429). Five wrong passwords lock the account for 15 minutes.
@@ -57,13 +57,13 @@ paths:
       summary: Exchange the refresh cookie for a new access token (rotates the refresh token)
       security: []
       responses:
-        "200":
+        '200':
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/SessionResponse" }
+              schema: { $ref: '#/components/schemas/SessionResponse' }
           description: New access token
-        "401": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
+        '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
       description: |
         Sends no body; the httpOnly cookie is the credential and is replaced on every call. Error codes: `SESSION_EXPIRED` (401, cookie cleared,
         sign in again) and `REFRESH_IN_PROGRESS` (409, another tab refreshed a moment ago: wait briefly and call again, or just retry the request that failed).
@@ -73,13 +73,13 @@ paths:
       tags: [Auth]
       summary: Revoke the refresh token and clear the cookie
       responses:
-        "204": { description: Signed out }
+        '204': { description: Signed out }
   /me:
     get:
       tags: [Me]
       summary: The signed-in user, role, permissions and branches
       responses:
-        "200":
+        '200':
           description: The user
           content:
             application/json:
@@ -87,14 +87,14 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data: { $ref: "#/components/schemas/User" }
-        "401": { $ref: "#/components/responses/Error" }
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Error' }
   /branches:
     get:
       tags: [Branches]
       summary: Branches the user may see (directors see all, others see their assignments)
       responses:
-        "200":
+        '200':
           description: Branches
           content:
             application/json:
@@ -104,8 +104,8 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: { $ref: "#/components/schemas/Branch" }
-        "401": { $ref: "#/components/responses/Error" }
+                    items: { $ref: '#/components/schemas/Branch' }
+        '401': { $ref: '#/components/responses/Error' }
     post:
       tags: [People]
       summary: Add a branch
@@ -126,27 +126,9 @@ paths:
                 name: { type: string }
                 timezone: { type: string, default: Africa/Accra }
       responses:
-        "201":
-          {
-            description: Created,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              { $ref: "#/components/schemas/ManagedBranch" },
-                          },
-                      },
-                  },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Created, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ManagedBranch' } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /prices/current:
     get:
       tags: [Prices]
@@ -157,7 +139,7 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        "200":
+        '200':
           description: Current price
           content:
             application/json:
@@ -165,18 +147,10 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data: { $ref: "#/components/schemas/CurrentPrice" }
-        "401": { $ref: "#/components/responses/Error" }
-        "403": { $ref: "#/components/responses/Error" }
-        "404":
-          {
-            description: "PRICE_NOT_SET - nothing has been published for this branch yet",
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
-              },
-          }
+                  data: { $ref: '#/components/schemas/CurrentPrice' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { description: 'PRICE_NOT_SET - nothing has been published for this branch yet', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
   /prices/base:
     post:
       tags: [Prices]
@@ -188,12 +162,12 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/BasePriceRequest" }
-            example: { basePrice: "11458" }
+            schema: { $ref: '#/components/schemas/BasePriceRequest' }
+            example: { basePrice: '11458' }
       responses:
-        "204": { description: Published }
-        "403": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '204': { description: Published }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /prices/margins/{branchId}:
     put:
       tags: [Prices]
@@ -209,29 +183,12 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/MarginRequest" }
-            example: { margin: "192", approve: false }
+            schema: { $ref: '#/components/schemas/MarginRequest' }
+            example: { margin: '192', approve: false }
       responses:
-        "200":
-          {
-            description: The price now in force,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data: { $ref: "#/components/schemas/CurrentPrice" },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: The price now in force, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CurrentPrice' } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /prices/margins/{branchId}/approve:
     post:
       tags: [Prices]
@@ -243,26 +200,9 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        "200":
-          {
-            description: The price now in force,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data: { $ref: "#/components/schemas/CurrentPrice" },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
-        "404": { $ref: "#/components/responses/Error" }
+        '200': { description: The price now in force, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CurrentPrice' } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /transactions:
     get:
       tags: [Transactions]
@@ -276,7 +216,7 @@ paths:
           name: limit
           schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
       responses:
-        "200":
+        '200':
           description: Transactions
           content:
             application/json:
@@ -286,8 +226,8 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: { $ref: "#/components/schemas/Transaction" }
-        "403": { $ref: "#/components/responses/Error" }
+                    items: { $ref: '#/components/schemas/Transaction' }
+        '403': { $ref: '#/components/responses/Error' }
     post:
       tags: [Transactions]
       summary: Save a transaction (idempotent)
@@ -317,62 +257,33 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CreateTransactionRequest" }
+            schema: { $ref: '#/components/schemas/CreateTransactionRequest' }
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TransactionResponse" }
-        "200":
+              schema: { $ref: '#/components/schemas/TransactionResponse' }
+        '200':
           description: Already saved (idempotent replay)
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TransactionResponse" }
-        "403": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+              schema: { $ref: '#/components/schemas/TransactionResponse' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /transactions/{id}/payments/{paymentId}/confirm:
     post:
       tags: [Transactions]
       summary: The mobile money arrived
       description: Needs `payments:confirm`, and the person must work at the branch that sent the money (`403 FORBIDDEN` otherwise).
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: path,
-            name: paymentId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: path, name: paymentId, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The updated transaction,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      { $ref: "#/components/schemas/TransactionResponse" },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
-        "404": { $ref: "#/components/responses/Error" }
-        "409":
-          {
-            description: "ALREADY_RESOLVED or NOT_MOBILE_MONEY",
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
-              },
-          }
+        '200': { description: The updated transaction, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionResponse' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { description: 'ALREADY_RESOLVED or NOT_MOBILE_MONEY', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
   /transactions/{id}/payments/{paymentId}/fail:
     post:
       tags: [Transactions]
@@ -382,39 +293,18 @@ paths:
         (notes, taken from the drawer of the branch that holds the customer) and/or `replacements` (other split parts).
         Together they must equal the failed amount, else `PAYOUT_MISMATCH`.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: path,
-            name: paymentId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: path, name: paymentId, required: true, schema: { type: string, format: uuid } }
       requestBody:
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ResolvePaymentRequest" }
+            schema: { $ref: '#/components/schemas/ResolvePaymentRequest' }
       responses:
-        "200":
-          {
-            description: The updated transaction,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      { $ref: "#/components/schemas/TransactionResponse" },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
-        "404": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: The updated transaction, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionResponse' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /transactions/{id}:
     get:
       tags: [Transactions]
@@ -425,12 +315,12 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        "200":
+        '200':
           description: The transaction
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TransactionResponse" }
-        "404": { $ref: "#/components/responses/Error" }
+              schema: { $ref: '#/components/schemas/TransactionResponse' }
+        '404': { $ref: '#/components/responses/Error' }
   /days/current:
     get:
       tags: [Cash drawer]
@@ -446,7 +336,7 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        "200":
+        '200':
           description: Day state
           content:
             application/json:
@@ -454,8 +344,8 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data: { $ref: "#/components/schemas/DayState" }
-        "403": { $ref: "#/components/responses/Error" }
+                  data: { $ref: '#/components/schemas/DayState' }
+        '403': { $ref: '#/components/responses/Error' }
   /days:
     get:
       tags: [Cash drawer]
@@ -465,75 +355,24 @@ paths:
         `from` and `to` (yyyy-MM-dd) and by sign-off status, for example `signoff=pending` for a manager's to-do list.
         Needs `days:read`.
       parameters:
-        - {
-            in: query,
-            name: branchId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
         - { in: query, name: from, schema: { type: string, format: date } }
         - { in: query, name: to, schema: { type: string, format: date } }
-        - {
-            in: query,
-            name: signoff,
-            schema:
-              {
-                type: string,
-                enum: [not_required, pending, approved, rejected],
-              },
-          }
-        - {
-            in: query,
-            name: limit,
-            schema: { type: integer, minimum: 1, maximum: 200, default: 60 },
-          }
+        - { in: query, name: signoff, schema: { type: string, enum: [not_required, pending, approved, rejected] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 60 } }
       responses:
-        "200":
-          {
-            description: Days,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items: { $ref: "#/components/schemas/Day" },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: Days, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Day' } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /days/{id}:
     get:
       tags: [Cash drawer]
       summary: One day
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The day,
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/DayResponse" } },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
+        '200': { description: The day, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '404': { $ref: '#/components/responses/Error' }
   /days/{id}/closing-preview:
     get:
       tags: [Cash drawer]
@@ -543,34 +382,11 @@ paths:
         `expected` needs a written reason. `pendingPayments` is the number of mobile-money parts still unconfirmed
         (they do not stop the day from closing). Needs `days:manage`. `409 DAY_ALREADY_CLOSED` once closed.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: Preview,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              { $ref: "#/components/schemas/ClosingPreview" },
-                          },
-                      },
-                  },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
+        '200': { description: Preview, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ClosingPreview' } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
   /days/open:
     post:
       tags: [Cash drawer]
@@ -591,28 +407,12 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/OpenDayRequest" }
+            schema: { $ref: '#/components/schemas/OpenDayRequest' }
       responses:
-        "201":
-          {
-            description: Opened,
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/DayResponse" } },
-              },
-          }
-        "200":
-          {
-            description: Already opened with this id (replay),
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/DayResponse" } },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Opened, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '200': { description: Already opened with this id (replay), content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /days/{id}/close:
     post:
       tags: [Cash drawer]
@@ -633,45 +433,19 @@ paths:
         pending sign-off never stops the next day from opening. A command sent again with the same id returns the closed
         day (200); a different command for a closed day is `409 DAY_ALREADY_CLOSED`. Needs `days:manage`.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: header,
-            name: Idempotency-Key,
-            required: false,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: header, name: Idempotency-Key, required: false, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CloseDayRequest" }
+            schema: { $ref: '#/components/schemas/CloseDayRequest' }
       responses:
-        "201":
-          {
-            description: Closed,
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/DayResponse" } },
-              },
-          }
-        "200":
-          {
-            description: Already closed by this command (replay),
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/DayResponse" } },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Closed, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '200': { description: Already closed by this command (replay), content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /days/{id}/movements:
     post:
       tags: [Cash drawer]
@@ -690,29 +464,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/MovementRequest" }
+            schema: { $ref: '#/components/schemas/MovementRequest' }
       responses:
-        "201":
-          {
-            description: Recorded,
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/MovementResponse" } },
-              },
-          }
-        "200":
-          {
-            description: Already recorded (replay),
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/MovementResponse" } },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Recorded, content: { application/json: { schema: { $ref: '#/components/schemas/MovementResponse' } } } }
+        '200': { description: Already recorded (replay), content: { application/json: { schema: { $ref: '#/components/schemas/MovementResponse' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /days/{id}/signoff:
     post:
       tags: [Cash drawer]
@@ -722,31 +480,18 @@ paths:
         Rejecting needs a reason. This records the decision only: the books and the review cases are not changed here.
         `409 NOTHING_TO_SIGN` when the day has no pending difference.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/SignoffRequest" }
+            schema: { $ref: '#/components/schemas/SignoffRequest' }
       responses:
-        "200":
-          {
-            description: Signed off,
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/DayResponse" } },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
-        "404": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: Signed off, content: { application/json: { schema: { $ref: '#/components/schemas/DayResponse' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /payments/pending:
     get:
       tags: [Transactions]
@@ -756,20 +501,10 @@ paths:
         `payments:confirm`. `role=receiving`: money other branches still owe for purchases made at this branch. Needs
         `transactions:read`.
       parameters:
-        - {
-            in: query,
-            name: branchId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: query,
-            name: role,
-            schema:
-              { type: string, enum: [sending, receiving], default: sending },
-          }
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: role, schema: { type: string, enum: [sending, receiving], default: sending } }
       responses:
-        "200":
+        '200':
           description: Pending parts, oldest first
           content:
             application/json:
@@ -792,68 +527,30 @@ paths:
                         amount: { type: string }
                         externalRef: { type: string, nullable: true }
                         createdAt: { type: string, format: date-time }
-        "403": { $ref: "#/components/responses/Error" }
+        '403': { $ref: '#/components/responses/Error' }
   /customers:
     get:
       tags: [Customers and debts]
-      summary: Find customers by name or phone
+      summary: Find customers by name or phone, this branch's first
+      description: |
+        With `branchId`, customers who have sold at that branch come first (most recent first), then the rest of the company; an exact phone match always leads.
+        Each row says `atBranch`. With no `q` and a large `limit` (up to 1000) it returns the branch's directory, which the app keeps on the device so the
+        customer picker works offline.
       parameters:
         - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: branchId, schema: { type: string, format: uuid } }
+        - { in: query, name: limit, schema: { type: integer, default: 25, maximum: 1000 } }
       responses:
-        "200":
-          {
-            description: Up to 20 customers,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  { $ref: "#/components/schemas/Customer" },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
+        '200': { description: Customers, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Customer' } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /users:
     get:
       tags: [People]
       summary: All users of the company
       description: Needs `users:manage`. Switched-off users are included and listed last.
       responses:
-        "200":
-          {
-            description: Users,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  { $ref: "#/components/schemas/ManagedUser" },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
+        '200': { description: Users, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/ManagedUser' } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
     post:
       tags: [People]
       summary: Add a user
@@ -876,35 +573,13 @@ paths:
                 phone: { type: string, nullable: true }
                 password: { type: string, minLength: 10 }
                 roleKey: { type: string }
-                branchIds:
-                  { type: array, items: { type: string, format: uuid } }
-                overrides:
-                  {
-                    type: array,
-                    items: { $ref: "#/components/schemas/PermissionOverride" },
-                  }
+                branchIds: { type: array, items: { type: string, format: uuid } }
+                overrides: { type: array, items: { $ref: '#/components/schemas/PermissionOverride' } }
       responses:
-        "201":
-          {
-            description: Created,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data: { $ref: "#/components/schemas/ManagedUser" },
-                          },
-                      },
-                  },
-              },
-          }
-        "200": { description: Replayed }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Created, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ManagedUser' } } } } } }
+        '200': { description: Replayed }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /users/{id}:
     patch:
       tags: [People]
@@ -915,147 +590,41 @@ paths:
         `isActive` signs the person out. You cannot change your own role, branches, overrides or `isActive`
         (`CANNOT_CHANGE_OWN_ACCESS`), and the company always keeps someone who can manage users (`LAST_DIRECTOR`).
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The user,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data: { $ref: "#/components/schemas/ManagedUser" },
-                          },
-                      },
-                  },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: The user, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ManagedUser' } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /users/{id}/password:
     post:
       tags: [People]
       summary: Set a temporary password
       description: Needs `users:manage`. The person must choose their own at the next sign-in and is signed out everywhere. Not for your own account.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                required: [password],
-                properties: { password: { type: string, minLength: 10 } },
-              }
+            schema: { type: object, required: [password], properties: { password: { type: string, minLength: 10 } } }
       responses:
-        "200":
-          {
-            description: The user,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data: { $ref: "#/components/schemas/ManagedUser" },
-                          },
-                      },
-                  },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: The user, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ManagedUser' } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /roles:
     get:
       tags: [People]
       summary: Roles and what each allows
       description: Needs `users:manage`.
       responses:
-        "200":
-          {
-            description: Roles,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  {
-                                    type: object,
-                                    properties:
-                                      {
-                                        key: { type: string },
-                                        name: { type: string },
-                                        isSystem: { type: boolean },
-                                        permissions:
-                                          {
-                                            type: array,
-                                            items: { type: string },
-                                          },
-                                      },
-                                  },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
+        '200': { description: Roles, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object, properties: { key: { type: string }, name: { type: string }, isSystem: { type: boolean }, permissions: { type: array, items: { type: string } } } } } } } } } }
   /me/security:
     get:
       tags: [People]
       summary: Does the signed-in person have to choose a new password
       responses:
-        "200":
-          {
-            description: State,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: object,
-                                properties:
-                                  { mustChangePassword: { type: boolean } },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
+        '200': { description: State, content: { application/json: { schema: { type: object, properties: { data: { type: object, properties: { mustChangePassword: { type: boolean } } } } } } } }
   /me/password:
     post:
       tags: [People]
@@ -1064,19 +633,10 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                required: [currentPassword, newPassword],
-                properties:
-                  {
-                    currentPassword: { type: string },
-                    newPassword: { type: string, minLength: 10 },
-                  },
-              }
+            schema: { type: object, required: [currentPassword, newPassword], properties: { currentPassword: { type: string }, newPassword: { type: string, minLength: 10 } } }
       responses:
-        "204": { description: Changed }
-        "422": { $ref: "#/components/responses/Error" }
+        '204': { description: Changed }
+        '422': { $ref: '#/components/responses/Error' }
   /customers/list:
     get:
       tags: [People]
@@ -1084,80 +644,21 @@ paths:
       description: Needs `customers:read`. Each row has purchase count, last purchase and what the customer owes or is owed.
       parameters:
         - { in: query, name: q, schema: { type: string } }
-        - {
-            in: query,
-            name: limit,
-            schema: { type: integer, default: 25, maximum: 100 },
-          }
+        - { in: query, name: limit, schema: { type: integer, default: 25, maximum: 100 } }
         - { in: query, name: offset, schema: { type: integer, default: 0 } }
       responses:
-        "200":
-          {
-            description: A page,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: object,
-                                properties:
-                                  {
-                                    total: { type: integer },
-                                    items:
-                                      {
-                                        type: array,
-                                        items:
-                                          {
-                                            $ref: "#/components/schemas/CustomerRow",
-                                          },
-                                      },
-                                  },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
+        '200': { description: A page, content: { application/json: { schema: { type: object, properties: { data: { type: object, properties: { total: { type: integer }, items: { type: array, items: { $ref: '#/components/schemas/CustomerRow' } } } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /customers/{id}:
     get:
       tags: [People]
       summary: One customer with purchases, debts and held gold
       description: Needs `customers:read`.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The customer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              { $ref: "#/components/schemas/CustomerDetail" },
-                          },
-                      },
-                  },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
+        '200': { description: The customer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CustomerDetail' } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
     patch:
       tags: [People]
       summary: Edit a customer
@@ -1165,201 +666,56 @@ paths:
         Needs `customers:manage`. Send only what changes (`name`, `phone`, `notes`). Debts follow the new name, receipts keep the
         name used on the day. A name and phone already used by another customer gives `DUPLICATE_CUSTOMER`.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The customer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              { $ref: "#/components/schemas/CustomerDetail" },
-                          },
-                      },
-                  },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: The customer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CustomerDetail' } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /customers/{id}/merge:
     post:
       tags: [People]
       summary: Merge a duplicate into this customer
       description: Needs `customers:manage`. Purchases, debts and held gold of `removeId` move to this customer and the duplicate is removed (kept in the audit trail).
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                required: [removeId],
-                properties: { removeId: { type: string, format: uuid } },
-              }
+            schema: { type: object, required: [removeId], properties: { removeId: { type: string, format: uuid } } }
       responses:
-        "200":
-          {
-            description: The kept customer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              { $ref: "#/components/schemas/CustomerDetail" },
-                          },
-                      },
-                  },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '200': { description: The kept customer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CustomerDetail' } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /branches/manage:
     get:
       tags: [People]
       summary: All branches, including switched-off ones
       description: Needs `branches:manage`. `GET /branches` stays the list of branches the caller works in.
       responses:
-        "200":
-          {
-            description: Branches,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  {
-                                    $ref: "#/components/schemas/ManagedBranch",
-                                  },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
+        '200': { description: Branches, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/ManagedBranch' } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /branches/{id}:
     patch:
       tags: [People]
       summary: Rename a branch, change its time zone, or switch it on or off
       description: Needs `branches:manage`. The main branch cannot be switched off (`MAIN_BRANCH`) and a branch with an open day cannot either (`DAY_OPEN`).
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The branch,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              { $ref: "#/components/schemas/ManagedBranch" },
-                          },
-                      },
-                  },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
+        '200': { description: The branch, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ManagedBranch' } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
   /transfers:
     get:
       tags: [Transfers]
       summary: Transfers that start or end at a branch
       description: Needs `transfers:read`. `direction` is `outgoing` (this branch sends), `incoming` (this branch receives) or `all`.
       parameters:
-        - {
-            in: query,
-            name: branchId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: query,
-            name: status,
-            schema:
-              {
-                type: string,
-                enum:
-                  [
-                    draft,
-                    released,
-                    received,
-                    received_with_discrepancy,
-                    cancelled,
-                  ],
-              },
-          }
-        - {
-            in: query,
-            name: direction,
-            schema:
-              { type: string, enum: [all, outgoing, incoming], default: all },
-          }
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [draft, released, received, received_with_discrepancy, cancelled] } }
+        - { in: query, name: direction, schema: { type: string, enum: [all, outgoing, incoming], default: all } }
       responses:
-        "200":
-          {
-            description: Rows without the timeline,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  { $ref: "#/components/schemas/TransferRow" },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
+        '200': { description: Rows without the timeline, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/TransferRow' } } } } } } }
     post:
       tags: [Transfers]
       summary: Start a transfer (draft)
@@ -1368,127 +724,34 @@ paths:
         `kind` is `goods` (pass `itemIds`, pieces on hand at the sending branch) or `cash`. `collector` is optional here and can be set later:
         `{type: staff, userId}` or `{type: external, name, phone, idType, idNumber, relationship}`.
       responses:
-        "201":
-          {
-            description: The draft,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
+        '201': { description: The draft, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
   /transfers/available-items:
     get:
       tags: [Transfers]
       summary: Gold at a branch that can be put on a transfer
       description: On hand at the branch and not on another open transfer. `value` is the piece's booked value. Needs `transfers:create`.
       parameters:
-        - {
-            in: query,
-            name: branchId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: Pieces,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  {
-                                    $ref: "#/components/schemas/TransferableItem",
-                                  },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
+        '200': { description: Pieces, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/TransferableItem' } } } } } } }
   /transfers/staff:
     get:
       tags: [Transfers]
       summary: Active staff who can carry a transfer
       description: Needs `transfers:create`. Lets a sender pick a collector without being able to manage users.
       responses:
-        "200":
-          {
-            description: Staff,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  {
-                                    type: object,
-                                    properties:
-                                      {
-                                        id: { type: string, format: uuid },
-                                        displayName: { type: string },
-                                      },
-                                  },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
+        '200': { description: Staff, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object, properties: { id: { type: string, format: uuid }, displayName: { type: string } } } } } } } } }
   /transfers/{id}:
     parameters:
-      - {
-          in: path,
-          name: id,
-          required: true,
-          schema: { type: string, format: uuid },
-        }
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
     get:
       tags: [Transfers]
       summary: One transfer with its lines, payments, cases and full timeline
       description: Visible to people who work at either end. Needs `transfers:read`.
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
     patch:
       tags: [Transfers]
       summary: Change a draft (add or remove goods, purpose, expected arrival) or the collector
@@ -1496,40 +759,10 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                properties:
-                  {
-                    addItemIds:
-                      { type: array, items: { type: string, format: uuid } },
-                    removeLineIds:
-                      { type: array, items: { type: string, format: uuid } },
-                    collector: { type: object },
-                    purpose: { type: string },
-                    purposeNote: { type: string },
-                    method: { type: string },
-                    expectedArrivalAt: { type: string, format: date-time },
-                  },
-              }
+            schema: { type: object, properties: { addItemIds: { type: array, items: { type: string, format: uuid } }, removeLineIds: { type: array, items: { type: string, format: uuid } }, collector: { type: object }, purpose: { type: string }, purposeNote: { type: string }, method: { type: string }, expectedArrivalAt: { type: string, format: date-time } } }
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
-        "409": { $ref: "#/components/responses/Error" }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
   /transfers/{id}/release:
     post:
       tags: [Transfers]
@@ -1538,46 +771,13 @@ paths:
         Goods leave the sending branch's books (or, for cash, the notes in `lines` leave its drawer) and the totals are frozen. Needs a collector and an
         open day at the sending branch (`COLLECTOR_REQUIRED`, `DAY_NOT_OPEN`, `NO_GOODS`).
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                properties:
-                  {
-                    note: { type: string },
-                    collectedAt: { type: string, format: date-time },
-                    lines:
-                      {
-                        type: object,
-                        description: 'Cash transfers only: notes sent, {"100": 10}.',
-                      },
-                  },
-              }
+            schema: { type: object, properties: { note: { type: string }, collectedAt: { type: string, format: date-time }, lines: { type: object, description: 'Cash transfers only: notes sent, {"100": 10}.' } } }
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
   /transfers/{id}/payments:
     post:
       tags: [Transfers]
@@ -1586,54 +786,13 @@ paths:
         `direction` is `paid_to_collector` or `received_from_collector`. `branchId` is the end that made or received the payment. Cash needs `lines`
         that add up to `amount` and an open day at that branch. Allowed once the transfer is released.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                required: [branchId, direction, amount, purpose],
-                properties:
-                  {
-                    id: { type: string, format: uuid },
-                    branchId: { type: string, format: uuid },
-                    direction:
-                      {
-                        type: string,
-                        enum: [paid_to_collector, received_from_collector],
-                      },
-                    amount: { type: string },
-                    method:
-                      { type: string, enum: [cash, mobile_money, bank, other] },
-                    purpose: { type: string },
-                    externalRef: { type: string },
-                    note: { type: string },
-                    lines: { type: object },
-                  },
-              }
+            schema: { type: object, required: [branchId, direction, amount, purpose], properties: { id: { type: string, format: uuid }, branchId: { type: string, format: uuid }, direction: { type: string, enum: [paid_to_collector, received_from_collector] }, amount: { type: string }, method: { type: string, enum: [cash, mobile_money, bank, other] }, purpose: { type: string }, externalRef: { type: string }, note: { type: string }, lines: { type: object } } }
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
   /transfers/{id}/receive:
     post:
       tags: [Transfers]
@@ -1644,127 +803,34 @@ paths:
         as stock. Cash: `lines` are the notes counted (`{}` for an empty envelope); a different total needs `note` and opens a case.
         Refusals: `NOT_IN_TRANSIT`, `LINES_MISSING`, `EXPLANATION_REQUIRED`, `DAY_NOT_OPEN`.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                properties:
-                  {
-                    note: { type: string },
-                    lines:
-                      {
-                        description: "Goods: array of {lineId, outcome, top, down, note}. Cash: notes counted.",
-                      },
-                  },
-              }
+            schema: { type: object, properties: { note: { type: string }, lines: { description: 'Goods: array of {lineId, outcome, top, down, note}. Cash: notes counted.' } } }
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
   /transfers/{id}/cancel:
     post:
       tags: [Transfers]
       summary: Cancel a draft
       description: Only a draft can be cancelled (`TRANSFER_LOCKED`). Needs a reason.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
-        content:
-          {
-            application/json:
-              {
-                schema:
-                  {
-                    type: object,
-                    required: [reason],
-                    properties: { reason: { type: string } },
-                  },
-              },
-          }
+        content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string } } } } }
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
   /transfers/{id}/notes:
     post:
       tags: [Transfers]
       summary: Add a note to the timeline
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
-        content:
-          {
-            application/json:
-              {
-                schema:
-                  {
-                    type: object,
-                    required: [text],
-                    properties: { text: { type: string } },
-                  },
-              },
-          }
+        content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string } } } } }
       responses:
-        "200":
-          {
-            description: The transfer,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Transfer" } },
-                      },
-                  },
-              },
-          }
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
   /debts:
     get:
       tags: [Customers and debts]
@@ -1773,80 +839,22 @@ paths:
         `direction` is `receivable` (owed to the branch, such as loans) or `payable` (the branch owes someone, such as a
         customer still to be paid). Needs `debts:read`.
       parameters:
-        - {
-            in: query,
-            name: branchId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: query,
-            name: direction,
-            schema: { type: string, enum: [receivable, payable] },
-          }
-        - {
-            in: query,
-            name: openOnly,
-            schema: { type: boolean, default: false },
-          }
-        - {
-            in: query,
-            name: customerId,
-            schema: { type: string, format: uuid },
-          }
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: direction, schema: { type: string, enum: [receivable, payable] } }
+        - { in: query, name: openOnly, schema: { type: boolean, default: false } }
+        - { in: query, name: customerId, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: Debts,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items: { $ref: "#/components/schemas/Debt" },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
+        '200': { description: Debts, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Debt' } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /debts/{id}:
     get:
       tags: [Customers and debts]
       summary: One debt with its repayments
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200":
-          {
-            description: The debt,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Debt" } },
-                      },
-                  },
-              },
-          }
-        "404": { $ref: "#/components/responses/Error" }
+        '200': { description: The debt, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Debt' } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
   /debts/loans:
     post:
       tags: [Customers and debts]
@@ -1861,27 +869,12 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LoanRequest" }
+            schema: { $ref: '#/components/schemas/LoanRequest' }
       responses:
-        "201":
-          {
-            description: Created,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Debt" } },
-                      },
-                  },
-              },
-          }
-        "200": { description: Already created (replay) }
-        "403": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Created, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Debt' } } } } } }
+        '200': { description: Already created (replay) }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /debts/{id}/repayments:
     post:
       tags: [Customers and debts]
@@ -1890,132 +883,41 @@ paths:
         Repaying with gold is not done here: the gold is bought through `POST /transactions` with a `debt_offset` part.
         Paying more than outstanding is `422 OVERPAYMENT`. Needs `debts:manage`.
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/RepaymentRequest" }
+            schema: { $ref: '#/components/schemas/RepaymentRequest' }
       responses:
-        "201":
-          {
-            description: Recorded,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Debt" } },
-                      },
-                  },
-              },
-          }
-        "200": { description: Already recorded (replay) }
-        "404": { $ref: "#/components/responses/Error" }
-        "409":
-          {
-            description: DEBT_CLOSED,
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
-              },
-          }
-        "422": { $ref: "#/components/responses/Error" }
+        '201': { description: Recorded, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Debt' } } } } } }
+        '200': { description: Already recorded (replay) }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { description: DEBT_CLOSED, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '422': { $ref: '#/components/responses/Error' }
   /collateral:
     get:
       tags: [Customers and debts]
       summary: Unrefined gold the branch holds (or held) as security
       parameters:
-        - {
-            in: query,
-            name: branchId,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
-        - {
-            in: query,
-            name: status,
-            schema: { type: string, enum: [held, converted, returned] },
-          }
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [held, converted, returned] } }
       responses:
-        "200":
-          {
-            description: Holdings,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          {
-                            data:
-                              {
-                                type: array,
-                                items:
-                                  { $ref: "#/components/schemas/Collateral" },
-                              },
-                          },
-                      },
-                  },
-              },
-          }
-        "403": { $ref: "#/components/responses/Error" }
+        '200': { description: Holdings, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Collateral' } } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /collateral/{id}/return:
     post:
       tags: [Customers and debts]
       summary: Hand the unrefined gold back (only once the loan is fully paid)
       parameters:
-        - {
-            in: path,
-            name: id,
-            required: true,
-            schema: { type: string, format: uuid },
-          }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       requestBody:
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                properties: { note: { type: string, maxLength: 200 } },
-              }
+            schema: { type: object, properties: { note: { type: string, maxLength: 200 } } }
       responses:
-        "200":
-          {
-            description: Returned,
-            content:
-              {
-                application/json:
-                  {
-                    schema:
-                      {
-                        type: object,
-                        properties:
-                          { data: { $ref: "#/components/schemas/Collateral" } },
-                      },
-                  },
-              },
-          }
-        "409":
-          {
-            description: "COLLATERAL_NOT_HELD or DEBT_NOT_SETTLED",
-            content:
-              {
-                application/json:
-                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
-              },
-          }
+        '200': { description: Returned, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Collateral' } } } } } }
+        '409': { description: 'COLLATERAL_NOT_HELD or DEBT_NOT_SETTLED', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 components:
   securitySchemes:
     bearerAuth:
@@ -2027,12 +929,12 @@ components:
       description: Error
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
   schemas:
     PermissionOverride:
       type: object
       properties:
-        permission: { type: string, example: "customers:manage" }
+        permission: { type: string, example: 'customers:manage' }
         effect: { type: string, enum: [allow, deny] }
     ManagedUser:
       type: object
@@ -2042,28 +944,14 @@ components:
         displayName: { type: string }
         email: { type: string, nullable: true }
         phone: { type: string, nullable: true }
-        role:
-          {
-            type: object,
-            properties: { key: { type: string }, name: { type: string } },
-          }
+        role: { type: object, properties: { key: { type: string }, name: { type: string } } }
         branchIds: { type: array, items: { type: string, format: uuid } }
         isActive: { type: boolean }
         mustChangePassword: { type: boolean }
         lastLoginAt: { type: string, format: date-time, nullable: true }
         createdAt: { type: string, format: date-time }
-        overrides:
-          {
-            type: array,
-            items: { $ref: "#/components/schemas/PermissionOverride" },
-          }
-        permissions:
-          {
-            type: array,
-            items: { type: string },
-            description: What the person can do in total,
-            after role and overrides.,
-          }
+        overrides: { type: array, items: { $ref: '#/components/schemas/PermissionOverride' } }
+        permissions: { type: array, items: { type: string }, description: What the person can do in total, after role and overrides. }
     CustomerRow:
       type: object
       properties:
@@ -2078,58 +966,32 @@ components:
         weOwe: { type: string }
     CustomerDetail:
       allOf:
-        - { $ref: "#/components/schemas/CustomerRow" }
+        - { $ref: '#/components/schemas/CustomerRow' }
         - type: object
           properties:
-            transactions:
-              {
-                type: array,
-                items:
-                  {
-                    type: object,
-                    properties:
-                      {
-                        id: { type: string },
-                        reference: { type: string },
-                        branchId: { type: string },
-                        branchName: { type: string },
-                        payable: { type: string },
-                        capturedAt: { type: string },
-                        customerName: { type: string },
-                      },
-                  },
-              }
-            debts: { type: array, items: { $ref: "#/components/schemas/Debt" } }
-            held:
-              {
-                type: array,
-                items: { $ref: "#/components/schemas/Collateral" },
-              }
+            transactions: { type: array, items: { type: object, properties: { id: { type: string }, reference: { type: string }, branchId: { type: string }, branchName: { type: string }, payable: { type: string }, capturedAt: { type: string }, customerName: { type: string } } } }
+            debts: { type: array, items: { $ref: '#/components/schemas/Debt' } }
+            held: { type: array, items: { $ref: '#/components/schemas/Collateral' } }
     TransferRow:
       type: object
       properties:
         id: { type: string, format: uuid }
         reference: { type: string }
         kind: { type: string, enum: [goods, cash] }
-        status:
-          {
-            type: string,
-            enum:
-              [draft, released, received, received_with_discrepancy, cancelled],
-          }
+        status: { type: string, enum: [draft, released, received, received_with_discrepancy, cancelled] }
         originBranchId: { type: string, format: uuid }
         originBranchName: { type: string }
         destinationBranchId: { type: string, format: uuid }
         destinationBranchName: { type: string }
         purpose: { type: string }
         method: { type: string }
-        collectorName: { type: [string, "null"] }
+        collectorName: { type: [string, 'null'] }
         lineCount: { type: integer }
-        declaredValue: { type: [string, "null"] }
-        receivedValue: { type: [string, "null"] }
+        declaredValue: { type: [string, 'null'] }
+        receivedValue: { type: [string, 'null'] }
         hasDiscrepancy: { type: boolean }
-        releasedAt: { type: [string, "null"], format: date-time }
-        receivedAt: { type: [string, "null"], format: date-time }
+        releasedAt: { type: [string, 'null'], format: date-time }
+        receivedAt: { type: [string, 'null'], format: date-time }
         createdAt: { type: string, format: date-time }
     TransferableItem:
       type: object
@@ -2150,59 +1012,20 @@ components:
         id: { type: string, format: uuid }
         reference: { type: string }
         kind: { type: string, enum: [goods, cash] }
-        status:
-          {
-            type: string,
-            enum:
-              [draft, released, received, received_with_discrepancy, cancelled],
-          }
+        status: { type: string, enum: [draft, released, received, received_with_discrepancy, cancelled] }
         originBranchId: { type: string, format: uuid }
         originBranchName: { type: string }
         destinationBranchId: { type: string, format: uuid }
         destinationBranchName: { type: string }
-        purpose:
-          {
-            type: string,
-            enum:
-              [
-                stock_collection,
-                restock_funding,
-                cash_return,
-                payment_on_collection,
-                other,
-              ],
-          }
-        purposeNote: { type: [string, "null"] }
-        method:
-          {
-            type: string,
-            enum:
-              [
-                collector_from_destination,
-                staff_travelling,
-                designated_courier,
-                branch_delivery,
-                other,
-              ],
-          }
-        collector:
-          {
-            type: [object, "null"],
-            description: "type, userId, name, phone, idType, idNumber, relationship, collectedAt",
-          }
-        expectedArrivalAt: { type: [string, "null"], format: date-time }
-        release: { type: [object, "null"], description: "by, at, note" }
-        declared:
-          {
-            type: [object, "null"],
-            description: "top, down, value, cash, cashLines (frozen at release)",
-          }
-        receipt:
-          {
-            type: [object, "null"],
-            description: "by, at, note, top, down, value, cash, cashLines",
-          }
-        cancellation: { type: [object, "null"], description: "by, at, reason" }
+        purpose: { type: string, enum: [stock_collection, restock_funding, cash_return, payment_on_collection, other] }
+        purposeNote: { type: [string, 'null'] }
+        method: { type: string, enum: [collector_from_destination, staff_travelling, designated_courier, branch_delivery, other] }
+        collector: { type: [object, 'null'], description: 'type, userId, name, phone, idType, idNumber, relationship, collectedAt' }
+        expectedArrivalAt: { type: [string, 'null'], format: date-time }
+        release: { type: [object, 'null'], description: 'by, at, note' }
+        declared: { type: [object, 'null'], description: 'top, down, value, cash, cashLines (frozen at release)' }
+        receipt: { type: [object, 'null'], description: 'by, at, note, top, down, value, cash, cashLines' }
+        cancellation: { type: [object, 'null'], description: 'by, at, reason' }
         lines:
           type: array
           items:
@@ -2210,41 +1033,20 @@ components:
             properties:
               id: { type: string, format: uuid }
               lineNo: { type: integer }
-              itemId: { type: [string, "null"], format: uuid }
+              itemId: { type: [string, 'null'], format: uuid }
               description: { type: string }
-              reference: { type: [string, "null"] }
-              customerName: { type: [string, "null"] }
+              reference: { type: [string, 'null'] }
+              customerName: { type: [string, 'null'] }
               releasedTop: { type: string }
               releasedDown: { type: string }
               releasedValue: { type: string }
-              receivedTop: { type: [string, "null"] }
-              receivedDown: { type: [string, "null"] }
-              receivedValue: { type: [string, "null"] }
-              outcome:
-                { type: string, enum: [pending, matched, differs, missing] }
-        payments:
-          {
-            type: array,
-            items:
-              {
-                type: object,
-                description: "id, direction, amount, method, purpose, externalRef, paidAt, recordedBy, note, lines",
-              },
-          }
-        events:
-          {
-            type: array,
-            items: { type: object, description: "id, type, by, at, data" },
-          }
-        discrepancies:
-          {
-            type: array,
-            items:
-              {
-                type: object,
-                description: "id, status, asset, lineId, expected, actual, difference, explanation",
-              },
-          }
+              receivedTop: { type: [string, 'null'] }
+              receivedDown: { type: [string, 'null'] }
+              receivedValue: { type: [string, 'null'] }
+              outcome: { type: string, enum: [pending, matched, differs, missing] }
+        payments: { type: array, items: { type: object, description: 'id, direction, amount, method, purpose, externalRef, paidAt, recordedBy, note, lines' } }
+        events: { type: array, items: { type: object, description: 'id, type, by, at, data' } }
+        discrepancies: { type: array, items: { type: object, description: 'id, status, asset, lineId, expected, actual, difference, explanation' } }
         createdBy: { type: object }
         createdAt: { type: string, format: date-time }
     ManagedBranch:
@@ -2280,7 +1082,7 @@ components:
           properties:
             accessToken: { type: string }
             expiresAt: { type: string, format: date-time }
-            user: { $ref: "#/components/schemas/User" }
+            user: { $ref: '#/components/schemas/User' }
     User:
       type: object
       required: [id, username, displayName, role, permissions, branchIds]
@@ -2288,7 +1090,7 @@ components:
         id: { type: string, format: uuid }
         username: { type: string }
         displayName: { type: string }
-        role: { $ref: "#/components/schemas/Role" }
+        role: { $ref: '#/components/schemas/Role' }
         permissions:
           type: array
           description: Fine-grained permissions such as `transactions:create` or `kumasi:set-value` (`resource:action`). The UI hides what the user cannot do; the API enforces it.
@@ -2306,24 +1108,12 @@ components:
         isMain: { type: boolean, description: True for Kumasi }
     CurrentPrice:
       type: object
-      required:
-        [branchId, basePrice, margin, effectivePrice, source, status, asOf]
+      required: [branchId, basePrice, margin, effectivePrice, source, status, asOf]
       properties:
         branchId: { type: string, format: uuid }
-        basePrice:
-          {
-            type: string,
-            description: "GoldBod price per pound, GHS",
-            example: "11458",
-          }
-        margin:
-          {
-            type: string,
-            description: "Margin set by the director, GHS per pound",
-            example: "192",
-          }
-        effectivePrice:
-          { type: string, description: "basePrice + margin", example: "11650" }
+        basePrice: { type: string, description: 'GoldBod price per pound, GHS', example: '11458' }
+        margin: { type: string, description: 'Margin set by the director, GHS per pound', example: '192' }
+        effectivePrice: { type: string, description: 'basePrice + margin', example: '11650' }
         source: { type: string, enum: [goldbod, manual] }
         status:
           type: string
@@ -2338,7 +1128,7 @@ components:
       enum: [fewest-notes, prefer-100s]
     NoteLines:
       type: object
-      description: "Notes handed over, keyed by denomination, for example 100 maps to 1688"
+      description: 'Notes handed over, keyed by denomination, for example 100 maps to 1688'
       additionalProperties: { type: integer, minimum: 1 }
     ItemInput:
       type: object
@@ -2346,68 +1136,48 @@ components:
       properties:
         id: { type: string, format: uuid }
         label: { type: string, nullable: true, maxLength: 80 }
-        top: { type: string, example: "7.77" }
-        down: { type: string, example: "0.41" }
-        price: { type: string, example: "11650" }
+        top: { type: string, example: '7.77' }
+        down: { type: string, example: '0.41' }
+        price: { type: string, example: '11650' }
     ItemResult:
       type: object
       required: [density, karat, purity, netWeight, pounds, amount]
       properties:
         density: { type: string }
         karat: { type: string }
-        purity: { type: string, description: "Fraction, for example 0.9733" }
+        purity: { type: string, description: 'Fraction, for example 0.9733' }
         netWeight: { type: string }
         pounds: { type: string }
         amount: { type: string }
     Item:
       allOf:
-        - $ref: "#/components/schemas/ItemInput"
+        - $ref: '#/components/schemas/ItemInput'
         - type: object
           required: [result]
           properties:
-            result: { $ref: "#/components/schemas/ItemResult" }
+            result: { $ref: '#/components/schemas/ItemResult' }
     PayoutInput:
       type: object
       required: [policy, strategy, payable, lines]
       properties:
-        policy: { $ref: "#/components/schemas/PayoutPolicy" }
-        strategy: { $ref: "#/components/schemas/SolveStrategy" }
-        payable: { type: string, description: "Whole cedis, a multiple of 5" }
-        lines:
-          {
-            allOf: [{ $ref: "#/components/schemas/NoteLines" }],
-            description: "The cash part only: payable minus the split parts. Omit when nothing is paid in cash.",
-          }
+        policy: { $ref: '#/components/schemas/PayoutPolicy' }
+        strategy: { $ref: '#/components/schemas/SolveStrategy' }
+        payable: { type: string, description: 'Whole cedis, a multiple of 5' }
+        lines: { allOf: [{ $ref: '#/components/schemas/NoteLines' }], description: 'The cash part only: payable minus the split parts. Omit when nothing is paid in cash.' }
         split:
           type: array
           description: Non-cash parts of the payment (optional)
-          items: { $ref: "#/components/schemas/SplitPart" }
+          items: { $ref: '#/components/schemas/SplitPart' }
     SplitPart:
       type: object
       required: [method, amount]
       properties:
         method: { type: string, enum: [mobile_money, owed, debt_offset] }
-        amount:
-          { type: string, description: Whole cedis above zero, example: "5000" }
-        paidByBranchId:
-          {
-            type: string,
-            format: uuid,
-            description: "Required for mobile_money: the branch that sends it",
-          }
-        externalRef: { type: string, description: "Mobile money reference" }
-        debtId:
-          {
-            type: string,
-            format: uuid,
-            description: "Required for debt_offset: the customer's debt this gold settles",
-          }
-        dueDate:
-          {
-            type: string,
-            format: date,
-            description: "owed only: when the branch promises to pay",
-          }
+        amount: { type: string, description: Whole cedis above zero, example: '5000' }
+        paidByBranchId: { type: string, format: uuid, description: 'Required for mobile_money: the branch that sends it' }
+        externalRef: { type: string, description: 'Mobile money reference' }
+        debtId: { type: string, format: uuid, description: 'Required for debt_offset: the customer''s debt this gold settles' }
+        dueDate: { type: string, format: date, description: 'owed only: when the branch promises to pay' }
         note: { type: string }
     Payment:
       type: object
@@ -2425,29 +1195,21 @@ components:
       properties:
         cashReplacements:
           type: array
-          items:
-            {
-              type: object,
-              properties:
-                {
-                  amount: { type: string },
-                  lines: { $ref: "#/components/schemas/NoteLines" },
-                },
-            }
+          items: { type: object, properties: { amount: { type: string }, lines: { $ref: '#/components/schemas/NoteLines' } } }
         replacements:
           type: array
-          items: { $ref: "#/components/schemas/SplitPart" }
+          items: { $ref: '#/components/schemas/SplitPart' }
     BasePriceRequest:
       type: object
       required: [basePrice]
       properties:
-        basePrice: { type: string, example: "11458" }
+        basePrice: { type: string, example: '11458' }
         publishedAt: { type: string, format: date-time, nullable: true }
     MarginRequest:
       type: object
       required: [margin]
       properties:
-        margin: { type: string, example: "192" }
+        margin: { type: string, example: '192' }
         approve: { type: boolean, default: false }
     Customer:
       type: object
@@ -2455,6 +1217,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         phone: { type: string, nullable: true }
+        atBranch: { type: boolean, description: 'Has sold at the branch asked about' }
     Debt:
       type: object
       properties:
@@ -2476,11 +1239,7 @@ components:
         dueDate: { type: string, format: date, nullable: true }
         status: { type: string, enum: [open, settled] }
         sourceTransactionId: { type: string, format: uuid, nullable: true }
-        collateral:
-          {
-            allOf: [{ $ref: "#/components/schemas/CollateralBrief" }],
-            nullable: true,
-          }
+        collateral: { allOf: [{ $ref: '#/components/schemas/CollateralBrief' }], nullable: true }
         repayments:
           type: array
           items:
@@ -2488,10 +1247,9 @@ components:
             properties:
               id: { type: string, format: uuid }
               amount: { type: string }
-              method:
-                { type: string, enum: [cash, mobile_money, bank, other, gold] }
+              method: { type: string, enum: [cash, mobile_money, bank, other, gold] }
               receivedAt: { type: string, format: date-time }
-              receivedBy: { $ref: "#/components/schemas/Person" }
+              receivedBy: { $ref: '#/components/schemas/Person' }
               transactionId: { type: string, format: uuid, nullable: true }
               note: { type: string, nullable: true }
     CollateralBrief:
@@ -2511,8 +1269,8 @@ components:
         topWeight: { type: string }
         description: { type: string, nullable: true }
         receivedAt: { type: string, format: date-time }
-        receivedBy: { $ref: "#/components/schemas/Person" }
-        customer: { $ref: "#/components/schemas/Customer" }
+        receivedBy: { $ref: '#/components/schemas/Person' }
+        customer: { $ref: '#/components/schemas/Customer' }
         debtOutstanding: { type: string }
         convertedTransactionId: { type: string, format: uuid, nullable: true }
         closedAt: { type: string, format: date-time, nullable: true }
@@ -2523,25 +1281,23 @@ components:
       properties:
         id: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
-        partyType:
-          { type: string, enum: [customer, staff, other], default: customer }
+        partyType: { type: string, enum: [customer, staff, other], default: customer }
         customer:
           type: object
           required: [name]
           properties:
             id: { type: string, format: uuid }
             name: { type: string }
-            phone:
-              { type: string, description: Required when partyType is customer }
+            phone: { type: string, description: Required when partyType is customer }
         principal: { type: string, description: Whole cedis }
-        lines: { $ref: "#/components/schemas/NoteLines" }
+        lines: { $ref: '#/components/schemas/NoteLines' }
         reason: { type: string }
         dueDate: { type: string, format: date }
         collateral:
           type: object
           description: Unrefined gold kept as security. Only the top weight is taken.
           properties:
-            topWeight: { type: string, example: "24.5" }
+            topWeight: { type: string, example: '24.5' }
             description: { type: string }
         capturedAt: { type: string, format: date-time }
     RepaymentRequest:
@@ -2550,42 +1306,23 @@ components:
       properties:
         id: { type: string, format: uuid }
         amount: { type: string }
-        method:
-          {
-            type: string,
-            enum: [cash, mobile_money, bank, other],
-            default: cash,
-          }
-        lines: { $ref: "#/components/schemas/NoteLines" }
+        method: { type: string, enum: [cash, mobile_money, bank, other], default: cash }
+        lines: { $ref: '#/components/schemas/NoteLines' }
         paidByBranchId: { type: string, format: uuid }
         externalRef: { type: string }
         note: { type: string }
         capturedAt: { type: string, format: date-time }
     Payout:
       allOf:
-        - $ref: "#/components/schemas/PayoutInput"
+        - $ref: '#/components/schemas/PayoutInput'
         - type: object
           required: [difference, totalNotes]
           properties:
-            difference:
-              {
-                type: string,
-                description: "payable minus calculated amount; negative when the customer is paid less",
-              }
+            difference: { type: string, description: 'payable minus calculated amount; negative when the customer is paid less' }
             totalNotes: { type: integer }
     CreateTransactionRequest:
       type: object
-      required:
-        [
-          id,
-          branchId,
-          customerName,
-          items,
-          clientAmount,
-          payout,
-          capturedAt,
-          priceAsOf,
-        ]
+      required: [id, branchId, customerName, items, clientAmount, payout, capturedAt, priceAsOf]
       properties:
         id: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
@@ -2595,73 +1332,42 @@ components:
           type: array
           minItems: 1
           maxItems: 20
-          items: { $ref: "#/components/schemas/ItemInput" }
-        clientAmount:
-          {
-            type: string,
-            description: "Total the device calculated, used to detect disagreement",
-          }
-        payout: { $ref: "#/components/schemas/PayoutInput" }
-        capturedAt:
-          {
-            type: string,
-            format: date-time,
-            description: "Device time when the teller saved it",
-          }
-        priceAsOf:
-          {
-            type: string,
-            format: date-time,
-            description: "When the price used was published",
-          }
-        customerId:
-          {
-            type: string,
-            format: uuid,
-            nullable: true,
-            description: "An existing customer; otherwise one is found or created from name and phone",
-          }
-        collateralId:
-          {
-            type: string,
-            format: uuid,
-            nullable: true,
-            description: "Unrefined gold held as security that this purchase is the refined result of",
-          }
+          items: { $ref: '#/components/schemas/ItemInput' }
+        clientAmount: { type: string, description: 'Total the device calculated, used to detect disagreement' }
+        payout: { $ref: '#/components/schemas/PayoutInput' }
+        capturedAt: { type: string, format: date-time, description: 'Device time when the teller saved it' }
+        priceAsOf: { type: string, format: date-time, description: 'When the price used was published' }
+        customerId: { type: string, format: uuid, nullable: true, description: 'An existing customer; otherwise one is found or created from name and phone' }
+        collateralId: { type: string, format: uuid, nullable: true, description: 'Unrefined gold held as security that this purchase is the refined result of' }
+        representative:
+          type: object
+          nullable: true
+          description: |
+            Someone bringing the gold for the customer. The purchase (and any debts) belong to the customer, who must be identified: send `customerId`, or
+            a phone number (`REPRESENTATIVE_NEEDS_CUSTOMER` otherwise). The representative is only written on the purchase; they do not become a customer.
+          properties:
+            name: { type: string, maxLength: 120 }
+            phone: { type: string, nullable: true, maxLength: 32 }
     Transaction:
       type: object
-      required:
-        [
-          id,
-          branchId,
-          reference,
-          customerName,
-          status,
-          items,
-          formulaVersion,
-          calculatedAmount,
-          payout,
-          capturedAt,
-          createdAt,
-          createdBy,
-          flags,
-        ]
+      required: [id, branchId, reference, customerName, status, items, formulaVersion, calculatedAmount, payout, capturedAt, createdAt, createdBy, flags]
       properties:
         id: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
         reference: { type: string, example: TKW-20261022-0007 }
         customerName: { type: string }
         customerPhone: { type: string, nullable: true }
+        representative: { type: object, nullable: true, description: 'Who brought the gold when it was not the customer: name, phone', properties: { name: { type: string }, phone: { type: string, nullable: true } } }
         status: { type: string, enum: [saved, paid, void] }
         items:
           type: array
-          items: { $ref: "#/components/schemas/Item" }
+          items: { $ref: '#/components/schemas/Item' }
         formulaVersion: { type: string, example: ExcelV1 }
         calculatedAmount: { type: string }
-        payout: { $ref: "#/components/schemas/Payout" }
+        payout: { $ref: '#/components/schemas/Payout' }
         payments:
           type: array
-          items: { $ref: "#/components/schemas/Payment" }
+          items: { $ref: '#/components/schemas/Payment' }
         capturedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
         createdBy:
@@ -2672,16 +1378,12 @@ components:
             displayName: { type: string }
         flags:
           type: array
-          items:
-            {
-              type: string,
-              enum: [OFFLINE_ENTRY, CALC_MISMATCH, PRICE_STALE, NO_OPEN_DAY],
-            }
+          items: { type: string, enum: [OFFLINE_ENTRY, CALC_MISMATCH, PRICE_STALE, NO_OPEN_DAY] }
     TransactionResponse:
       type: object
       required: [data]
       properties:
-        data: { $ref: "#/components/schemas/Transaction" }
+        data: { $ref: '#/components/schemas/Transaction' }
     DrawerLines:
       type: object
       description: 'Notes by denomination, e.g. {"100": 1688}. Keys are 200, 100, 50, 20, 10, 5. Counts are whole numbers; a balance can be negative (see NEGATIVE_NOTES).'
@@ -2698,88 +1400,51 @@ components:
         displayName: { type: string }
     Day:
       type: object
-      required:
-        [
-          id,
-          branchId,
-          businessDate,
-          status,
-          opening,
-          openedAt,
-          openedBy,
-          closing,
-          flags,
-        ]
+      required: [id, branchId, businessDate, status, opening, openedAt, openedBy, closing, flags]
       properties:
         id: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
-        businessDate:
-          {
-            type: string,
-            format: date,
-            description: "Date in the branch local time",
-          }
+        businessDate: { type: string, format: date, description: 'Date in the branch local time' }
         status: { type: string, enum: [open, closed] }
         opening:
           type: object
           required: [lines, source]
           properties:
-            lines: { $ref: "#/components/schemas/CountLines" }
-            source:
-              {
-                type: string,
-                enum: [counted, carried],
-                description: "`carried` = taken from the previous closing count unchanged",
-              }
+            lines: { $ref: '#/components/schemas/CountLines' }
+            source: { type: string, enum: [counted, carried], description: '`carried` = taken from the previous closing count unchanged' }
         openedAt: { type: string, format: date-time }
-        openedBy: { $ref: "#/components/schemas/Person" }
+        openedBy: { $ref: '#/components/schemas/Person' }
         closing:
           nullable: true
           description: Present once the day is closed.
           type: object
           properties:
             closedAt: { type: string, format: date-time }
-            closedBy: { $ref: "#/components/schemas/Person" }
+            closedBy: { $ref: '#/components/schemas/Person' }
             confirmation:
               type: object
               properties:
                 version: { type: string, example: v3 }
-                text:
-                  {
-                    type: string,
-                    description: The exact wording the teller accepted,
-                  }
+                text: { type: string, description: The exact wording the teller accepted }
             figures:
               type: array
               description: The seven reconciled figures, in this order - cash, goods_top, goods_down, goods_value, debt, payable, custody_top
-              items: { $ref: "#/components/schemas/ClosingFigure" }
+              items: { $ref: '#/components/schemas/ClosingFigure' }
             cash:
               type: object
               properties:
-                expected: { $ref: "#/components/schemas/DrawerLines" }
-                counted: { $ref: "#/components/schemas/DrawerLines" }
+                expected: { $ref: '#/components/schemas/DrawerLines' }
+                counted: { $ref: '#/components/schemas/DrawerLines' }
             signoff:
               type: object
               properties:
-                status:
-                  {
-                    type: string,
-                    enum: [not_required, pending, approved, rejected],
-                  }
-                by:
-                  {
-                    allOf: [{ $ref: "#/components/schemas/Person" }],
-                    nullable: true,
-                  }
+                status: { type: string, enum: [not_required, pending, approved, rejected] }
+                by: { allOf: [{ $ref: '#/components/schemas/Person' }], nullable: true }
                 at: { type: string, format: date-time, nullable: true }
                 note: { type: string, nullable: true }
         flags:
           type: array
-          items:
-            {
-              type: string,
-              enum: [OFFLINE_ENTRY, OPENING_DIFFERS, CLOSING_DIFFERS],
-            }
+          items: { type: string, enum: [OFFLINE_ENTRY, OPENING_DIFFERS, CLOSING_DIFFERS] }
     Movement:
       type: object
       required: [id, dayId, kind, lines, note, capturedAt, createdBy]
@@ -2787,35 +1452,19 @@ components:
         id: { type: string, format: uuid }
         dayId: { type: string, format: uuid }
         kind: { type: string, enum: [topup, withdrawal] }
-        lines: { $ref: "#/components/schemas/CountLines" }
+        lines: { $ref: '#/components/schemas/CountLines' }
         note: { type: string, maxLength: 200 }
         capturedAt: { type: string, format: date-time }
-        createdBy: { $ref: "#/components/schemas/Person" }
+        createdBy: { $ref: '#/components/schemas/Person' }
     DayState:
       type: object
       required: [day, balance, movements, appliedIds, carryOver, asOf]
       properties:
-        day: { allOf: [{ $ref: "#/components/schemas/Day" }], nullable: true }
-        balance:
-          {
-            allOf: [{ $ref: "#/components/schemas/DrawerLines" }],
-            nullable: true,
-            description: "Only while the day is open",
-          }
-        movements:
-          { type: array, items: { $ref: "#/components/schemas/Movement" } }
-        appliedIds:
-          {
-            type: array,
-            items: { type: string },
-            description: "Ids of transactions, movements and day commands already included",
-          }
-        carryOver:
-          {
-            allOf: [{ $ref: "#/components/schemas/CountLines" }],
-            nullable: true,
-            description: "Closing count of the last closed day",
-          }
+        day: { allOf: [{ $ref: '#/components/schemas/Day' }], nullable: true }
+        balance: { allOf: [{ $ref: '#/components/schemas/DrawerLines' }], nullable: true, description: 'Only while the day is open' }
+        movements: { type: array, items: { $ref: '#/components/schemas/Movement' } }
+        appliedIds: { type: array, items: { type: string }, description: 'Ids of transactions, movements and day commands already included' }
+        carryOver: { allOf: [{ $ref: '#/components/schemas/CountLines' }], nullable: true, description: 'Closing count of the last closed day' }
         asOf: { type: string, format: date-time }
     OpenDayRequest:
       type: object
@@ -2824,49 +1473,20 @@ components:
         id: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
         businessDate: { type: string, format: date }
-        lines: { $ref: "#/components/schemas/CountLines" }
+        lines: { $ref: '#/components/schemas/CountLines' }
         source: { type: string, enum: [counted, carried] }
         capturedAt: { type: string, format: date-time }
-        explanation:
-          {
-            type: string,
-            nullable: true,
-            minLength: 5,
-            description: "Required when the count differs from the books",
-          }
+        explanation: { type: string, nullable: true, minLength: 5, description: 'Required when the count differs from the books' }
     ClosingFigure:
       type: object
       properties:
-        asset:
-          {
-            type: string,
-            enum:
-              [
-                cash,
-                goods_top,
-                goods_down,
-                goods_value,
-                debt,
-                payable,
-                custody_top,
-              ],
-          }
+        asset: { type: string, enum: [cash, goods_top, goods_down, goods_value, debt, payable, custody_top] }
         expected: { type: string, description: What the books said }
         actual: { type: string, description: What the teller reported }
         difference: { type: string, description: actual minus expected }
-        outcome:
-          {
-            type: string,
-            enum: [balanced, surplus, shortage],
-            description: Worked out by the database,
-          }
+        outcome: { type: string, enum: [balanced, surplus, shortage], description: Worked out by the database }
         explanation: { type: string, nullable: true }
-        detail:
-          {
-            type: object,
-            nullable: true,
-            description: 'cash only: difference per note, e.g. {"100": -1}',
-          }
+        detail: { type: object, nullable: true, description: 'cash only: difference per note, e.g. {"100": -1}' }
     ClosingPreview:
       type: object
       properties:
@@ -2875,15 +1495,7 @@ components:
         expected:
           type: object
           properties:
-            cash:
-              {
-                type: object,
-                properties:
-                  {
-                    lines: { $ref: "#/components/schemas/DrawerLines" },
-                    value: { type: string },
-                  },
-              }
+            cash: { type: object, properties: { lines: { $ref: '#/components/schemas/DrawerLines' }, value: { type: string } } }
             goodsTop: { type: string }
             goodsDown: { type: string }
             goodsValue: { type: string }
@@ -2901,36 +1513,25 @@ components:
       type: object
       required: [id, dayId, branchId, declared, confirmation, capturedAt]
       properties:
-        id:
-          {
-            type: string,
-            format: uuid,
-            description: Command id,
-            also the Idempotency-Key when sent,
-          }
+        id: { type: string, format: uuid, description: Command id, also the Idempotency-Key when sent }
         dayId: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
         declared:
           type: object
-          required:
-            [cash, goodsTop, goodsDown, goodsValue, debt, payable, custodyTop]
+          required: [cash, goodsTop, goodsDown, goodsValue, debt, payable, custodyTop]
           properties:
-            cash:
-              {
-                allOf: [{ $ref: "#/components/schemas/CountLines" }],
-                description: "Notes counted in the drawer; {} for an empty drawer",
-              }
-            goodsTop: { type: string, example: "7.77" }
-            goodsDown: { type: string, example: "0.41" }
-            goodsValue: { type: string, example: "1000" }
-            debt: { type: string, example: "500" }
-            payable: { type: string, example: "0" }
-            custodyTop: { type: string, example: "24.5" }
+            cash: { allOf: [{ $ref: '#/components/schemas/CountLines' }], description: 'Notes counted in the drawer; {} for an empty drawer' }
+            goodsTop: { type: string, example: '7.77' }
+            goodsDown: { type: string, example: '0.41' }
+            goodsValue: { type: string, example: '1000' }
+            debt: { type: string, example: '500' }
+            payable: { type: string, example: '0' }
+            custodyTop: { type: string, example: '24.5' }
         explanations:
           type: object
           description: One reason (at least 5 characters) for each figure that differs from the books
           additionalProperties: { type: string }
-          example: { cash: "one 100 note missing from the drawer" }
+          example: { cash: 'one 100 note missing from the drawer' }
         confirmation:
           type: object
           required: [accepted, version]
@@ -2943,12 +1544,7 @@ components:
       required: [decision]
       properties:
         decision: { type: string, enum: [approved, rejected] }
-        note:
-          {
-            type: string,
-            nullable: true,
-            description: Required (5+ characters) when rejecting,
-          }
+        note: { type: string, nullable: true, description: Required (5+ characters) when rejecting }
     MovementRequest:
       type: object
       required: [id, dayId, branchId, kind, lines, note, capturedAt]
@@ -2957,19 +1553,19 @@ components:
         dayId: { type: string, format: uuid }
         branchId: { type: string, format: uuid }
         kind: { type: string, enum: [topup, withdrawal] }
-        lines: { $ref: "#/components/schemas/CountLines" }
+        lines: { $ref: '#/components/schemas/CountLines' }
         note: { type: string, minLength: 1, maxLength: 200 }
         capturedAt: { type: string, format: date-time }
     DayResponse:
       type: object
       required: [data]
       properties:
-        data: { $ref: "#/components/schemas/Day" }
+        data: { $ref: '#/components/schemas/Day' }
     MovementResponse:
       type: object
       required: [data]
       properties:
-        data: { $ref: "#/components/schemas/Movement" }
+        data: { $ref: '#/components/schemas/Movement' }
     ErrorResponse:
       type: object
       required: [error]

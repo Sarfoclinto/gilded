@@ -24,6 +24,20 @@ public class TransactionPlannerTests
             captured ?? Now, priceAsOf ?? Now, null);
     }
 
+    [Fact]
+    public void A_representative_is_passed_on_and_needs_a_name_when_a_phone_is_given()
+    {
+        var withRep = Cmd(Payout("11830", new() { ["100"] = 118, ["20"] = 1, ["10"] = 1 })) with { Representative = new PersonRef(" Yaw ", " 0555 ") };
+        var plan = Plan(withRep);
+        Assert.Equal("Yaw", plan["representative"]!["name"]!.GetValue<string>());
+        Assert.Equal("0555", plan["representative"]!["phone"]!.GetValue<string>());
+        Assert.Null(Plan(Cmd(Payout("11830", new() { ["100"] = 118, ["20"] = 1, ["10"] = 1 })))["representative"]);
+
+        var noName = withRep with { Representative = new PersonRef(null, "0555") };
+        var ex = Assert.Throws<AppException>(() => Plan(noName));
+        Assert.Equal(422, ex.Status);
+    }
+
     private static PayoutCommand Payout(string payable, Dictionary<string, int>? lines, List<SplitCommand>? split = null) =>
         new("down", "fewest-notes", payable, lines, split);
 

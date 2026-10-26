@@ -32,7 +32,7 @@ public interface IOperationsStore
     Task<string> ResolvePaymentAsync(ICurrentContext me, Guid paymentId, string outcome, string? replacementsJson, CancellationToken ct);
 
     Task<string> PendingPaymentsAsync(ICurrentContext me, Guid branchId, string role, CancellationToken ct);
-    Task<string> SearchCustomersAsync(ICurrentContext me, string? query, CancellationToken ct);
+    Task<string> SearchCustomersAsync(ICurrentContext me, string? query, Guid? branchId, int limit, CancellationToken ct);
 
     Task<DbResult> IssueLoanAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<DbResult> RepayDebtAsync(ICurrentContext me, string payloadJson, CancellationToken ct);

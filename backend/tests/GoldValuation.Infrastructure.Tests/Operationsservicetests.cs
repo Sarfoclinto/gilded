@@ -236,7 +236,7 @@ public class OperationsServiceTests
         public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredTransaction);
         public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid id, string o, string? r, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid b, string role, CancellationToken ct) => Task.FromResult("[]");
-        public Task<string> SearchCustomersAsync(ICurrentContext me, string? q, CancellationToken ct) => Task.FromResult("[]");
+        public Task<string> SearchCustomersAsync(ICurrentContext me, string? q, Guid? branchId, int limit, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> IssueLoanAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<DbResult> RepayDebtAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<string> ListDebtsAsync(ICurrentContext me, Guid b, string? d, bool o, Guid? c, CancellationToken ct) => Task.FromResult("[]");

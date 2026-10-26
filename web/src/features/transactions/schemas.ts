@@ -71,6 +71,13 @@ export const createTransactionSchema = z.object({
   customerName: z.string().trim().min(1, "Enter the customer name").max(120),
   customerPhone: z.string().max(32).nullable().optional(),
   customerId: z.string().nullable().optional(),
+  representative: z
+    .object({
+      name: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   collateralId: z.string().nullable().optional(),
   items: z.array(itemInputSchema).min(1).max(20),
   clientAmount: z.string(),
@@ -100,6 +107,13 @@ export const transactionSchema = z.object({
   branchId: z.string(),
   reference: z.string(),
   customerId: z.string().nullable().optional(),
+  representative: z
+    .object({
+      name: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   customerName: z.string(),
   customerPhone: z.string().nullable().optional(),
   status: z.string(),

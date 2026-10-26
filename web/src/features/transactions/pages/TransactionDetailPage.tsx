@@ -61,6 +61,12 @@ export default function TransactionDetailPage() {
             {t.reference ?? "Not numbered yet"} · {when(t.capturedAt)}
             {t.customerPhone ? ` · ${t.customerPhone}` : ""}
           </p>
+          {t.representative ? (
+            <p className="text-sm text-muted-foreground">
+              Brought by {t.representative.name}
+              {t.representative.phone ? ` · ${t.representative.phone}` : ""}
+            </p>
+          ) : null}
         </div>
         <SyncChip sync={t.sync} flags={t.flags} />
       </div>

@@ -68,8 +68,8 @@ public static class OperationsEndpoints
             Data(await ops.ResolvePaymentAsync(me, paymentId, false, body, ct)));
         api.MapGet("/payments/pending", async (Guid branchId, string? role, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.PendingPaymentsAsync(me, branchId, role, ct)));
-        api.MapGet("/customers", async (string? q, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
-            Data(await ops.SearchCustomersAsync(me, q, ct)));
+        api.MapGet("/customers", async (string? q, Guid? branchId, int? limit, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.SearchCustomersAsync(me, q, branchId, limit, ct)));
 
         // ---- debts, loans, security ----
         api.MapGet("/debts", async (Guid branchId, string? direction, bool? openOnly, Guid? customerId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

@@ -1,7 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { useApiMutation } from '@/shared/api/hooks';
-import { authApi } from './api';
-import { useAuth } from './store';
+import { useQueryClient } from "@tanstack/react-query";
+import { clearCustomerDirectory } from "@/features/customers/directory";
+import { useApiMutation } from "@/shared/api/hooks";
+import { authApi } from "./api";
+import { useAuth } from "./store";
 
 export function useLogin() {
   const setSession = useAuth((s) => s.setSession);
@@ -28,6 +29,7 @@ export function useLogout() {
     onSuccess: () => {
       clear();
       qc.clear();
+      clearCustomerDirectory();
     },
   });
 }

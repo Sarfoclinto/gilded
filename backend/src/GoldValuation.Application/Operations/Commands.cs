@@ -17,7 +17,10 @@ public sealed record PayoutCommand(string? Policy, string? Strategy, string? Pay
 public sealed record CreateTransactionCommand(
     Guid Id, Guid BranchId, string? CustomerName, string? CustomerPhone, Guid? CustomerId,
     List<ItemCommand>? Items, string? ClientAmount, PayoutCommand? Payout,
-    DateTimeOffset CapturedAt, DateTimeOffset PriceAsOf, Guid? CollateralId);
+    DateTimeOffset CapturedAt, DateTimeOffset PriceAsOf, Guid? CollateralId, PersonRef? Representative = null);
+
+/// <summary>Someone acting for the customer (they bring the gold). Written on the purchase; not made a customer.</summary>
+public sealed record PersonRef(string? Name, string? Phone);
 
 public sealed record OpenDayCommand(
     Guid Id, Guid BranchId, string? BusinessDate, Dictionary<string, int>? Lines, string? Source, DateTimeOffset CapturedAt, string? Explanation);

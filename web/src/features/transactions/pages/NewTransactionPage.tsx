@@ -20,7 +20,12 @@ import { TextField } from "@/shared/ui/TextField";
 import { toast } from "@/shared/ui/toast";
 import { TX_CREATE } from "@/app/outbox";
 import { decimalOnly as decimalInput } from "@/shared/lib/numbers";
-import { CustomerPicker, type CustomerValue } from "../CustomerPicker";
+import {
+  CustomerPicker,
+  type CustomerValue,
+  type RepresentativeValue,
+} from "../CustomerPicker";
+import { useCustomerDirectory } from "@/features/customers/directory";
 import { createTransactionSchema } from "../schemas";
 import { SplitEditor } from "../SplitEditor";
 import {
@@ -68,6 +73,9 @@ export default function NewTransactionPage() {
     name: "",
     phone: "",
   });
+  const [rep, setRep] = useState<RepresentativeValue | null>(null);
+  // A new customer gets its id here, on the device, so it works offline and the representative can be tied to it.
+  const newCustomerId = useRef(crypto.randomUUID());
   const [parts, setParts] = useState<SplitDraft[]>([]);
 
   // Arriving from "Refine and buy" on held gold: the customer is fixed and the held gold is released by this purchase.
@@ -147,7 +155,11 @@ export default function NewTransactionPage() {
   });
   const needsPrice = priceQuery.notSet;
 
+  const phoneOk = customer.phone.replace(/\D/g, "").length >= 6;
+  const repOk =
+    rep === null || (rep.name.trim().length > 0 && (!!customer.id || phoneOk));
   const canSave =
+    repOk &&
     !!branchId &&
     customer.name.trim().length > 0 &&
     complete &&
@@ -164,10 +176,14 @@ export default function NewTransactionPage() {
     const cmd = {
       id: txId.current,
       branchId,
-      customerId: customer.id,
+      customerId: customer.id ?? (phoneOk ? newCustomerId.current : null),
       collateralId: security?.id ?? null,
       customerName: customer.name.trim(),
       customerPhone: customer.phone.trim() || null,
+      representative:
+        rep && rep.name.trim()
+          ? { name: rep.name.trim(), phone: rep.phone.trim() || null }
+          : null,
       items: items.map((i) => ({
         id: i.id,
         label: i.label.trim() || null,
@@ -192,6 +208,15 @@ export default function NewTransactionPage() {
       toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
       return;
     }
+    if (cmd.customerId)
+      useCustomerDirectory
+        .getState()
+        .remember({
+          id: cmd.customerId,
+          name: cmd.customerName,
+          phone: cmd.customerPhone,
+          atBranch: true,
+        });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
     toast.success(
       online
@@ -275,6 +300,9 @@ export default function NewTransactionPage() {
           value={customer}
           onChange={setCustomer}
           locked={!!security}
+          branchId={branchId ?? null}
+          representative={rep}
+          onRepresentative={setRep}
         />
       </Card>
 

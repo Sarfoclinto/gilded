@@ -246,10 +246,15 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return store.PendingPaymentsAsync(me, branchId, role, ct);
     }
 
-    public Task<string> SearchCustomersAsync(ICurrentContext me, string? query, CancellationToken ct)
+    /// <summary>
+    /// Customers matching the text, those who have sold at <paramref name="branchId"/> first. With no text it returns that branch's
+    /// directory (up to 1000), which the app keeps on the device so the picker works offline.
+    /// </summary>
+    public Task<string> SearchCustomersAsync(ICurrentContext me, string? query, Guid? branchId, int? limit, CancellationToken ct)
     {
         me.Require(Permissions.TransactionsRead);
-        return store.SearchCustomersAsync(me, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), ct);
+        if (branchId is { } b) me.RequireBranch(b);
+        return store.SearchCustomersAsync(me, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), branchId, Math.Clamp(limit ?? 25, 1, 1000), ct);
     }
 
     // ---------------------------------------------------------------- debts, loans, security

@@ -1,9 +1,10 @@
-import { useEffect, useRef, type PropsWithChildren } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { session } from '@/shared/api/session';
-import { isApiError } from '@/shared/api/errors';
-import { authApi } from './api';
-import { useAuth } from './store';
+import { useEffect, useRef, type PropsWithChildren } from "react";
+import { clearCustomerDirectory } from "@/features/customers/directory";
+import { useQueryClient } from "@tanstack/react-query";
+import { session } from "@/shared/api/session";
+import { isApiError } from "@/shared/api/errors";
+import { authApi } from "./api";
+import { useAuth } from "./store";
 
 /**
  * Runs once at start. If a profile was remembered, trade the refresh cookie for a fresh access token.
@@ -21,6 +22,7 @@ export function AuthBootstrap({ children }: PropsWithChildren) {
     session.setOnSessionLost(() => {
       useAuth.getState().clear();
       qc.clear();
+      clearCustomerDirectory();
     });
     return () => session.setOnSessionLost(null);
   }, [qc]);
@@ -37,17 +39,20 @@ export function AuthBootstrap({ children }: PropsWithChildren) {
       .refresh()
       .then(setSession)
       .catch((e: unknown) => {
-        if (isApiError(e) && (e.kind === 'network' || e.kind === 'timeout')) {
-          useAuth.setState({ status: 'authenticated' });
+        if (isApiError(e) && (e.kind === "network" || e.kind === "timeout")) {
+          useAuth.setState({ status: "authenticated" });
         } else {
           setAnonymous();
         }
       });
   }, []);
 
-  if (status === 'booting') {
+  if (status === "booting") {
     return (
-      <div className="grid h-full place-items-center text-sm text-muted-foreground" role="status">
+      <div
+        className="grid h-full place-items-center text-sm text-muted-foreground"
+        role="status"
+      >
         Starting…
       </div>
     );
