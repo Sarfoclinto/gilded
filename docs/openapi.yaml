@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.8.0
+  version: 0.9.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -22,6 +22,7 @@ tags:
   - name: Auth
   - name: Me
   - name: Branches
+  - name: Review
   - name: Prices
   - name: Transactions
   - name: Cash drawer
@@ -1342,6 +1343,154 @@ paths:
               },
           }
         "409": { $ref: "#/components/responses/Error" }
+  /discrepancies:
+    get:
+      tags: [Review]
+      summary: The inbox of difference cases
+      description: |
+        Differences found when opening or closing a day or receiving a transfer. `status` is `active` (open and being looked at, the
+        default), `all`, or one of `open`, `under_review`, `resolved`, `written_off`. Only branches the caller works in. Needs `discrepancies:review`.
+      parameters:
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: branchId, schema: { type: string, format: uuid } }
+        - {
+            in: query,
+            name: limit,
+            schema: { type: integer, minimum: 1, maximum: 300 },
+          }
+      responses:
+        "200":
+          {
+            description: Cases,
+            newest first,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { type: array, items: { type: object } } },
+                      },
+                  },
+              },
+          }
+  /discrepancies/{id}:
+    get:
+      tags: [Review]
+      summary: One case with its full history
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200":
+          {
+            description: The case and its `actions`,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { type: object, properties: { data: { type: object } } },
+                  },
+              },
+          }
+        "404": { $ref: "#/components/responses/Error" }
+  /discrepancies/{id}/actions:
+    post:
+      tags: [Review]
+      summary: Take, note, resolve or reopen a case
+      description: |
+        Body `{ action: take | note | resolve | reopen, note?, resolutionType?, summary? }`. `resolve` needs `resolutionType`
+        (explained, found, recovered, corrected_entry, written_off) and a `summary` of at least 10 characters; `reopen` needs a `note`.
+        The recorded facts of a case never change and nothing is posted to the books: closing already adjusted them.
+        `409 CASE_CLOSED` / `CASE_NOT_CLOSED` when the case is in the wrong state. Needs `discrepancies:review`.
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200":
+          {
+            description: The case after the action,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { type: object, properties: { data: { type: object } } },
+                  },
+              },
+          }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /branches/{id}/timeline:
+    get:
+      tags: [Review]
+      summary: Every movement of one branch, newest first, with the balance after each
+      description: |
+        Filter by `from` / `to` (when it happened) and `asset` (cash, goods, debt, payable). Page by passing the previous page's
+        `nextBefore` as `before`; `nextBefore` is null on the last page. Needs `reports:read` and a branch the caller works in.
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+        - { in: query, name: asset, schema: { type: string } }
+        - { in: query, name: before, schema: { type: integer, format: int64 } }
+        - {
+            in: query,
+            name: limit,
+            schema: { type: integer, minimum: 1, maximum: 300 },
+          }
+      responses:
+        "200":
+          {
+            description: "`{ entries, nextBefore }`",
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { type: object, properties: { data: { type: object } } },
+                  },
+              },
+          }
+  /branches/position:
+    get:
+      tags: [Review]
+      summary: What branches have sent to, or paid for, each other
+      description: Per sender and receiver pair, since the beginning, for pairs involving a branch the caller works in. Needs `reports:read`.
+      responses:
+        "200":
+          {
+            description: Pairs,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          { data: { type: array, items: { type: object } } },
+                      },
+                  },
+              },
+          }
   /transfers:
     get:
       tags: [Transfers]

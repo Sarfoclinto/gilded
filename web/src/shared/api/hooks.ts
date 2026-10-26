@@ -1,18 +1,23 @@
 import {
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
+  type InfiniteData,
   type QueryKey,
   type UseMutationOptions,
   type UseQueryOptions,
-} from '@tanstack/react-query';
-import { ApiError, errorMessage } from './errors';
-import { isOnline } from '@/shared/offline/connectivity';
-import { toast } from '@/shared/ui/toast';
+} from "@tanstack/react-query";
+import { ApiError, errorMessage } from "./errors";
+import { isOnline } from "@/shared/offline/connectivity";
+import { toast } from "@/shared/ui/toast";
 
 /** Reads: same as useQuery, typed with ApiError. Cached data stays usable when offline. */
 export function useApiQuery<TData>(
-  options: Omit<UseQueryOptions<TData, ApiError, TData, QueryKey>, 'queryKey' | 'queryFn'> & {
+  options: Omit<
+    UseQueryOptions<TData, ApiError, TData, QueryKey>,
+    "queryKey" | "queryFn"
+  > & {
     queryKey: QueryKey;
     /** Receives the AbortSignal so a request is cancelled when the screen leaves or the key changes. */
     queryFn: (ctx: { signal: AbortSignal }) => Promise<TData>;
@@ -21,7 +26,34 @@ export function useApiQuery<TData>(
   return useQuery<TData, ApiError, TData, QueryKey>(options);
 }
 
-interface ApiMutationOptions<TData, TVars> extends Omit<UseMutationOptions<TData, ApiError, TVars>, 'onError'> {
+/** Reads in pages, for long lists (infinite scroll). Each page asks for the one before it with the cursor the last page returned. */
+export function useApiInfiniteQuery<TPage, TCursor>(options: {
+  queryKey: QueryKey;
+  queryFn: (ctx: { pageParam: TCursor; signal: AbortSignal }) => Promise<TPage>;
+  initialPageParam: TCursor;
+  /** Return undefined when there is nothing older. */
+  getNextPageParam: (last: TPage) => TCursor | undefined;
+  enabled?: boolean;
+  staleTime?: number;
+}) {
+  const { queryFn, ...rest } = options;
+  return useInfiniteQuery<
+    TPage,
+    ApiError,
+    InfiniteData<TPage, TCursor>,
+    QueryKey,
+    TCursor
+  >({
+    ...rest,
+    queryFn: ({ pageParam, signal }) =>
+      queryFn({ pageParam: pageParam as TCursor, signal }),
+  });
+}
+
+interface ApiMutationOptions<TData, TVars> extends Omit<
+  UseMutationOptions<TData, ApiError, TVars>,
+  "onError"
+> {
   /** Query keys to invalidate after success. */
   invalidates?: QueryKey[];
   /** Toast text on success. Omit for none. */
@@ -40,20 +72,40 @@ interface ApiMutationOptions<TData, TVars> extends Omit<UseMutationOptions<TData
  * Writes: wraps useMutation with the behaviour every screen would otherwise repeat.
  * Online check, error toast, success toast, and cache invalidation.
  */
-export function useApiMutation<TData, TVars = void>(opts: ApiMutationOptions<TData, TVars>) {
+export function useApiMutation<TData, TVars = void>(
+  opts: ApiMutationOptions<TData, TVars>,
+) {
   const qc = useQueryClient();
-  const { invalidates, successMessage, requiresOnline = true, silent, onError, onSuccess, mutationFn, ...rest } = opts;
+  const {
+    invalidates,
+    successMessage,
+    requiresOnline = true,
+    silent,
+    onError,
+    onSuccess,
+    mutationFn,
+    ...rest
+  } = opts;
 
   return useMutation<TData, ApiError, TVars>({
     ...rest,
     mutationFn: async (vars, mctx) => {
-      if (requiresOnline && !isOnline()) throw new ApiError({ kind: 'offline', message: 'Offline' });
-      if (!mutationFn) throw new Error('mutationFn is required');
+      if (requiresOnline && !isOnline())
+        throw new ApiError({ kind: "offline", message: "Offline" });
+      if (!mutationFn) throw new Error("mutationFn is required");
       return mutationFn(vars, mctx);
     },
     onSuccess: async (data, vars, onMutateResult, mctx) => {
-      if (invalidates) await Promise.all(invalidates.map((queryKey) => qc.invalidateQueries({ queryKey })));
-      if (successMessage) toast.success(typeof successMessage === 'function' ? successMessage(data, vars) : successMessage);
+      if (invalidates)
+        await Promise.all(
+          invalidates.map((queryKey) => qc.invalidateQueries({ queryKey })),
+        );
+      if (successMessage)
+        toast.success(
+          typeof successMessage === "function"
+            ? successMessage(data, vars)
+            : successMessage,
+        );
       await onSuccess?.(data, vars, onMutateResult, mctx);
     },
     onError: (error, vars) => {

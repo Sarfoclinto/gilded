@@ -21,6 +21,8 @@ export const permissionLabels: Record<Permission, string> = {
   "branches:manage": "Add and switch off branches",
   "transfers:read": "See transfers between branches",
   "transfers:create": "Prepare, send and pay for transfers (sending end)",
+  "discrepancies:review":
+    "Work the inbox of differences (take, note, resolve, reopen)",
   "transfers:receive":
     "Receive transfers and confirm what arrived (receiving end)",
 };

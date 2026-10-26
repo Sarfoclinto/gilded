@@ -37,12 +37,15 @@ public static class Permissions
     /// <summary>Receive transfers at a branch the person works in, confirming each line (the receiving end).</summary>
     public const string TransfersReceive = "transfers:receive";
 
+    /// <summary>Work the inbox of discrepancy cases (take, note, resolve, reopen) for the branches the person can see.</summary>
+    public const string DiscrepanciesReview = "discrepancies:review";
+
     private static readonly string[] Teller =
         [CalculatorUse, TransactionsRead, TransactionsCreate, DaysRead, DaysManage, DebtsRead, DebtsManage, CustomersRead,
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage];

@@ -23,6 +23,7 @@ export const PERMISSIONS = {
   TRANSFERS_READ: "transfers:read",
   TRANSFERS_CREATE: "transfers:create",
   TRANSFERS_RECEIVE: "transfers:receive",
+  DISCREPANCIES_REVIEW: "discrepancies:review",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

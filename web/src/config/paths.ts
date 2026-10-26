@@ -38,6 +38,11 @@ const paths = {
     users: { href: "/people/users", label: "Users" },
     branches: { href: "/people/branches", label: "Branches" },
   },
+  review: {
+    cases: { href: "/review/cases", label: "Differences" },
+    timeline: { href: "/review/timeline", label: "Branch timeline" },
+    position: { href: "/review/position", label: "Between branches" },
+  },
   transfers: {
     list: { href: "/transfers", label: "Transfers" },
     create: { href: "/transfers/new", label: "New transfer" },

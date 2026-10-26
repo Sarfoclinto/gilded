@@ -2,10 +2,12 @@ using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Operations;
 using GoldValuation.Application.People;
+using GoldValuation.Application.Review;
 using GoldValuation.Application.Transfers;
 using GoldValuation.Infrastructure.Auth;
 using GoldValuation.Infrastructure.Operations;
 using GoldValuation.Infrastructure.People;
+using GoldValuation.Infrastructure.Review;
 using GoldValuation.Infrastructure.Transfers;
 using GoldValuation.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +34,8 @@ public static class InfrastructureModule
         services.AddScoped<PeopleService>();
         services.AddSingleton<ITransfersStore, PostgresTransfersStore>();
         services.AddScoped<TransfersService>();
+        services.AddSingleton<IReviewStore, PostgresReviewStore>();
+        services.AddScoped<ReviewService>();
         return services;
     }
 

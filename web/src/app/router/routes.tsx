@@ -47,6 +47,13 @@ const UsersPage = lazy(() => import("@/features/users/pages/UsersPage"));
 const BranchesPage = lazy(
   () => import("@/features/branches/pages/BranchesPage"),
 );
+const DiscrepanciesPage = lazy(
+  () => import("@/features/review/pages/DiscrepanciesPage"),
+);
+const BranchTimelinePage = lazy(
+  () => import("@/features/review/pages/BranchTimelinePage"),
+);
+const PositionPage = lazy(() => import("@/features/review/pages/PositionPage"));
 const TransfersPage = lazy(
   () => import("@/features/transfers/pages/TransfersPage"),
 );
@@ -149,6 +156,21 @@ export const appRoutes: AppRoute[] = [
     path: paths.people.branches.href,
     element: <BranchesPage />,
     access: { permission: PERMISSIONS.BRANCHES_MANAGE },
+  },
+  {
+    path: paths.review.cases.href,
+    element: <DiscrepanciesPage />,
+    access: { permission: PERMISSIONS.DISCREPANCIES_REVIEW },
+  },
+  {
+    path: paths.review.timeline.href,
+    element: <BranchTimelinePage />,
+    access: { permission: PERMISSIONS.REPORTS_READ },
+  },
+  {
+    path: paths.review.position.href,
+    element: <PositionPage />,
+    access: { permission: PERMISSIONS.REPORTS_READ },
   },
   {
     path: paths.transfers.list.href,
