@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Alert, Checkbox, Input } from "antd";
+import { Alert, Checkbox, Input, Modal } from "antd";
 import { lineTotal, type Lines } from "@gold/core";
 import paths from "@/config/paths";
 import { useAuth } from "@/features/auth/store";
@@ -18,7 +18,8 @@ import {
   type Declared,
 } from "../closing";
 import { linesText } from "../format";
-import { useActiveDrawer, useClosingPreview } from "../hooks";
+import { useActiveDrawer, useClosingPreview, useDayActivity } from "../hooks";
+import { DayActivityPanel } from "../DayActivityPanel";
 import { NoteCountInput } from "../NoteCountInput";
 import type { Figure } from "../schemas";
 
@@ -32,6 +33,8 @@ export default function CloseDayPage() {
   const dayId = view.status === "open" ? view.dayId : null;
   const previewQuery = useClosingPreview(dayId);
   const preview = previewQuery.data ?? null;
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const activityQuery = useDayActivity(summaryOpen ? dayId : null);
 
   const [cash, setCash] = useState<Lines>({});
   const [text, setText] = useState({
@@ -161,6 +164,41 @@ export default function CloseDayPage() {
         differs from the books, say why. Nothing is overwritten: the books and
         your figures are both kept.
       </p>
+
+      <Button
+        variant="secondary"
+        className="w-full"
+        onClick={() => setSummaryOpen(true)}
+      >
+        Day summary · this day only
+      </Button>
+      <Modal
+        title={`This day only · ${view.businessDate}`}
+        open={summaryOpen}
+        onCancel={() => setSummaryOpen(false)}
+        footer={null}
+        destroyOnHidden
+      >
+        <p className="mb-3 text-xs text-muted-foreground">
+          Today's movements only. The closing count below is still checked
+          against the books since the beginning.
+        </p>
+        {activityQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">
+            Loading today's figures…
+          </p>
+        ) : null}
+        {activityQuery.error ? (
+          <Alert
+            type="error"
+            showIcon
+            title="Could not load today's figures. This needs a connection."
+          />
+        ) : null}
+        {activityQuery.data ? (
+          <DayActivityPanel activity={activityQuery.data} />
+        ) : null}
+      </Modal>
 
       {previewQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">
