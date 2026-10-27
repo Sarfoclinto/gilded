@@ -63,6 +63,7 @@ const NewTransferPage = lazy(
 const TransferDetailPage = lazy(
   () => import("@/features/transfers/pages/TransferDetailPage"),
 );
+const ImportPage = lazy(() => import("@/features/imports/pages/ImportPage"));
 const PricesPage = lazy(() => import("@/features/prices/pages/PricesPage"));
 const PendingPaymentsPage = lazy(
   () => import("@/features/payments/PendingPaymentsPage"),
@@ -186,6 +187,11 @@ export const appRoutes: AppRoute[] = [
     path: paths.transfers.detail.href,
     element: <TransferDetailPage />,
     access: { permission: PERMISSIONS.TRANSFERS_READ },
+  },
+  {
+    path: paths.imports.href,
+    element: <ImportPage />,
+    access: { permission: PERMISSIONS.IMPORTS_MANAGE },
   },
   { path: paths.changePassword.href, element: <ChangePasswordPage /> },
   {

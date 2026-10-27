@@ -52,6 +52,7 @@ const paths = {
       label: "Transfer",
     },
   },
+  imports: { href: "/setup/import", label: "Bring in data" },
   changePassword: { href: "/change-password", label: "Choose a new password" },
   payments: { href: "/payments", label: "Mobile money" },
   debts: { href: "/debts", label: "Debts and loans" },

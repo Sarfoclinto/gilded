@@ -43,6 +43,7 @@ api.MapOperations();
 api.MapPeople();
 api.MapTransfers();
 api.MapReview();
+api.MapImports();
 api.MapNotifications();
 
 app.Run();

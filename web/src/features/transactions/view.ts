@@ -161,6 +161,7 @@ export const flagText: Record<string, string> = {
   OFFLINE_ENTRY: "Saved offline, synced later",
   CALC_MISMATCH: "Server amount differs from the device",
   PRICE_STALE: "Price was old when used",
+  HISTORICAL: "Imported from a past record. No cash or gold was moved.",
   NO_OPEN_DAY:
     "No open day when this reached the server. The cash still left the books.",
 };

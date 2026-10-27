@@ -1,11 +1,13 @@
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Auth;
+using GoldValuation.Application.Imports;
 using GoldValuation.Application.Operations;
 using GoldValuation.Application.People;
 using GoldValuation.Application.Notifications;
 using GoldValuation.Application.Review;
 using GoldValuation.Application.Transfers;
 using GoldValuation.Infrastructure.Auth;
+using GoldValuation.Infrastructure.Imports;
 using GoldValuation.Infrastructure.Operations;
 using GoldValuation.Infrastructure.People;
 using GoldValuation.Infrastructure.Notifications;
@@ -38,6 +40,8 @@ public static class InfrastructureModule
         services.AddScoped<TransfersService>();
         services.AddSingleton<IReviewStore, PostgresReviewStore>();
         services.AddScoped<ReviewService>();
+        services.AddSingleton<IImportsStore, PostgresImportsStore>();
+        services.AddScoped<ImportsService>();
         services.AddSingleton<INotificationsStore, PostgresNotificationsStore>();
         services.AddScoped<NotificationsService>();
         return services;

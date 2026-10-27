@@ -18,6 +18,7 @@ import {
   ReceiptIcon,
   SmartphoneIcon,
   TagIcon,
+  UploadIcon,
   WalletIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
@@ -220,6 +221,13 @@ export const appMenu: AppMenuItem[] = [
         title: paths.people.branches.label,
         icon: <BuildingIcon className={icon} />,
         permission: PERMISSIONS.BRANCHES_MANAGE,
+      },
+      {
+        key: paths.imports.href,
+        label: link(paths.imports.href, paths.imports.label),
+        title: paths.imports.label,
+        icon: <UploadIcon className={icon} />,
+        permission: PERMISSIONS.IMPORTS_MANAGE,
       },
       {
         key: paths.changePassword.href,

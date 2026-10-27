@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.10.0
+  version: 0.11.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -746,6 +746,43 @@ paths:
       responses:
         '200': { description: The inbox, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '422': { $ref: '#/components/responses/Error' }
+  /imports/history:
+    post:
+      tags: [Imports]
+      summary: Import past purchases (records only)
+      description: |
+        Body `{ batchId, label?, rows: [ { key, branchId, capturedAt, customerName, customerPhone?, receiptNo?, note?, items: [ { label?, top, down, price } ], amountPaid?, sheetAmount? } ] }`,
+        1 to 500 rows. The server recalculates every item with the company's formula; `sheetAmount` is only compared (a difference of GH₵ 1 or more adds the
+        `CALC_MISMATCH` flag). `amountPaid` defaults to the calculated amount, truncated. Purchases are stored as `HISTORICAL` records numbered `<BRANCH>-H<yyyymmdd>-<n>`:
+        no payments, no ledger entries, and their gold is marked `historical` so it can never be transferred. Safe to resend: a row already imported under the same
+        `batchId` and `key` is skipped. Returns `{ created, skipped, rows }`. Needs `imports:manage`.
+      responses:
+        '200': { description: Result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '422': { $ref: '#/components/responses/Error' }
+  /imports/customers:
+    post:
+      tags: [Imports]
+      summary: Import customers
+      description: Body `{ rows: [ { name, phone, notes? } ] }`, 1 to 1000 rows. A customer with the same name and phone already there is left alone. Returns `{ created, existing }`. Needs `imports:manage`.
+      responses:
+        '200': { description: Result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '422': { $ref: '#/components/responses/Error' }
+  /imports:
+    get:
+      tags: [Imports]
+      summary: Earlier purchase imports
+      responses:
+        '200': { description: Batches, newest first, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }
+  /imports/{id}/undo:
+    post:
+      tags: [Imports]
+      summary: Undo an import
+      description: Body `{ reason }` (5+ characters). Voids every purchase of the batch with the reason and closes the batch. Nothing is deleted. Needs `imports:manage`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Number voided, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
   /discrepancies:
     get:
       tags: [Review]
