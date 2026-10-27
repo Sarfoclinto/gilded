@@ -28,6 +28,7 @@ const paths = {
     history: { href: "/drawer/history", label: "Day history" },
   },
   prices: { href: "/prices", label: "Prices" },
+  priceFeed: { href: "/prices/feed", label: "Automatic price" },
   people: {
     customers: { href: "/people/customers", label: "Customers" },
     customer: {

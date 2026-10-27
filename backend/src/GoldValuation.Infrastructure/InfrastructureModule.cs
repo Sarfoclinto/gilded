@@ -1,6 +1,7 @@
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Imports;
+using GoldValuation.Application.PriceFeed;
 using GoldValuation.Application.Operations;
 using GoldValuation.Application.People;
 using GoldValuation.Application.Notifications;
@@ -8,6 +9,7 @@ using GoldValuation.Application.Review;
 using GoldValuation.Application.Transfers;
 using GoldValuation.Infrastructure.Auth;
 using GoldValuation.Infrastructure.Imports;
+using GoldValuation.Infrastructure.PriceFeed;
 using GoldValuation.Infrastructure.Operations;
 using GoldValuation.Infrastructure.People;
 using GoldValuation.Infrastructure.Notifications;
@@ -42,6 +44,14 @@ public static class InfrastructureModule
         services.AddScoped<ReviewService>();
         services.AddSingleton<IImportsStore, PostgresImportsStore>();
         services.AddScoped<ImportsService>();
+        services.AddSingleton<IPriceFeedStore, PostgresPriceFeedStore>();
+        services.AddHttpClient<IGoldbodClient, GoldbodHttpClient>(c =>
+        {
+            c.BaseAddress = new Uri(configuration["PriceFeed:Url"] ?? "https://goldbod.gov.gh/");
+            c.Timeout = TimeSpan.FromSeconds(20);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("Gilded/1.0 (+gold price reader)");
+        });
+        services.AddScoped<PriceFeedService>();
         services.AddSingleton<INotificationsStore, PostgresNotificationsStore>();
         services.AddScoped<NotificationsService>();
         return services;

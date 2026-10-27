@@ -14,6 +14,7 @@ builder.Services.AddAuth(builder.Configuration);
 builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<EventRelay>();
+builder.Services.AddHostedService<PriceFeedWorker>();
 
 var app = builder.Build();
 app.UseMiddleware<ErrorEnvelopeMiddleware>();
@@ -44,6 +45,7 @@ api.MapPeople();
 api.MapTransfers();
 api.MapReview();
 api.MapImports();
+api.MapPriceFeed();
 api.MapNotifications();
 
 app.Run();

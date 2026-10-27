@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.13.0
+  version: 0.14.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -759,6 +759,52 @@ paths:
       responses:
         '200': { description: Result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '422': { $ref: '#/components/responses/Error' }
+  /price-feed:
+    get:
+      tags: [PriceFeed]
+      summary: Automatic price settings, the price in use and recent activity
+      description: Needs `prices:approve`. `events` are the latest 20 results (`applied`, `held` waiting for a director, `failed`).
+      responses:
+        '200': { description: Settings and history, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+    put:
+      tags: [PriceFeed]
+      summary: Save the settings
+      description: |
+        Body `{ enabled, windows: [{start:"HH:MM", end:"HH:MM", everyMinutes}], weekdays: [1..7 ISO], timezone, marginPolicy: approve|carry, maxJumpPct }`.
+        Inside a window the server looks every `everyMinutes` and stops for that window once a new price is captured. The automatic price is recorded under
+        the person who saved the settings. `marginPolicy: approve` carries each branch's margin onto the new price as provisional and notifies approvers.
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '422': { $ref: '#/components/responses/Error' }
+  /price-feed/preview:
+    post:
+      tags: [PriceFeed]
+      summary: Read GoldBod's page and say what was found, recording nothing
+      responses:
+        '200': { description: "`{ found, message, price?, excerpt? }`", content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /price-feed/check:
+    post:
+      tags: [PriceFeed]
+      summary: Look now and record the result as if the schedule had fired
+      responses:
+        '200': { description: The result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /price-feed/events/{id}/accept:
+    post:
+      tags: [PriceFeed]
+      summary: Use a held price
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Updated settings and history, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /price-feed/events/{id}/dismiss:
+    post:
+      tags: [PriceFeed]
+      summary: Dismiss a held price
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Updated settings and history, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
   /imports/opening:
     post:
       tags: [Imports]

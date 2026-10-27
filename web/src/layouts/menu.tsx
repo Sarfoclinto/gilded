@@ -17,6 +17,7 @@ import {
   PlusCircleIcon,
   ReceiptIcon,
   SmartphoneIcon,
+  RefreshCwIcon,
   TagIcon,
   UploadIcon,
   WalletIcon,
@@ -207,6 +208,13 @@ export const appMenu: AppMenuItem[] = [
         title: paths.prices.label,
         icon: <TagIcon className={icon} />,
         permission: PERMISSIONS.TRANSACTIONS_READ,
+      },
+      {
+        key: paths.priceFeed.href,
+        label: link(paths.priceFeed.href, paths.priceFeed.label),
+        title: paths.priceFeed.label,
+        icon: <RefreshCwIcon className={icon} />,
+        permission: PERMISSIONS.PRICES_APPROVE,
       },
       {
         key: paths.people.users.href,
