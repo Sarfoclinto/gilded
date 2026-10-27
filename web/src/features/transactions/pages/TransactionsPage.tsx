@@ -8,6 +8,7 @@ import { errorMessage } from "@/shared/api/errors";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { ExportTransactionsButton } from "@/features/exports/ExportTransactionsButton";
 import { when } from "../format";
 import { useTransactionList } from "../hooks";
 import type { TransactionView } from "../view";
@@ -53,11 +54,16 @@ export default function TransactionsPage() {
     <div className="mx-auto max-w-3xl space-y-4 p-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">Transactions</h1>
-        <Can permission={PERMISSIONS.TRANSACTIONS_CREATE}>
-          <Link to={paths.transactions.create.href}>
-            <Button>New</Button>
-          </Link>
-        </Can>
+        <div className="flex items-center gap-2">
+          <Can permission={PERMISSIONS.REPORTS_READ}>
+            <ExportTransactionsButton />
+          </Can>
+          <Can permission={PERMISSIONS.TRANSACTIONS_CREATE}>
+            <Link to={paths.transactions.create.href}>
+              <Button>New</Button>
+            </Link>
+          </Can>
+        </div>
       </div>
 
       {outbox.waiting.length > 0 ? (

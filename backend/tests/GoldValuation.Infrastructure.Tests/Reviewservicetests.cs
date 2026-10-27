@@ -58,6 +58,16 @@ public class ReviewServiceTests
     }
 
     [Fact]
+    public async Task The_export_needs_reports_a_branch_the_caller_works_in_and_a_sensible_range()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _svc.ExportTransactionsAsync(Teller(), Tarkwa, null, null, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ExportTransactionsAsync(Reviewer(), Kumasi, null, null, default));
+        var now = DateTimeOffset.UtcNow;
+        await Assert.ThrowsAsync<AppException>(() => _svc.ExportTransactionsAsync(Reviewer(), Tarkwa, now, now.AddDays(-1), default));
+        Assert.Equal("{}", await _svc.ExportTransactionsAsync(Reviewer(), Tarkwa, now.AddDays(-1), now, default));
+    }
+
+    [Fact]
     public async Task The_position_needs_reports()
     {
         await Assert.ThrowsAsync<AppException>(() => _svc.PositionAsync(Teller(), default));
@@ -82,5 +92,6 @@ public class ReviewServiceTests
         public Task<string> ActOnCaseAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
         public Task<string> TimelineAsync(ICurrentContext me, Guid branchId, DateTimeOffset? from, DateTimeOffset? to, string? asset, long? before, int limit, CancellationToken ct) { LastLimit = limit; return Task.FromResult("{}"); }
         public Task<string> PositionAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
+        public Task<string> ExportTransactionsAsync(ICurrentContext me, Guid branchId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct) => Task.FromResult("{}");
     }
 }

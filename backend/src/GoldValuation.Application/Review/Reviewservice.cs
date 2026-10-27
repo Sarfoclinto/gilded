@@ -53,6 +53,15 @@ public sealed class ReviewService(IReviewStore store)
         return store.TimelineAsync(me, branchId, from, to, asset, before, Math.Clamp(limit ?? 100, 1, 300), ct);
     }
 
+    /// <summary>Flat purchase rows for a spreadsheet (up to 5000, oldest first). Needs reports:read and the branch.</summary>
+    public Task<string> ExportTransactionsAsync(ICurrentContext me, Guid branchId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct)
+    {
+        me.Require(Permissions.ReportsRead);
+        me.RequireBranch(branchId);
+        if (from is { } f && to is { } t && t <= f) throw AppException.Invalid("The end of the range must be after its start.");
+        return store.ExportTransactionsAsync(me, branchId, from, to, ct);
+    }
+
     public Task<string> PositionAsync(ICurrentContext me, CancellationToken ct)
     {
         me.Require(Permissions.ReportsRead);

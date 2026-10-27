@@ -9,5 +9,6 @@ public interface IReviewStore
     Task<string> GetCaseAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<string> ActOnCaseAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct);
     Task<string> TimelineAsync(ICurrentContext me, Guid branchId, DateTimeOffset? from, DateTimeOffset? to, string? asset, long? before, int limit, CancellationToken ct);
+    Task<string> ExportTransactionsAsync(ICurrentContext me, Guid branchId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct);
     Task<string> PositionAsync(ICurrentContext me, CancellationToken ct);
 }

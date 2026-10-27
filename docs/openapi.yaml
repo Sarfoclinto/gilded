@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.12.0
+  version: 0.13.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -849,6 +849,17 @@ paths:
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 300 } }
       responses:
         '200': { description: '`{ entries, nextBefore }`', content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /branches/{id}/transactions/export:
+    get:
+      tags: [Review]
+      summary: Flat purchase rows for a spreadsheet
+      description: Up to 5000 purchases of the branch in the range (`from` inclusive, `to` exclusive), oldest first, each with how it was paid (cash, mobile money, owed). `truncated` says more exist. Needs `reports:read` and the branch.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: "`{ truncated, rows }`", content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
   /branches/position:
     get:
       tags: [Review]

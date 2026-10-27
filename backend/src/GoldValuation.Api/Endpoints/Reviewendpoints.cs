@@ -19,6 +19,8 @@ public static class ReviewEndpoints
             Data(await svc.ActOnCaseAsync(me, id, body, ct)));
         api.MapGet("/branches/{id:guid}/timeline", async (Guid id, DateTimeOffset? from, DateTimeOffset? to, string? asset, long? before, int? limit, ICurrentContext me, ReviewService svc, CancellationToken ct) =>
             Data(await svc.TimelineAsync(me, id, from, to, asset, before, limit, ct)));
+        api.MapGet("/branches/{id:guid}/transactions/export", async (Guid id, DateTimeOffset? from, DateTimeOffset? to, ICurrentContext me, ReviewService svc, CancellationToken ct) =>
+            Data(await svc.ExportTransactionsAsync(me, id, from, to, ct)));
         api.MapGet("/branches/position", async (ICurrentContext me, ReviewService svc, CancellationToken ct) =>
             Data(await svc.PositionAsync(me, ct)));
         return api;

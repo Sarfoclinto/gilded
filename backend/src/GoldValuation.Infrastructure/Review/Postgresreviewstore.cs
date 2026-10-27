@@ -24,6 +24,9 @@ public sealed class PostgresReviewStore(NpgsqlDataSource dataSource, ILogger<Pos
         (await Scalar(me, "select gold.branch_timeline_json($1, $2, $3, $4, $5, $6)", ct, Uuid(branchId), Stamp(from), Stamp(to), Text(asset),
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Bigint, Value = (object?)before ?? DBNull.Value }, Int(limit)))!;
 
+    public async Task<string> ExportTransactionsAsync(ICurrentContext me, Guid branchId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct) =>
+        (await Scalar(me, "select gold.transactions_export_json($1, $2, $3, $4)", ct, Uuid(branchId), Stamp(from), Stamp(to), Int(5000)))!;
+
     public async Task<string> PositionAsync(ICurrentContext me, CancellationToken ct) =>
         (await Scalar(me, "select gold.interbranch_position_json($1)", ct, Scope(me)))!;
 

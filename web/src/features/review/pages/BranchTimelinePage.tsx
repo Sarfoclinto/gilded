@@ -7,6 +7,7 @@ import { errorMessage } from "@/shared/api/errors";
 import { useApiInfiniteQuery } from "@/shared/api/hooks";
 import { Button } from "@/shared/ui/Button";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { exportTimeline } from "@/features/exports/exportTimeline";
 import { reviewApi, reviewKeys } from "../api";
 import { sourceLabel } from "../labels";
 import type { TimelineEntry } from "../schemas";
@@ -199,6 +200,45 @@ export default function BranchTimelinePage() {
     getNextPageParam: (last) => last.nextBefore ?? undefined,
   });
 
+  const [exporting, setExporting] = useState(false);
+  const [exportNote, setExportNote] = useState<{
+    ok: boolean;
+    text: string;
+  } | null>(null);
+  async function doExport() {
+    setExporting(true);
+    setExportNote(null);
+    try {
+      const r = await exportTimeline(
+        branchId,
+        list.data?.find((b) => b.id === branchId)?.name ?? "branch",
+        {
+          ...(f.asset ? { asset: f.asset } : {}),
+          ...(f.from
+            ? { from: new Date(`${f.from}T00:00:00`).toISOString() }
+            : {}),
+          ...(f.to
+            ? {
+                to: new Date(
+                  new Date(`${f.to}T00:00:00`).getTime() + 86_400_000,
+                ).toISOString(),
+              }
+            : {}),
+        },
+      );
+      setExportNote({
+        ok: true,
+        text: r.capped
+          ? `Saved the newest ${r.rows} rows. Choose a shorter range for the older ones.`
+          : `${r.rows} rows saved to your downloads.`,
+      });
+    } catch (e) {
+      setExportNote({ ok: false, text: errorMessage(e) });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const events = useMemo(
     () => group((q.data?.pages ?? []).flatMap((p) => p.entries)),
     [q.data],
@@ -238,7 +278,27 @@ export default function BranchTimelinePage() {
         <PageHeader
           title="Branch timeline"
           subtitle="Every movement, newest first, with the balance after it."
+          actions={
+            <Button
+              variant="secondary"
+              loading={exporting}
+              disabled={!branchId}
+              onClick={() => void doExport()}
+              title="Saves everything that matches the filters below"
+            >
+              Excel
+            </Button>
+          }
         />
+        {exportNote ? (
+          <Alert
+            type={exportNote.ok ? "success" : "error"}
+            showIcon
+            closable
+            onClose={() => setExportNote(null)}
+            title={exportNote.text}
+          />
+        ) : null}
         <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
           <select
             aria-label="Branch"
