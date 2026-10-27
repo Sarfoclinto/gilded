@@ -32,7 +32,10 @@ export function AntdConfig({ children }: PropsWithChildren) {
             itemBorderRadius: 8,
             fontSize: 13,
           },
-          Drawer: { colorBgElevated: SIDEBAR_BG },
+          Drawer: {
+            // colorBgElevated: SIDEBAR_BG ,
+            colorBgElevated: "var(--background)",
+          },
           Tooltip: {
             colorBgSpotlight: "#132338",
             colorTextLightSolid: "#ffffff",

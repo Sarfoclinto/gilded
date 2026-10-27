@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <!-- Use cases and the ports they need (clock, current user, repositories). Depends on Domain only. -->
   <ItemGroup>
     <ProjectReference Include="..\GoldValuation.Domain\GoldValuation.Domain.csproj" />

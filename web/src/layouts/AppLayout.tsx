@@ -9,6 +9,7 @@ import {
 } from "@/features/utility/UtilityPanel";
 import { useUtilityPanel } from "@/features/utility/store";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
+import { LiveProvider } from "@/shared/live/LiveProvider";
 import { Header } from "./Header";
 import { WarmCache } from "./WarmCache";
 import { MobileTabBar } from "./MobileTabBar";
@@ -33,29 +34,31 @@ export default function AppLayout() {
     </main>
   );
   return (
-    <div className="flex h-dvh bg-background">
-      <WarmCache />
-      {desktop ? <DesktopSidebar /> : <MenuDrawer />}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header />
-        {desktop && open ? (
-          // Desktop: the page and the calculators side by side; drag the bar to resize, or close the panel.
-          <Splitter className="min-h-0 flex-1">
-            <Splitter.Panel min={360}>{main}</Splitter.Panel>
-            <Splitter.Panel defaultSize={380} min={300} max="50%">
-              <div className="h-full overflow-y-auto border-l border-border bg-card">
-                <PanelHeader onClose={() => setOpen(false)} />
-                <UtilityContent />
-              </div>
-            </Splitter.Panel>
-          </Splitter>
-        ) : (
-          main
-        )}
-        {!desktop && <MobileTabBar />}
-        <UtilityButton />
-        {!desktop && <UtilitySheet />}
+    <LiveProvider>
+      <div className="flex h-dvh bg-background">
+        <WarmCache />
+        {desktop ? <DesktopSidebar /> : <MenuDrawer />}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Header />
+          {desktop && open ? (
+            // Desktop: the page and the calculators side by side; drag the bar to resize, or close the panel.
+            <Splitter className="min-h-0 flex-1">
+              <Splitter.Panel min={360}>{main}</Splitter.Panel>
+              <Splitter.Panel defaultSize={380} min={300} max="50%">
+                <div className="h-full overflow-y-auto border-l border-border bg-card">
+                  <PanelHeader onClose={() => setOpen(false)} />
+                  <UtilityContent />
+                </div>
+              </Splitter.Panel>
+            </Splitter>
+          ) : (
+            main
+          )}
+          {!desktop && <MobileTabBar />}
+          <UtilityButton />
+          {!desktop && <UtilitySheet />}
+        </div>
       </div>
-    </div>
+    </LiveProvider>
   );
 }

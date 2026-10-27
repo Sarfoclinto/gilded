@@ -1,6 +1,7 @@
 using GoldValuation.Api;
 using GoldValuation.Api.Auth;
 using GoldValuation.Api.Endpoints;
+using GoldValuation.Api.Live;
 using GoldValuation.Infrastructure;
 using Npgsql;
 
@@ -11,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
 builder.Services.AddProblemDetails();
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<EventRelay>();
 
 var app = builder.Build();
 app.UseMiddleware<ErrorEnvelopeMiddleware>();
@@ -28,6 +31,9 @@ app.MapGet("/health/ready", async (NpgsqlDataSource db, CancellationToken ct) =>
     return Results.Ok(new { status = "ready" });
 }).AllowAnonymous();
 
+// Live updates: the browser connects here (WebSocket) with its access token. Closed when the token expires; the client reconnects with a fresh one.
+app.MapHub<LiveHub>("/hubs/live", o => o.CloseOnAuthenticationExpiration = true);
+
 app.MapDocs();   // Swagger UI at /docs when Swagger:Enabled is true
 
 var api = app.MapGroup("/api/v1");
@@ -37,7 +43,7 @@ api.MapOperations();
 api.MapPeople();
 api.MapTransfers();
 api.MapReview();
-
+api.MapNotifications();
 
 app.Run();
 

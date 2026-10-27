@@ -42,6 +42,13 @@ public static class AuthSetup
             };
             o.Events = new JwtBearerEvents
             {
+                // Browsers cannot set headers on a WebSocket, so the live-updates connection sends the token in the query string.
+                OnMessageReceived = ctx =>
+                {
+                    var token = ctx.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs")) ctx.Token = token;
+                    return Task.CompletedTask;
+                },
                 OnChallenge = ctx =>
                 {
                     ctx.HandleResponse();
@@ -72,7 +79,7 @@ public static class AuthSetup
             if (origins.Length == 0) return;   // no browser origin allowed until one is configured
             p.WithOrigins(origins)
                 .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
-                .WithHeaders("Content-Type", "Authorization", "Idempotency-Key", "X-Client-Time")
+                .WithHeaders("Content-Type", "Authorization", "Idempotency-Key", "X-Client-Time", "X-Requested-With", "X-SignalR-User-Agent")
                 .AllowCredentials();
         }));
 
