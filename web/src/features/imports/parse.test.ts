@@ -159,3 +159,50 @@ describe("csv", () => {
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
   });
 });
+
+import { parseOpeningDebts, parseOpeningGold } from "./parse";
+
+describe("opening balances", () => {
+  it("reads gold per branch and refuses a branch listed twice", () => {
+    const r = parseOpeningGold(
+      [
+        ["Branch", "Top", "Down", "Value"],
+        ["TKW", 120.5, 6.2, "95,000"],
+        ["Kumasi", 80, 4.1, 61000],
+        ["tkw", 1, 1, 1],
+        ["XYZ", 1, 1, 1],
+        ["KSI", 0, 1, 1],
+      ],
+      branches,
+      null,
+    );
+    expect(r.rows.map((x) => [x.branchId, x.value])).toEqual([
+      ["b-tkw", "95000"],
+      ["b-ksi", "61000"],
+    ]);
+    expect(r.problems.map((p) => p.row)).toEqual([4, 5, 6]);
+  });
+  it("reads debts, types and dates, and wants a phone for customers", () => {
+    const NOW2 = new Date("2026-10-27T00:00:00Z");
+    const r = parseOpeningDebts(
+      [
+        ["Branch", "Name", "Phone", "Type", "Amount", "Date"],
+        ["TKW", "Kofi", 241000001, "Customer", 2500, "2026-09-12"],
+        ["TKW", "Ama", "", "Staff", 500, ""],
+        ["TKW", "Yaw", "", "", 100, ""],
+        ["TKW", "Esi", "024", "", 100, "2027-01-01"],
+      ],
+      branches,
+      null,
+      NOW2,
+    );
+    expect(r.rows).toHaveLength(2);
+    expect(r.rows[0]).toMatchObject({
+      phone: "0241000001",
+      partyType: "customer",
+      issuedAt: "2026-09-12T12:00:00Z",
+    });
+    expect(r.rows[1]!.partyType).toBe("staff");
+    expect(r.problems.map((p) => p.row)).toEqual([4, 5]);
+  });
+});

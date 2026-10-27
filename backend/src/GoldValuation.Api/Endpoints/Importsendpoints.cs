@@ -13,6 +13,8 @@ public static class ImportsEndpoints
     {
         api.MapPost("/imports/history", async (JsonObject body, ICurrentContext me, ImportsService svc, CancellationToken ct) =>
             Data(await svc.ImportHistoryAsync(me, body, ct)));
+        api.MapPost("/imports/opening", async (JsonObject body, ICurrentContext me, ImportsService svc, CancellationToken ct) =>
+            Data(await svc.ImportOpeningAsync(me, body, ct)));
         api.MapPost("/imports/customers", async (JsonObject body, ICurrentContext me, ImportsService svc, CancellationToken ct) =>
             Data(await svc.ImportCustomersAsync(me, body, ct)));
         api.MapGet("/imports", async (ICurrentContext me, ImportsService svc, CancellationToken ct) =>

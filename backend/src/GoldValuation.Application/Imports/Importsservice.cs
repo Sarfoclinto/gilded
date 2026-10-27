@@ -97,6 +97,57 @@ public sealed class ImportsService(IImportsStore store)
         return await store.ImportHistoryAsync(me, payload.ToJsonString(), ct);
     }
 
+    /// <summary>Opening gold per branch and debts owed to the branch on go-live day. One request, applied whole or not at all.</summary>
+    public Task<string> ImportOpeningAsync(ICurrentContext me, JsonObject body, CancellationToken ct)
+    {
+        me.Require(Permissions.ImportsManage);
+        if (!Guid.TryParse((string?)body["batchId"], out var batchId) || batchId == Guid.Empty) throw AppException.Invalid("A batch id is needed.");
+        if (!DateTimeOffset.TryParse((string?)body["asOf"], CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var asOf)) throw AppException.Invalid("Enter the go-live date.");
+        if (asOf > DateTimeOffset.UtcNow) throw AppException.Invalid("The go-live date must not be in the future.");
+        if (body["rows"] is not JsonArray rows || rows.Count is < 1 or > 1000) throw AppException.Invalid("Send 1 to 1000 rows.");
+        var problems = new Dictionary<string, string[]>();
+        var clean = new JsonArray();
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var r = rows[i] as JsonObject;
+            void Bad(string m) => problems[$"row {i + 1}"] = [m];
+            if (r is null || !Guid.TryParse((string?)r["branchId"], out var branchId)) { Bad("Choose the branch."); continue; }
+            me.RequireBranch(branchId);
+            var kind = (string?)r["kind"];
+            if (kind == "goods")
+            {
+                var top = Money(r["top"]); var down = Money(r["down"]); var value = Money(r["value"]);
+                if (top is not > 0 || down is not >= 0 || value is not >= 0) { Bad("Gold needs a top weight above zero, a down weight and a value."); continue; }
+                clean.Add(new JsonObject { ["kind"] = "goods", ["branchId"] = branchId, ["top"] = top, ["down"] = down, ["value"] = value, ["note"] = Trim(r["note"], 200) });
+            }
+            else if (kind == "debt")
+            {
+                var name = Trim(r["partyName"], 120); var amount = Money(r["amount"]);
+                var type = Trim(r["partyType"], 20) ?? "customer";
+                if (name is null) { Bad("Say who owes."); continue; }
+                if (amount is not > 0) { Bad($"{name}: the amount owed must be above zero."); continue; }
+                if (type is not ("customer" or "staff" or "other")) { Bad($"{name}: the type must be customer, staff or other."); continue; }
+                if (type == "customer" && Trim(r["phone"], 30) is null) { Bad($"{name}: a phone number is needed for a customer."); continue; }
+                clean.Add(new JsonObject
+                {
+                    ["kind"] = "debt",
+                    ["branchId"] = branchId,
+                    ["partyName"] = name,
+                    ["partyType"] = type,
+                    ["phone"] = Trim(r["phone"], 30),
+                    ["amount"] = amount,
+                    ["issuedAt"] = Trim(r["issuedAt"], 40),
+                    ["dueDate"] = Trim(r["dueDate"], 20),
+                    ["reason"] = Trim(r["reason"], 200),
+                });
+            }
+            else Bad("Each row is either gold or a debt.");
+        }
+        if (problems.Count > 0) throw AppException.Invalid("Some rows cannot be imported. Fix them and send again.", problems);
+        var payload = new JsonObject { ["batchId"] = batchId, ["label"] = Trim(body["label"], 80), ["asOf"] = asOf.ToString("o", CultureInfo.InvariantCulture), ["rows"] = clean };
+        return store.ImportOpeningAsync(me, payload.ToJsonString(), ct);
+    }
+
     public Task<string> ImportCustomersAsync(ICurrentContext me, JsonObject body, CancellationToken ct)
     {
         me.Require(Permissions.ImportsManage);

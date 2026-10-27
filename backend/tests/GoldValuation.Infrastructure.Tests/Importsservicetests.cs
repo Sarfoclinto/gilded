@@ -78,6 +78,27 @@ public class ImportsServiceTests
         await _svc.UndoBatchAsync(Director(), Guid.NewGuid(), "Wrong sheet used", default);
     }
 
+    private static JsonObject Opening(string rows) =>
+        JsonNode.Parse($$"""{"batchId":"{{Guid.NewGuid()}}","asOf":"2026-10-01","rows":[{{rows}}]}""")!.AsObject();
+
+    [Fact]
+    public async Task Opening_balances_need_the_permission_a_past_date_and_valid_rows()
+    {
+        var goods = $$"""{"kind":"goods","branchId":"{{Tarkwa}}","top":"120.5","down":"6.2","value":"95000"}""";
+        var debt = $$"""{"kind":"debt","branchId":"{{Tarkwa}}","partyName":"Kofi","phone":"024","amount":"2500"}""";
+        await Assert.ThrowsAsync<AppException>(() => _svc.ImportOpeningAsync(Manager(), Opening(goods), default));
+        await _svc.ImportOpeningAsync(Director(), Opening($"{goods},{debt}"), default);
+        var sent = JsonNode.Parse(_store.LastPayload!)!["rows"]!.AsArray();
+        Assert.Equal(2, sent.Count);
+        Assert.Equal("customer", (string?)sent[1]!["partyType"]);
+
+        var future = Opening(goods); future["asOf"] = "2999-01-01";
+        await Assert.ThrowsAsync<AppException>(() => _svc.ImportOpeningAsync(Director(), future, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ImportOpeningAsync(Director(), Opening(goods.Replace("120.5", "0")), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ImportOpeningAsync(Director(), Opening(debt.Replace("\"phone\":\"024\",", "")), default));   // a customer needs a phone
+        await Assert.ThrowsAsync<AppException>(() => _svc.ImportOpeningAsync(Director(), Opening(goods.Replace(Tarkwa.ToString(), Kumasi.ToString())), default));
+    }
+
     private sealed class Ctx(IEnumerable<string> permissions, IEnumerable<Guid> branches) : ICurrentContext
     {
         private readonly HashSet<string> _permissions = permissions.ToHashSet();
@@ -92,6 +113,7 @@ public class ImportsServiceTests
         public string? LastPayload;
         public Task<CalcConfig> GetCalcConfigAsync(ICurrentContext me, string formulaVersion, CancellationToken ct) => Task.FromResult(CalcConfig.ExcelV1);
         public Task<string> ImportHistoryAsync(ICurrentContext me, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
+        public Task<string> ImportOpeningAsync(ICurrentContext me, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
         public Task<string> ImportCustomersAsync(ICurrentContext me, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
         public Task<string> ListBatchesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> UndoBatchAsync(ICurrentContext me, Guid batchId, string reason, CancellationToken ct) => Task.FromResult("{}");

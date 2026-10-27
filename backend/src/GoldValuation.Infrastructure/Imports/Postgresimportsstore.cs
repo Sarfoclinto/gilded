@@ -18,6 +18,9 @@ public sealed class PostgresImportsStore(NpgsqlDataSource dataSource, IOperation
     public async Task<string> ImportHistoryAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
         (await Scalar(me, "select gold.import_history($1, $2)", ct, Json(payloadJson), Scope(me)))!;
 
+    public async Task<string> ImportOpeningAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
+        (await Scalar(me, "select gold.import_opening($1, $2)", ct, Json(payloadJson), Scope(me)))!;
+
     public async Task<string> ImportCustomersAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
         (await Scalar(me, "select gold.import_customers($1)", ct, Json(payloadJson)))!;
 

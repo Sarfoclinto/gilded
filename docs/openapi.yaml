@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.11.0
+  version: 0.12.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -759,6 +759,18 @@ paths:
       responses:
         '200': { description: Result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '422': { $ref: '#/components/responses/Error' }
+  /imports/opening:
+    post:
+      tags: [Imports]
+      summary: Load opening gold and debts for go-live
+      description: |
+        Body `{ batchId, label?, asOf, rows: [ {kind:"goods", branchId, top, down, value, note?} | {kind:"debt", branchId, partyName, partyType?, phone?, amount, issuedAt?, dueDate?, reason?} ] }`.
+        Applied whole or not at all. One opening gold line per branch (`ALREADY_SET` otherwise). Debts are ordinary receivable debts and can be repaid normally.
+        Cash is not loaded here: it is the first count at the branch's first open day. Resending a `batchId` changes nothing (`alreadyApplied: true`). Needs `imports:manage`.
+      responses:
+        '200': { description: Result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /imports/customers:
     post:
       tags: [Imports]
@@ -777,7 +789,7 @@ paths:
     post:
       tags: [Imports]
       summary: Undo an import
-      description: Body `{ reason }` (5+ characters). Voids every purchase of the batch with the reason and closes the batch. Nothing is deleted. Needs `imports:manage`.
+      description: Body `{ reason }` (5+ characters). Purchases imports: voids every purchase with the reason. Opening-balance imports: posts reversing ledger entries and writes the debts off (refused with `ALREADY_IN_USE` once a debt from it was repaid). Closes the batch. Nothing is deleted. Needs `imports:manage`.
       parameters:
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:

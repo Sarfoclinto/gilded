@@ -2,12 +2,13 @@ import { z } from "zod";
 import { request } from "@/shared/api/client";
 import { useApiMutation, useApiQuery } from "@/shared/api/hooks";
 import { createKeys } from "@/shared/api/queryKeys";
-import type { HistoryPurchase } from "./parse";
+import type { HistoryPurchase, OpeningDebt, OpeningGold } from "./parse";
 
 export const importKeys = createKeys("imports");
 
 export const batchSchema = z.object({
   id: z.string(),
+  kind: z.enum(["history", "customers", "opening"]).default("history"),
   label: z.string().nullable(),
   createdAt: z.string(),
   createdBy: z.object({ displayName: z.string() }).nullable(),
@@ -22,6 +23,11 @@ export type ImportBatch = z.infer<typeof batchSchema>;
 const historyResult = z
   .object({ created: z.number(), skipped: z.number() })
   .loose();
+const openingResult = z.object({
+  alreadyApplied: z.boolean(),
+  goods: z.number(),
+  debts: z.number(),
+});
 const customersResult = z.object({ created: z.number(), existing: z.number() });
 
 export const importsApi = {
@@ -49,6 +55,29 @@ export const importsApi = {
       },
       historyResult,
     ),
+  opening: (
+    batchId: string,
+    label: string,
+    asOf: string,
+    gold: OpeningGold[],
+    debts: OpeningDebt[],
+  ) =>
+    request(
+      {
+        method: "post",
+        url: "/imports/opening",
+        data: {
+          batchId,
+          label,
+          asOf,
+          rows: [
+            ...gold.map((g) => ({ kind: "goods", ...g })),
+            ...debts.map((d) => ({ kind: "debt", ...d })),
+          ],
+        },
+      },
+      openingResult,
+    ),
   customers: (rows: Array<{ name: string; phone: string; notes?: string }>) =>
     request(
       { method: "post", url: "/imports/customers", data: { rows } },
@@ -74,6 +103,6 @@ export function useUndoImport() {
   return useApiMutation<{ voided: number }, { id: string; reason: string }>({
     mutationFn: ({ id, reason }) => importsApi.undo(id, reason),
     invalidates: [importKeys.all],
-    successMessage: (r) => `${r.voided} purchases were voided`,
+    successMessage: (r) => `${r.voided} entries were reversed or voided`,
   });
 }

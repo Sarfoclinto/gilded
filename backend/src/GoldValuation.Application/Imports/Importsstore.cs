@@ -8,6 +8,7 @@ public interface IImportsStore
 {
     Task<CalcConfig> GetCalcConfigAsync(ICurrentContext me, string formulaVersion, CancellationToken ct);
     Task<string> ImportHistoryAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
+    Task<string> ImportOpeningAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> ImportCustomersAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> ListBatchesAsync(ICurrentContext me, CancellationToken ct);
     Task<string> UndoBatchAsync(ICurrentContext me, Guid batchId, string reason, CancellationToken ct);

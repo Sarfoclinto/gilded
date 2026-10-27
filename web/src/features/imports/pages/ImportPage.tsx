@@ -27,15 +27,21 @@ import {
   customersTemplate,
   download,
   historyTemplate,
+  openingDebtsTemplate,
+  openingGoldTemplate,
   parseCustomers,
   parseHistory,
+  parseOpeningDebts,
+  parseOpeningGold,
   readTable,
   type CustomerRow,
   type HistoryPurchase,
+  type OpeningDebt,
+  type OpeningGold,
   type Problem,
 } from "../parse";
 
-type Tab = "history" | "customers" | "done";
+type Tab = "history" | "customers" | "opening" | "done";
 
 export default function ImportPage() {
   const [tab, setTab] = useState<Tab>("customers");
@@ -51,6 +57,7 @@ export default function ImportPage() {
         options={[
           { value: "customers", label: "1. Customers" },
           { value: "history", label: "2. Past purchases" },
+          { value: "opening", label: "3. Opening balances" },
           { value: "done", label: "Earlier imports" },
         ]}
       />
@@ -58,6 +65,8 @@ export default function ImportPage() {
         <CustomersImport />
       ) : tab === "history" ? (
         <HistoryImport />
+      ) : tab === "opening" ? (
+        <OpeningImport />
       ) : (
         <EarlierImports />
       )}
@@ -463,6 +472,276 @@ function HistoryImport() {
   );
 }
 
+// ------------------------------------------------------------------------------------------------ opening balances
+type Loaded<T> = { fileName: string; rows: T[]; problems: Problem[] } | null;
+
+function OpeningImport() {
+  const qc = useQueryClient();
+  const branchList = useManagedBranches();
+  const branches = useMemo(
+    () => (branchList.data ?? []).filter((b) => b.isActive),
+    [branchList.data],
+  );
+  const [defaultBranch, setDefaultBranch] = useState<string | null>(null);
+  const [asOf, setAsOf] = useState("");
+  const [label, setLabel] = useState("Go-live balances");
+  const [goldTable, setGoldTable] = useState<Awaited<
+    ReturnType<typeof readTable>
+  > | null>(null);
+  const [debtTable, setDebtTable] = useState<Awaited<
+    ReturnType<typeof readTable>
+  > | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [run, setRun] = useState<Run | null>(null);
+  const [batchId, setBatchId] = useState(() => crypto.randomUUID());
+
+  const gold: Loaded<OpeningGold> = useMemo(
+    () =>
+      goldTable
+        ? {
+            fileName: "",
+            ...parseOpeningGold(goldTable, branches, defaultBranch),
+          }
+        : null,
+    [goldTable, branches, defaultBranch],
+  );
+  const debts: Loaded<OpeningDebt> = useMemo(
+    () =>
+      debtTable
+        ? {
+            fileName: "",
+            ...parseOpeningDebts(debtTable, branches, defaultBranch),
+          }
+        : null,
+    [debtTable, branches, defaultBranch],
+  );
+
+  async function load(file: File, set: typeof setGoldTable) {
+    setError(null);
+    setRun(null);
+    setBatchId(crypto.randomUUID());
+    try {
+      set(await readTable(file));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That file could not be read.");
+    }
+  }
+
+  const goldRows = gold?.rows ?? [];
+  const debtRows = debts?.rows ?? [];
+  const today = new Date().toISOString().slice(0, 10);
+  const ready =
+    !!asOf && asOf <= today && goldRows.length + debtRows.length > 0;
+
+  async function go() {
+    setRun({ total: 1, done: 0, error: null, finished: false, summary: "" });
+    try {
+      const r = await importsApi.opening(
+        batchId,
+        label,
+        asOf,
+        goldRows,
+        debtRows,
+      );
+      setRun({
+        total: 1,
+        done: 1,
+        error: null,
+        finished: true,
+        summary: r.alreadyApplied
+          ? "This had already been applied. Nothing changed."
+          : `${r.goods} branch${r.goods === 1 ? "" : "es"} now hold their opening gold and ${r.debts} debts were recorded. Each debt can be repaid in the normal way.`,
+      });
+      void qc.invalidateQueries();
+    } catch (e) {
+      setRun({
+        total: 1,
+        done: 0,
+        error: errorMessage(e),
+        finished: false,
+        summary: "",
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Alert
+        type="info"
+        showIcon
+        title="What each branch holds on the day it goes live"
+        description="Gold: one line per branch, as counted (top weight, down weight, and what it is worth). Debts: what customers or staff owe. Cash is not loaded here: it is the first count when the branch opens its first day. Everything is applied together, and can be undone from Earlier imports until a debt from it is repaid."
+      />
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2 text-sm">
+          Go-live date
+          <Input
+            type="date"
+            value={asOf}
+            max={today}
+            onChange={(e) => setAsOf(e.target.value)}
+            style={{ width: 160 }}
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          Branch for rows with no Branch cell
+          <Select<string>
+            allowClear
+            placeholder="None"
+            value={defaultBranch ?? undefined}
+            onChange={(v) => setDefaultBranch(v ?? null)}
+            style={{ minWidth: 180 }}
+            options={branches.map((b) => ({
+              value: b.id,
+              label: `${b.name} (${b.code})`,
+            }))}
+          />
+        </label>
+      </div>
+      {error ? <Alert type="error" showIcon title={error} /> : null}
+
+      <section className="space-y-3 rounded-lg border border-border p-3">
+        <h2 className="font-semibold">Gold on hand</h2>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            download("opening-gold-template.csv", openingGoldTemplate)
+          }
+        >
+          <DownloadIcon className="size-4" /> Download the template
+        </Button>
+        <Pick
+          onFile={(f) => void load(f, setGoldTable)}
+          hint="Columns: Branch, Top, Down, Value, Note (optional)"
+        />
+        {gold ? (
+          <>
+            <Problems problems={gold.problems} />
+            <Table<OpeningGold>
+              rowKey="branchId"
+              size="small"
+              dataSource={gold.rows}
+              pagination={false}
+              columns={[
+                {
+                  title: "Branch",
+                  render: (_: unknown, g) =>
+                    branches.find((b) => b.id === g.branchId)?.name,
+                },
+                { title: "Top", dataIndex: "top", align: "right" },
+                { title: "Down", dataIndex: "down", align: "right" },
+                {
+                  title: "Value (GH₵)",
+                  align: "right",
+                  render: (_: unknown, g) =>
+                    Number(g.value).toLocaleString("en-GH"),
+                },
+              ]}
+            />
+          </>
+        ) : null}
+      </section>
+
+      <section className="space-y-3 rounded-lg border border-border p-3">
+        <h2 className="font-semibold">Debts owed to the branches</h2>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            download("opening-debts-template.csv", openingDebtsTemplate)
+          }
+        >
+          <DownloadIcon className="size-4" /> Download the template
+        </Button>
+        <Pick
+          onFile={(f) => void load(f, setDebtTable)}
+          hint="Columns: Branch, Name, Phone, Type, Amount, Date, Due date, Reason. Only Name and Amount are always needed."
+        />
+        {debts ? (
+          <>
+            <Problems problems={debts.problems} />
+            <Table<OpeningDebt>
+              rowKey={(d) => `${d.branchId}|${d.partyName}|${d.amount}`}
+              size="small"
+              dataSource={debts.rows}
+              pagination={{ pageSize: 8, hideOnSinglePage: true }}
+              scroll={{ x: 520 }}
+              columns={[
+                {
+                  title: "Branch",
+                  render: (_: unknown, d) =>
+                    branches.find((b) => b.id === d.branchId)?.code,
+                },
+                { title: "Owed by", dataIndex: "partyName" },
+                { title: "Type", dataIndex: "partyType" },
+                {
+                  title: "Amount (GH₵)",
+                  align: "right",
+                  render: (_: unknown, d) =>
+                    Number(d.amount).toLocaleString("en-GH"),
+                },
+              ]}
+            />
+          </>
+        ) : null}
+      </section>
+
+      {goldRows.length + debtRows.length > 0 ? (
+        <>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Tag color="green">{goldRows.length} branches' gold</Tag>
+            <Tag color="gold">
+              {debtRows.length} debts, GH₵{" "}
+              {debtRows
+                .reduce((s, d) => s + Number(d.amount), 0)
+                .toLocaleString("en-GH")}
+            </Tag>
+          </div>
+          {!asOf ? (
+            <Alert
+              type="warning"
+              showIcon
+              title="Choose the go-live date first."
+            />
+          ) : null}
+          <label className="block text-sm">
+            Name of this import
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              maxLength={80}
+              className="mt-1"
+            />
+          </label>
+          {run?.error ? (
+            <Alert
+              type="error"
+              showIcon
+              title="Nothing was saved"
+              description={run.error}
+            />
+          ) : null}
+          {run?.finished ? (
+            <Alert
+              type="success"
+              showIcon
+              title="Done"
+              description={run.summary}
+            />
+          ) : (
+            <Button
+              loading={!!run && !run.error && !run.finished}
+              disabled={!ready}
+              onClick={go}
+            >
+              Apply opening balances
+            </Button>
+          )}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------------------------------------ earlier imports
 function EarlierImports() {
   const list = useImportBatches();
@@ -488,7 +767,12 @@ function EarlierImports() {
             title: "Import",
             render: (_: unknown, b) => (
               <div>
-                <div className="font-medium">{b.label ?? "Past purchases"}</div>
+                <div className="font-medium">
+                  {b.label ??
+                    (b.kind === "opening"
+                      ? "Opening balances"
+                      : "Past purchases")}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(b.createdAt).toLocaleString()} ·{" "}
                   {b.createdBy?.displayName}
@@ -497,7 +781,7 @@ function EarlierImports() {
             ),
           },
           {
-            title: "Purchases",
+            title: "Items",
             align: "right",
             render: (_: unknown, b) => b.purchases,
           },
@@ -546,14 +830,16 @@ function EarlierImports() {
                 )
               }
             >
-              Void {target?.purchases} purchases
+              Undo {target?.purchases} items
             </Button>
           </div>
         }
       >
         <p className="mb-2 text-sm">
-          Every purchase from this import is voided with your reason. Nothing is
-          deleted, and the import cannot be used again.
+          Past purchases are voided, or opening gold and debts are reversed,
+          with your reason. Nothing is deleted, and the import cannot be used
+          again. Opening balances cannot be undone once one of their debts has
+          been repaid.
         </p>
         <Input.TextArea
           rows={3}
