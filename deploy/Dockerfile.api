@@ -1,0 +1,15 @@
+# Builds the Gilded API (and its operator commands: migrate, seed). Build context = the repository root.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY backend/ backend/
+# The API embeds the API contract (docs/openapi.yaml) for its Swagger page.
+COPY docs/openapi.yaml docs/openapi.yaml
+RUN dotnet publish backend/src/GoldValuation.Api/GoldValuation.Api.csproj -c Release -o /out /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=build /out .
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+USER app
+ENTRYPOINT ["dotnet", "GoldValuation.Api.dll"]
