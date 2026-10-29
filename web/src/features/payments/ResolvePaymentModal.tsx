@@ -122,10 +122,14 @@ export function ResolvePaymentModal({
           ]}
         />
         {mode === "confirm" ? (
-          <p className="text-sm text-muted-foreground">
-            Confirm only after the money has really left this branch’s mobile
-            money account and reached the customer.
-          </p>
+          <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
+            <div className="tnum text-2xl font-bold">{cedis(amount)}</div>
+            <p className="mt-1 text-muted-foreground">
+              Confirm only after the money has really left this branch’s mobile
+              money account and reached {target.customerName}.
+              {target.reference ? ` (${target.reference})` : ""}
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
@@ -167,14 +171,29 @@ export function ResolvePaymentModal({
                     onChange={(lines) => patch(r.key, { lines })}
                   />
                 ) : (
-                  <TextField
-                    label="Amount (GHS)"
-                    inputMode="numeric"
-                    value={r.amount}
-                    onChange={(e) =>
-                      patch(r.key, { amount: digitsOnly(e.target.value) })
-                    }
-                  />
+                  <div className="flex items-end gap-2">
+                    <TextField
+                      className="flex-1"
+                      label="Amount (GHS)"
+                      inputMode="numeric"
+                      value={r.amount}
+                      onChange={(e) =>
+                        patch(r.key, { amount: digitsOnly(e.target.value) })
+                      }
+                    />
+                    {rest > 0 ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
+                          patch(r.key, {
+                            amount: String(Number(r.amount || 0) + rest),
+                          })
+                        }
+                      >
+                        Fill the rest
+                      </Button>
+                    ) : null}
+                  </div>
                 )}
                 {r.kind === "mobile_money" ? (
                   <SelectField
