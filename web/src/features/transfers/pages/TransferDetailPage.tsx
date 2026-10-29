@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Alert, Modal, Table, Timeline } from "antd";
+import { Alert, Modal, Timeline } from "antd";
+import { ArrowRightIcon } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/features/auth/store";
@@ -10,6 +11,7 @@ import { when } from "@/features/transactions/format";
 import { errorMessage } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { Stepper } from "@/shared/ui/Stepper";
 import { TextField } from "@/shared/ui/TextField";
 import { AddItemsModal } from "../AddItemsModal";
 import { CollectorModal } from "../CollectorModal";
@@ -29,7 +31,8 @@ import {
   purposeLabel,
   StatusChip,
 } from "../labels";
-import type { Transfer, TransferLine } from "../schemas";
+import { differenceOf, roadAge, STAGES, stageOf } from "../model";
+import type { Transfer } from "../schemas";
 
 type Dialog =
   | "collector"
@@ -148,136 +151,119 @@ export default function TransferDetailPage() {
     : null;
   const target: Transfer = t;
 
-  const lineCols = [
-    {
-      title: "Piece",
-      render: (_: unknown, l: TransferLine) => (
-        <div>
-          <div className="font-medium">{l.description}</div>
-          <div className="text-xs text-muted-foreground">
-            {l.customerName}
-            {l.reference ? ` · ${l.reference}` : ""}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Sent",
-      align: "right" as const,
-      render: (_: unknown, l: TransferLine) => (
-        <span className="tnum text-xs">
-          {l.releasedTop} / {l.releasedDown} g<br />
-          {cedis(Number(l.releasedValue))}
-        </span>
-      ),
-    },
-    ...(t.receipt
-      ? [
-          {
-            title: "Received",
-            align: "right" as const,
-            render: (_: unknown, l: TransferLine) =>
-              l.receivedTop ? (
-                <span className="tnum text-xs">
-                  {l.receivedTop} / {l.receivedDown} g<br />
-                  {cedis(Number(l.receivedValue))}
-                </span>
-              ) : (
-                "—"
-              ),
-          },
-        ]
-      : []),
-    {
-      title: "",
-      align: "right" as const,
-      render: (_: unknown, l: TransferLine) =>
-        t.status === "draft" && atOrigin ? (
-          <button
-            type="button"
-            className="text-sm underline"
-            disabled={edit.isPending}
-            onClick={() =>
-              edit.mutate({ id: target.id, data: { removeLineIds: [l.id] } })
-            }
-          >
-            Take off
-          </button>
-        ) : l.outcome !== "pending" ? (
-          <span
-            className={
-              l.outcome === "matched" ? "text-emerald-700" : "text-amber-700"
-            }
-          >
-            {outcomeLabel[l.outcome]}
-          </span>
-        ) : null,
-    },
-  ];
+  const stage = stageOf(t.status);
+  const diff = differenceOf(t);
+  const age = roadAge({ status: t.status, releasedAt: t.release?.at ?? null });
+  const ageClass =
+    age?.tone === "stale"
+      ? "font-semibold text-red-600"
+      : age?.tone === "late"
+        ? "text-amber-700"
+        : "text-muted-foreground";
+  const sign = (n: number) => (n > 0 ? "+" : "−");
+  const grams = (n: number, label: string) =>
+    Math.abs(n) < 0.0005
+      ? null
+      : `${sign(n)}${Number(Math.abs(n).toFixed(3))} g ${label}`;
+  const money = (n: number) =>
+    Math.abs(n) < 0.005 ? null : `${sign(n)}${cedis(Math.abs(n))}`;
+  const diffText = diff
+    ? (goods
+        ? [grams(diff.top, "top"), grams(diff.down, "down"), money(diff.value)]
+        : [money(diff.cash)]
+      ).filter(Boolean)
+    : [];
+  const primary =
+    t.status === "draft" && atOrigin ? (
+      <Button
+        onClick={() => setDialog("release")}
+        disabled={!readyToSend || !t.collector}
+      >
+        Hand to the collector
+      </Button>
+    ) : t.status === "released" && atDestination ? (
+      <Button onClick={() => setDialog("receive")}>Receive</Button>
+    ) : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
+    <div className="mx-auto max-w-4xl space-y-4 p-3 pb-8 sm:p-4 lg:p-6">
       <Link
         to={paths.transfers.list.href}
         className="text-sm text-muted-foreground underline"
       >
         ← Transfers
       </Link>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">{t.reference}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t.originBranchName} → {t.destinationBranchName} ·{" "}
-            {purposeLabel[t.purpose] ?? t.purpose} ·{" "}
-            {methodLabel[t.method] ?? t.method}
-          </p>
-          {t.purposeNote ? <p className="text-sm">{t.purposeNote}</p> : null}
-        </div>
-        <StatusChip status={t.status} />
-      </div>
 
-      <div className="flex flex-wrap gap-2">
-        {t.status === "draft" && atOrigin ? (
-          <>
-            <Button
-              onClick={() => setDialog("release")}
-              disabled={!readyToSend}
-            >
-              Hand to the collector
-            </Button>
-            {goods ? (
-              <Button variant="secondary" onClick={() => setDialog("items")}>
-                Add gold
-              </Button>
+      <Card className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 text-xl font-bold">
+              {t.originBranchName}
+              <ArrowRightIcon
+                className="size-5 text-muted-foreground"
+                aria-label="to"
+              />
+              {t.destinationBranchName}
+            </div>
+            <p className="font-mono text-xs text-muted-foreground">
+              {t.reference}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {goods ? "Gold" : "Cash"} · {purposeLabel[t.purpose] ?? t.purpose}{" "}
+              · {methodLabel[t.method] ?? t.method}
+            </p>
+            {t.purposeNote ? <p className="text-sm">{t.purposeNote}</p> : null}
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <StatusChip status={t.status} />
+            {age ? (
+              <span className={`text-xs ${ageClass}`}>{age.text}</span>
             ) : null}
+          </div>
+        </div>
+        <Stepper
+          steps={STAGES}
+          current={stage.index}
+          warn={stage.tone === "warn"}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          {primary}
+          {t.status === "draft" && atOrigin ? (
+            <>
+              {goods ? (
+                <Button variant="secondary" onClick={() => setDialog("items")}>
+                  Add gold
+                </Button>
+              ) : null}
+              <Button
+                variant="secondary"
+                onClick={() => setDialog("collector")}
+              >
+                {t.collector ? "Change collector" : "Set collector"}
+              </Button>
+              <Button variant="ghost" onClick={() => setDialog("cancel")}>
+                Cancel draft
+              </Button>
+            </>
+          ) : null}
+          {t.status === "released" && atOrigin ? (
             <Button variant="secondary" onClick={() => setDialog("collector")}>
-              {t.collector ? "Change collector" : "Set collector"}
+              Change collector
             </Button>
-            <Button variant="ghost" onClick={() => setDialog("cancel")}>
-              Cancel draft
+          ) : null}
+          {(t.status === "released" ||
+            t.status === "received" ||
+            t.status === "received_with_discrepancy") &&
+          (atOrigin || atDestination) ? (
+            <Button variant="secondary" onClick={() => setDialog("pay")}>
+              Record money paid
             </Button>
-          </>
-        ) : null}
-        {t.status === "released" && atDestination ? (
-          <Button onClick={() => setDialog("receive")}>Receive</Button>
-        ) : null}
-        {t.status === "released" && atOrigin ? (
-          <Button variant="secondary" onClick={() => setDialog("collector")}>
-            Change collector
+          ) : null}
+          <Button variant="ghost" onClick={() => setDialog("note")}>
+            Add a note
           </Button>
-        ) : null}
-        {(t.status === "released" ||
-          t.status === "received" ||
-          t.status === "received_with_discrepancy") &&
-        (atOrigin || atDestination) ? (
-          <Button variant="secondary" onClick={() => setDialog("pay")}>
-            Record money paid
-          </Button>
-        ) : null}
-        <Button variant="ghost" onClick={() => setDialog("note")}>
-          Add a note
-        </Button>
-      </div>
+        </div>
+      </Card>
 
       {t.status === "draft" && !t.collector && atOrigin ? (
         <Alert
@@ -302,8 +288,8 @@ export default function TransferDetailPage() {
         />
       ) : null}
 
-      <Card className="grid gap-3 text-sm sm:grid-cols-2">
-        <div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
           <div className="text-xs uppercase text-muted-foreground">
             Carried by
           </div>
@@ -327,16 +313,21 @@ export default function TransferDetailPage() {
           ) : (
             <div className="text-muted-foreground">Not set yet</div>
           )}
-        </div>
-        <div>
-          <div className="text-xs uppercase text-muted-foreground">
-            {goods ? "Gold" : "Cash"}
-          </div>
+        </Card>
+        <Card>
+          <div className="text-xs uppercase text-muted-foreground">Sent</div>
           {t.declared ? (
             <div className="tnum">
-              {goods
-                ? `Sent: top ${t.declared.top} g · down ${t.declared.down} g · ${cedis(Number(t.declared.value))}`
-                : `Sent: ${cedis(Number(t.declared.cash))}`}
+              <div className="text-lg font-bold">
+                {goods
+                  ? cedis(Number(t.declared.value))
+                  : cedis(Number(t.declared.cash))}
+              </div>
+              {goods ? (
+                <div className="text-xs text-muted-foreground">
+                  top {t.declared.top} g · down {t.declared.down} g
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="text-muted-foreground">
@@ -345,38 +336,120 @@ export default function TransferDetailPage() {
                 : "Counted at handover"}
             </div>
           )}
-          {t.receipt ? (
-            <div className="tnum">
-              {goods
-                ? `Received: top ${t.receipt.top} g · down ${t.receipt.down} g · ${cedis(Number(t.receipt.value))}`
-                : `Received: ${cedis(Number(t.receipt.cash))}`}
+          {t.release ? (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {when(t.release.at)} · {t.release.by?.displayName}
+              {t.release.note ? ` · ${t.release.note}` : ""}
             </div>
           ) : null}
-        </div>
-        {t.release ? (
-          <div className="text-xs text-muted-foreground">
-            Handed over {when(t.release.at)} by {t.release.by?.displayName}
-            {t.release.note ? ` · ${t.release.note}` : ""}
+        </Card>
+        <Card className={diffText.length ? "border-amber-500/50" : ""}>
+          <div className="text-xs uppercase text-muted-foreground">
+            Received
           </div>
-        ) : null}
-        {t.receipt ? (
-          <div className="text-xs text-muted-foreground">
-            Received {when(t.receipt.at)} by {t.receipt.by?.displayName}
-            {t.receipt.note ? ` · ${t.receipt.note}` : ""}
-          </div>
-        ) : null}
-      </Card>
+          {t.receipt ? (
+            <div className="tnum">
+              <div className="text-lg font-bold">
+                {goods
+                  ? cedis(Number(t.receipt.value))
+                  : cedis(Number(t.receipt.cash))}
+              </div>
+              {goods ? (
+                <div className="text-xs text-muted-foreground">
+                  top {t.receipt.top} g · down {t.receipt.down} g
+                </div>
+              ) : null}
+              <div
+                className={`text-xs font-semibold ${diffText.length ? "text-amber-700" : "text-emerald-700"}`}
+              >
+                {diffText.length
+                  ? `Difference: ${diffText.join(" · ")}`
+                  : "Matched what was sent"}
+              </div>
+              <div className="mt-1 text-xs font-normal text-muted-foreground">
+                {when(t.receipt.at)} · {t.receipt.by?.displayName}
+                {t.receipt.note ? ` · ${t.receipt.note}` : ""}
+              </div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              {t.status === "cancelled" ? "Never sent" : "Not yet"}
+            </div>
+          )}
+        </Card>
+      </div>
 
       {goods ? (
-        <Table<TransferLine>
-          rowKey="id"
-          size="small"
-          pagination={false}
-          dataSource={t.lines}
-          columns={lineCols}
-          locale={{ emptyText: "No gold added yet" }}
-          scroll={{ x: 480 }}
-        />
+        <Card className="p-0">
+          <h2 className="px-4 pt-3 font-semibold">
+            The gold{" "}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({t.lines.length})
+            </span>
+          </h2>
+          {t.lines.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">
+              No gold added yet.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {t.lines.map((l) => (
+                <li
+                  key={l.id}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium">{l.description}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {l.customerName}
+                      {l.reference ? ` · ${l.reference}` : ""}
+                    </div>
+                  </div>
+                  <div className="tnum text-right text-xs">
+                    <div>
+                      {l.releasedTop} / {l.releasedDown} g ·{" "}
+                      <strong>{cedis(Number(l.releasedValue))}</strong>
+                    </div>
+                    {t.receipt ? (
+                      <div className="text-muted-foreground">
+                        {l.receivedTop
+                          ? `found ${l.receivedTop} / ${l.receivedDown} g · ${cedis(Number(l.receivedValue))}`
+                          : "not counted"}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="w-full text-right sm:w-auto">
+                    {t.status === "draft" && atOrigin ? (
+                      <button
+                        type="button"
+                        className="text-sm underline"
+                        disabled={edit.isPending}
+                        onClick={() =>
+                          edit.mutate({
+                            id: target.id,
+                            data: { removeLineIds: [l.id] },
+                          })
+                        }
+                      >
+                        Take off
+                      </button>
+                    ) : l.outcome !== "pending" ? (
+                      <span
+                        className={
+                          l.outcome === "matched"
+                            ? "text-emerald-700"
+                            : "font-medium text-amber-700"
+                        }
+                      >
+                        {outcomeLabel[l.outcome]}
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       ) : null}
 
       {t.discrepancies.length ? (
