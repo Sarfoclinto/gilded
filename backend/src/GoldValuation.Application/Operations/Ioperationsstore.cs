@@ -29,6 +29,8 @@ public interface IOperationsStore
 
     Task<DbResult> PostTransactionAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> ListTransactionsAsync(ICurrentContext me, Guid branchId, int limit, CancellationToken ct);
+    /// <summary>Filtered, sorted, paged purchases as { items, total, sumPayable } (database function transactions_search). The filter is JSON.</summary>
+    Task<string> SearchTransactionsAsync(ICurrentContext me, string filterJson, CancellationToken ct);
     Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<string> ResolvePaymentAsync(ICurrentContext me, Guid paymentId, string outcome, string? replacementsJson, CancellationToken ct);
 

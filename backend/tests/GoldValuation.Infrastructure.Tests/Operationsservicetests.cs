@@ -33,6 +33,28 @@ public class OperationsServiceTests
         Assert.Contains("\"method\":\"cash\"", _store.LastPayload);
     }
 
+    private static TransactionSearch Search(Guid? branch = null, string? sort = null, string? from = null, string? q = null, int? limit = null) =>
+        new(branch, null, q, from, null, null, null, null, null, sort, limit, null);
+
+    [Fact]
+    public async Task Searching_purchases_sends_only_the_callers_branches_and_clean_filters()
+    {
+        await _ops.SearchTransactionsAsync(Teller(), Search(Tarkwa, "amount_desc", "2026-10-01", "  kofi  ", 500), default);
+        Assert.Contains($"\"scope\":[\"{Tarkwa}\"]", _store.LastSearch);
+        Assert.Contains("\"q\":\"kofi\"", _store.LastSearch);
+        Assert.Contains("\"limit\":100", _store.LastSearch);   // clamped
+        Assert.Contains("\"sort\":\"amount_desc\"", _store.LastSearch);
+    }
+
+    [Fact]
+    public async Task Searching_purchases_refuses_other_branches_bad_dates_and_unknown_sorts()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _ops.SearchTransactionsAsync(Teller(), Search(Kumasi), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.SearchTransactionsAsync(new Ctx([], [Tarkwa]), Search(Tarkwa), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.SearchTransactionsAsync(Teller(), Search(from: "29/10/2026"), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.SearchTransactionsAsync(Teller(), Search(sort: "sideways"), default));
+    }
+
     [Fact]
     public async Task The_idempotency_key_must_be_the_requests_own_id()
     {
@@ -244,6 +266,8 @@ public class OperationsServiceTests
         public Task<string?> GetCollateralAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult<string?>(null);
         public Task<DbResult> PostTransactionAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<string> ListTransactionsAsync(ICurrentContext me, Guid b, int l, CancellationToken ct) => Task.FromResult("[]");
+        public string? LastSearch;
+        public Task<string> SearchTransactionsAsync(ICurrentContext me, string filterJson, CancellationToken ct) { LastSearch = filterJson; return Task.FromResult("{\"items\":[],\"total\":0,\"sumPayable\":\"0\"}"); }
         public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredTransaction);
         public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid id, string o, string? r, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid b, string role, CancellationToken ct) => Task.FromResult("[]");

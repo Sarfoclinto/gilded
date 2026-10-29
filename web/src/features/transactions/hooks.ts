@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
-import { useApiQuery } from '@/shared/api/hooks';
-import { useOutbox } from '@/shared/offline/OutboxProvider';
-import { TX_CREATE } from '@/app/outbox';
-import { transactionKeys, transactionsApi } from './api';
-import { fromOutbox, fromServer, type TransactionView } from './view';
+import { useMemo } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
+import { useApiQuery } from "@/shared/api/hooks";
+import { useOutbox } from "@/shared/offline/OutboxProvider";
+import { TX_CREATE } from "@/app/outbox";
+import { transactionKeys, transactionsApi } from "./api";
+import { fromOutbox, fromServer, type TransactionView } from "./view";
 
 /** Saved transactions for a branch plus anything still waiting on this device, newest first. */
 export function useTransactionList(branchId: string | null) {
@@ -21,7 +22,10 @@ export function useTransactionList(branchId: string | null) {
       .filter((e) => e.type === TX_CREATE && !known.has(e.id))
       .map(fromOutbox)
       .filter((t) => t.branchId === branchId);
-    return [...local.sort((a, b) => b.capturedAt.localeCompare(a.capturedAt)), ...server];
+    return [
+      ...local.sort((a, b) => b.capturedAt.localeCompare(a.capturedAt)),
+      ...server,
+    ];
   }, [query.data, entries, branchId]);
 
   return { rows, query };
@@ -32,11 +36,35 @@ export function useTransactionView(id: string | undefined) {
   const { entries } = useOutbox();
   const local = entries.find((e) => e.id === id && e.type === TX_CREATE);
   const query = useApiQuery({
-    queryKey: transactionKeys.detail(id ?? ''),
+    queryKey: transactionKeys.detail(id ?? ""),
     queryFn: ({ signal }) => transactionsApi.get(id as string, signal),
     enabled: !!id && !local,
     retry: false,
   });
-  const view: TransactionView | null = local ? fromOutbox(local) : query.data ? fromServer(query.data) : null;
-  return { view, isLoading: !local && query.isLoading, error: local ? null : query.error };
+  const view: TransactionView | null = local
+    ? fromOutbox(local)
+    : query.data
+      ? fromServer(query.data)
+      : null;
+  return {
+    view,
+    isLoading: !local && query.isLoading,
+    error: local ? null : query.error,
+  };
+}
+
+/** One page of purchases for the current filters. The previous page stays on screen while the next one loads. */
+export function useTransactionSearch(
+  query: Record<string, string | number | boolean> | null,
+) {
+  return useApiQuery({
+    queryKey: transactionKeys.custom("search", query ?? {}),
+    queryFn: ({ signal }) =>
+      transactionsApi.search(
+        query as Record<string, string | number | boolean>,
+        signal,
+      ),
+    enabled: !!query,
+    placeholderData: keepPreviousData,
+  });
 }

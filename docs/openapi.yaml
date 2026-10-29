@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.15.0
+  version: 0.16.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -228,6 +228,44 @@ paths:
         '200': { description: The price now in force, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CurrentPrice' } } } } } }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+  /transactions/search:
+    get:
+      tags: [Transactions]
+      summary: Purchases with filters, sorting and paging
+      description: |
+        Needs `transactions:read`. Only branches the caller works in are searched. Dates are `yyyy-MM-dd` in each branch's own calendar.
+        `q` matches customer name, phone or receipt number. Returns the page of purchases plus the total count and the total paid for everything that matches.
+      parameters:
+        - { in: query, name: branchId, schema: { type: string, format: uuid } }
+        - { in: query, name: customerId, schema: { type: string, format: uuid } }
+        - { in: query, name: q, schema: { type: string, maxLength: 60 } }
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+        - { in: query, name: status, schema: { type: string, enum: [saved, paid, void] } }
+        - { in: query, name: flagged, schema: { type: boolean } }
+        - { in: query, name: minAmount, schema: { type: string } }
+        - { in: query, name: maxAmount, schema: { type: string } }
+        - { in: query, name: sort, schema: { type: string, enum: [newest, oldest, amount_desc, amount_asc], default: newest } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { in: query, name: offset, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        '200':
+          description: A page of purchases
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [items, total, sumPayable]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Transaction' } }
+                      total: { type: integer }
+                      sumPayable: { type: string }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /transactions:
     get:
       tags: [Transactions]
@@ -760,7 +798,8 @@ paths:
     post:
       tags: [Notifications]
       summary: Mark notifications read
-      description: Body `{ ids: [...] }` marks those read, `{ all: true }` marks every unread one of the caller's. Returns the updated inbox.
+      description: |
+        Body `{ ids: [...] }` marks those read, `{ all: true }` marks every unread one of the caller's. Returns the updated inbox.
       responses:
         '200': { description: The inbox, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '422': { $ref: '#/components/responses/Error' }
@@ -839,7 +878,8 @@ paths:
     post:
       tags: [Imports]
       summary: Import customers
-      description: Body `{ rows: [ { name, phone, notes? } ] }`, 1 to 1000 rows. A customer with the same name and phone already there is left alone. Returns `{ created, existing }`. Needs `imports:manage`.
+      description: |
+        Body `{ rows: [ { name, phone, notes? } ] }`, 1 to 1000 rows. A customer with the same name and phone already there is left alone. Returns `{ created, existing }`. Needs `imports:manage`.
       responses:
         '200': { description: Result, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '422': { $ref: '#/components/responses/Error' }
@@ -853,7 +893,8 @@ paths:
     post:
       tags: [Imports]
       summary: Undo an import
-      description: Body `{ reason }` (5+ characters). Purchases imports: voids every purchase with the reason. Opening-balance imports: posts reversing ledger entries and writes the debts off (refused with `ALREADY_IN_USE` once a debt from it was repaid). Closes the batch. Nothing is deleted. Needs `imports:manage`.
+      description: |
+        Body `{ reason }` (5+ characters). Purchases imports: voids every purchase with the reason. Opening-balance imports: posts reversing ledger entries and writes the debts off (refused with `ALREADY_IN_USE` once a debt from it was repaid). Closes the batch. Nothing is deleted. Needs `imports:manage`.
       parameters:
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:

@@ -159,19 +159,11 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         }
         var payload = new JsonObject
         {
-            ["id"] = c.Id,
-            ["dayId"] = dayId,
-            ["branchId"] = c.BranchId,
-            ["capturedAt"] = c.CapturedAt,
+            ["id"] = c.Id, ["dayId"] = dayId, ["branchId"] = c.BranchId, ["capturedAt"] = c.CapturedAt,
             ["declared"] = new JsonObject
             {
-                ["cash"] = JsonSerializer.SerializeToNode(d.Cash),
-                ["goodsTop"] = top,
-                ["goodsDown"] = down,
-                ["goodsValue"] = goodsValue,
-                ["debt"] = debt,
-                ["payable"] = payable,
-                ["custodyTop"] = custody,
+                ["cash"] = JsonSerializer.SerializeToNode(d.Cash), ["goodsTop"] = top, ["goodsDown"] = down, ["goodsValue"] = goodsValue,
+                ["debt"] = debt, ["payable"] = payable, ["custodyTop"] = custody,
             },
             ["explanations"] = explanations,
             ["confirmation"] = new JsonObject { ["accepted"] = true, ["version"] = conf.Version, ["text"] = text },
@@ -198,6 +190,32 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         var config = await store.GetCalcConfigAsync(me, Formula, ct);
         var payload = TransactionPlanner.Plan(c, config, clock.UtcNow);
         return await store.PostTransactionAsync(me, payload.ToJsonString(), ct);
+    }
+
+    /// <summary>Filters from the query string. Branch access is enforced here: the database only ever sees the caller's own branches.</summary>
+    public Task<string> SearchTransactionsAsync(ICurrentContext me, TransactionSearch s, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsRead);
+        if (s.BranchId is { } b) me.RequireBranch(b);
+        string[] sorts = ["newest", "oldest", "amount_desc", "amount_asc"];
+        if (s.Sort is not null && !sorts.Contains(s.Sort)) throw new AppException("VALIDATION_FAILED", "That sort order is not known.", 422);
+        foreach (var d in new[] { s.From, s.To })
+            if (d is not null && !DateOnly.TryParseExact(d, "yyyy-MM-dd", out _)) throw new AppException("VALIDATION_FAILED", "Dates look like 2026-10-29.", 422);
+        foreach (var n in new[] { s.MinAmount, s.MaxAmount })
+            if (n is not null && !decimal.TryParse(n, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out _)) throw new AppException("VALIDATION_FAILED", "Amounts are numbers.", 422);
+        var q = s.Q?.Trim();
+        if (q is { Length: > 60 }) q = q[..60];
+        var filter = new System.Text.Json.Nodes.JsonObject
+        {
+            ["scope"] = new System.Text.Json.Nodes.JsonArray(me.BranchIds.Select(x => (System.Text.Json.Nodes.JsonNode?)x.ToString()).ToArray()),
+            ["branchId"] = s.BranchId?.ToString(),
+            ["customerId"] = s.CustomerId?.ToString(),
+            ["q"] = string.IsNullOrEmpty(q) ? null : q,
+            ["from"] = s.From, ["to"] = s.To, ["status"] = s.Status, ["flag"] = s.Flagged == true ? true : null,
+            ["minAmount"] = s.MinAmount, ["maxAmount"] = s.MaxAmount, ["sort"] = s.Sort,
+            ["limit"] = Math.Clamp(s.Limit ?? 25, 1, 100), ["offset"] = Math.Max(s.Offset ?? 0, 0),
+        };
+        return store.SearchTransactionsAsync(me, filter.ToJsonString(), ct);
     }
 
     public Task<string> ListTransactionsAsync(ICurrentContext me, Guid branchId, int? limit, CancellationToken ct)
@@ -231,13 +249,8 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
             foreach (var s in c?.Replacements ?? [])
                 parts.Add(new
                 {
-                    method = s.Method,
-                    amount = TransactionPlanner.WholeCedis(s.Amount, "replacements.amount"),
-                    paidByBranchId = s.PaidByBranchId,
-                    externalRef = s.ExternalRef,
-                    debtId = s.DebtId,
-                    dueDate = s.DueDate,
-                    note = s.Note,
+                    method = s.Method, amount = TransactionPlanner.WholeCedis(s.Amount, "replacements.amount"), paidByBranchId = s.PaidByBranchId,
+                    externalRef = s.ExternalRef, debtId = s.DebtId, dueDate = s.DueDate, note = s.Note,
                 });
             replacements = JsonSerializer.Serialize(parts, Json);
         }

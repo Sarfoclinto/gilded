@@ -13,7 +13,7 @@ export function SyncChip({
 }) {
   if (sync === "waiting") return <Chip tone="amber">Waiting to sync</Chip>;
   if (sync === "failed") return <Chip tone="red">Needs attention</Chip>;
-  if (pendingMoney > 0) return <Chip tone="amber">Mobile money pending</Chip>;
+  if (pendingMoney > 0) return <Chip tone="amber">Money pending</Chip>;
   if (flags.length > 0) return <Chip tone="sky">Flagged</Chip>;
   return <Chip tone="green">Saved</Chip>;
 }
@@ -33,7 +33,7 @@ function Chip({
 }) {
   return (
     <span
-      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
+      className={`mt-1 inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
     >
       {children}
     </span>

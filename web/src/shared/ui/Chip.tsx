@@ -18,7 +18,7 @@ export function Chip({
 }) {
   return (
     <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
+      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
     >
       {children}
     </span>

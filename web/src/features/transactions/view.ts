@@ -41,6 +41,8 @@ export interface TransactionView {
   customerId: string | null;
   representative: { name: string; phone: string | null } | null;
   capturedAt: string;
+  /** saved, paid or void. A waiting entry is saved. */
+  status: string;
   flags: TransactionFlag[];
   sync: "synced" | "waiting" | "failed";
   error?: string;
@@ -74,6 +76,7 @@ export const fromServer = (t: Transaction): TransactionView => ({
     totalNotes: t.payout.totalNotes,
   },
   capturedAt: t.capturedAt,
+  status: t.status,
   flags: t.flags,
   sync: "synced",
   createdBy: t.createdBy.displayName,
@@ -151,6 +154,7 @@ export const fromOutbox = (e: OutboxEntry): TransactionView => {
       totalNotes: Object.values(c.payout.lines).reduce((s, n) => s + n, 0),
     },
     capturedAt: c.capturedAt,
+    status: "saved",
     flags: [],
     sync: e.status === "failed" ? "failed" : "waiting",
     error: e.lastError?.message,

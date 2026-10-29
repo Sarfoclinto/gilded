@@ -62,3 +62,8 @@ public sealed record CloseDayCommand(
 public sealed record SignoffCommand(string? Decision, string? Note);
 
 public readonly record struct DbResult(bool Replayed, string DataJson);
+
+/// <summary>Filters for the Transactions list (query string). Dates are yyyy-MM-dd in the branch's own calendar; amounts are plain numbers.</summary>
+public sealed record TransactionSearch(
+    Guid? BranchId, Guid? CustomerId, string? Q, string? From, string? To, string? Status, bool? Flagged,
+    string? MinAmount, string? MaxAmount, string? Sort, int? Limit, int? Offset);

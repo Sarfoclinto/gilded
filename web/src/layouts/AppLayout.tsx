@@ -23,7 +23,7 @@ export default function AppLayout() {
   const desktop = useIsDesktop();
   const { open, setOpen } = useUtilityPanel();
   const main = (
-    <main className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <main className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20">
       <Suspense
         fallback={
           <div className="p-6 text-sm text-muted-foreground">Loading…</div>
