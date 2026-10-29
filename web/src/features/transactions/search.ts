@@ -44,11 +44,15 @@ const dateOk = (v: string | null) =>
 const numOk = (v: string | null) =>
   v && /^\d+(\.\d+)?$/.test(v.trim()) ? v.trim() : "";
 
-export function filtersFromParams(sp: URLSearchParams): Filters {
+/** `defaultRange` is what the screen shows when the address says nothing: 30 days on the main list, all time on a customer's page. */
+export function filtersFromParams(
+  sp: URLSearchParams,
+  defaultRange: Range = "30d",
+): Filters {
   const range =
     (["today", "7d", "30d", "all", "custom"] as const).find(
       (r) => r === sp.get("range"),
-    ) ?? "30d";
+    ) ?? defaultRange;
   const sort =
     (Object.keys(SORT_LABELS) as Sort[]).find((s) => s === sp.get("sort")) ??
     "newest";
@@ -71,10 +75,13 @@ export function filtersFromParams(sp: URLSearchParams): Filters {
 }
 
 /** Only what differs from the defaults goes into the address. */
-export function paramsFromFilters(f: Filters): URLSearchParams {
+export function paramsFromFilters(
+  f: Filters,
+  defaultRange: Range = "30d",
+): URLSearchParams {
   const sp = new URLSearchParams();
   if (f.q) sp.set("q", f.q);
-  if (f.range !== "30d") sp.set("range", f.range);
+  if (f.range !== defaultRange) sp.set("range", f.range);
   if (f.range === "custom") {
     if (f.from) sp.set("from", f.from);
     if (f.to) sp.set("to", f.to);
@@ -92,15 +99,15 @@ export function paramsFromFilters(f: Filters): URLSearchParams {
 /** What to ask the server for. */
 export function queryFromFilters(
   f: Filters,
-  branchId: string,
+  branchId: string | null,
   today: Date = new Date(),
 ): Record<string, string | number | boolean> {
   const q: Record<string, string | number | boolean> = {
-    branchId,
     sort: f.sort,
     limit: f.size,
     offset: (f.page - 1) * f.size,
   };
+  if (branchId) q.branchId = branchId;
   if (f.q) q.q = f.q;
   if (f.range === "today") {
     q.from = ymd(today);
@@ -138,7 +145,10 @@ export const RANGE_LABELS: Record<Range, string> = {
 };
 
 /** The chips under the filter bar. The date range is not a chip when it is the default. */
-export function appliedFilters(f: Filters): Applied[] {
+export function appliedFilters(
+  f: Filters,
+  defaultRange: Range = "30d",
+): Applied[] {
   const out: Applied[] = [];
   if (f.q) out.push({ key: "q", label: `“${f.q}”`, clear: { q: "" } });
   if (f.range === "custom")
@@ -146,13 +156,13 @@ export function appliedFilters(f: Filters): Applied[] {
       key: "range",
       label:
         f.from || f.to ? `${f.from || "…"} to ${f.to || "…"}` : "Custom dates",
-      clear: { range: "30d", from: "", to: "" },
+      clear: { range: defaultRange, from: "", to: "" },
     });
-  else if (f.range !== "30d")
+  else if (f.range !== defaultRange)
     out.push({
       key: "range",
       label: RANGE_LABELS[f.range],
-      clear: { range: "30d" },
+      clear: { range: defaultRange },
     });
   if (f.status)
     out.push({

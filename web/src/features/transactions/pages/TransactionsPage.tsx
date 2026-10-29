@@ -7,20 +7,13 @@ import { useAuth } from "@/features/auth/store";
 import { cedis } from "@/features/calculator/format";
 import { branches } from "@/features/branches/api";
 import { errorMessage } from "@/shared/api/errors";
-import { grams } from "@/shared/lib/numbers";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { Chip } from "@/shared/ui/Chip";
-import {
-  DataTable,
-  EmptyState,
-  Pager,
-  type Column,
-} from "@/shared/ui/DataTable";
+import { DataTable, EmptyState, Pager } from "@/shared/ui/DataTable";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { ExportTransactionsButton } from "@/features/exports/ExportTransactionsButton";
-import { when } from "../format";
+import { transactionColumns, TransactionCard } from "../columns";
 import { useTransactionSearch } from "../hooks";
 import {
   appliedFilters,
@@ -31,134 +24,11 @@ import {
   queryFromFilters,
   type Filters,
 } from "../search";
-import { SyncChip } from "../SyncChip";
 import { TransactionFilters } from "../TransactionFilters";
-import {
-  fromOutbox,
-  fromServer,
-  paymentMethodText,
-  type TransactionView,
-} from "../view";
+import { fromOutbox, fromServer } from "../view";
 import { TX_CREATE } from "@/app/outbox";
 
-const netGrams = (t: TransactionView) =>
-  t.items.reduce((s, i) => s + Number(i.result?.netWeight ?? 0), 0);
-const methods = (t: TransactionView) => [
-  ...new Set(t.payments.map((p) => p.method)),
-];
-
-function StatusCell({ t }: { t: TransactionView }) {
-  if (t.status === "void") return <Chip tone="red">Cancelled</Chip>;
-  return (
-    <SyncChip
-      sync={t.sync}
-      flags={t.flags}
-      pendingMoney={t.payments.filter((x) => x.status === "pending").length}
-    />
-  );
-}
-
-function PaidBy({ t }: { t: TransactionView }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {methods(t).map((m) => (
-        <Chip key={m} tone={m === "cash" ? "grey" : "sky"}>
-          {paymentMethodText[m] ?? m}
-        </Chip>
-      ))}
-    </div>
-  );
-}
-
-const columns: Column<TransactionView>[] = [
-  {
-    key: "when",
-    header: "When",
-    cell: (t) => (
-      <span className="whitespace-nowrap">{when(t.capturedAt)}</span>
-    ),
-  },
-  {
-    key: "ref",
-    header: "Receipt",
-    cell: (t) => (
-      <span className="font-mono text-xs">
-        {t.reference ?? "Not numbered yet"}
-      </span>
-    ),
-  },
-  {
-    key: "customer",
-    header: "Customer",
-    cell: (t) => (
-      <>
-        <div className="font-semibold">{t.customerName}</div>
-        {t.customerPhone ? (
-          <div className="text-xs text-muted-foreground">{t.customerPhone}</div>
-        ) : null}
-      </>
-    ),
-  },
-  {
-    key: "gold",
-    header: "Gold",
-    hideBelow: "lg",
-    cell: (t) => (
-      <span className="tnum whitespace-nowrap">
-        {t.items.length} item{t.items.length === 1 ? "" : "s"} ·{" "}
-        {grams(netGrams(t))}
-      </span>
-    ),
-  },
-  {
-    key: "amount",
-    header: "Paid (GHS)",
-    align: "right",
-    cell: (t) => (
-      <span className="tnum font-bold">{cedis(t.payout.payable)}</span>
-    ),
-  },
-  {
-    key: "method",
-    header: "Paid by",
-    hideBelow: "lg",
-    cell: (t) => <PaidBy t={t} />,
-  },
-  { key: "status", header: "Status", cell: (t) => <StatusCell t={t} /> },
-  {
-    key: "by",
-    header: "Recorded by",
-    hideBelow: "xl",
-    cell: (t) => (
-      <span className="text-muted-foreground">{t.createdBy ?? "—"}</span>
-    ),
-  },
-];
-
-function MobileCard({ t }: { t: TransactionView }) {
-  return (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate font-semibold">{t.customerName}</div>
-          <div className="text-xs text-muted-foreground">
-            {t.reference ?? "Not numbered yet"} · {when(t.capturedAt)}
-          </div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            {t.items.length} item{t.items.length === 1 ? "" : "s"} ·{" "}
-            {grams(netGrams(t))}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="tnum font-bold">{cedis(t.payout.payable)}</div>
-          <div className="mt-1">
-            <StatusCell t={t} />
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+const columns = transactionColumns();
 
 export default function TransactionsPage() {
   const branchId = useAuth((s) => s.activeBranchId);
@@ -300,7 +170,7 @@ export default function TransactionsPage() {
         rows={rows}
         getKey={(t) => t.id}
         onRowClick={(t) => navigate(paths.transactions.detail.to(t.id))}
-        mobileCard={(t) => <MobileCard t={t} />}
+        mobileCard={(t) => <TransactionCard t={t} />}
         loading={result.isLoading}
         refreshing={result.isFetching && result.isPlaceholderData}
         empty={

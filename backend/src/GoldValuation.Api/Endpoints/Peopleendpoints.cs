@@ -32,8 +32,8 @@ public static class PeopleEndpoints
         });
 
         // ---- customers ----
-        api.MapGet("/customers/list", async (string? q, int? limit, int? offset, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
-            Data(await svc.ListCustomersAsync(me, q, limit, offset, ct)));
+        api.MapGet("/customers/list", async (string? q, string? filter, string? sort, int? limit, int? offset, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Data(await svc.ListCustomersAsync(me, q, filter, sort, limit, offset, ct)));
         api.MapGet("/customers/{id:guid}", async (Guid id, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Data(await svc.GetCustomerAsync(me, id, ct)));
         api.MapPost("/customers", async (CreateCustomerCommand body, HttpContext http, ICurrentContext me, PeopleService svc, CancellationToken ct) =>

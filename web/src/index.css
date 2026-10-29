@@ -112,3 +112,35 @@
 .ant-table-thead > tr > th {
   color: rgba(255, 255, 255, 0.85) !important;
 }
+
+/* Printing a receipt: only the page's own content, on white, flowing over as many sheets as it needs. */
+@media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  .ant-layout-sider,
+  header,
+  nav[aria-label="Main"] {
+    display: none !important;
+  }
+  .h-dvh {
+    height: auto !important;
+    display: block !important;
+  }
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+  .ant-tag {
+    border-color: #999 !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -19,14 +19,18 @@ const field =
 export function TransactionFilters({
   filters,
   onChange,
+  defaultRange = "30d",
+  compact = false,
 }: {
   filters: Filters;
   onChange: (next: Partial<Filters>) => void;
+  defaultRange?: Range;
+  compact?: boolean;
 }) {
   const [text, setText] = useState(filters.q);
   const [more, setMore] = useState(hiddenFilterCount(filters) > 0);
   const hidden = hiddenFilterCount(filters);
-  const applied = appliedFilters(filters);
+  const applied = appliedFilters(filters, defaultRange);
 
   // Typing waits a moment before asking the server; the box also follows the address (back button, "clear").
   useEffect(() => setText(filters.q), [filters.q]);
@@ -39,8 +43,20 @@ export function TransactionFilters({
   return (
     <div className="space-y-3">
       <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_auto_11rem_auto]">
-          <label className="relative block md:col-span-2 xl:col-span-1">
+        <div
+          className={
+            compact
+              ? "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+              : "grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_auto_11rem_auto]"
+          }
+        >
+          <label
+            className={
+              compact
+                ? "relative block sm:col-span-2"
+                : "relative block md:col-span-2 xl:col-span-1"
+            }
+          >
             <span className="sr-only">
               Search by customer, phone or receipt
             </span>
@@ -65,7 +81,13 @@ export function TransactionFilters({
               ]}
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] gap-3 md:contents">
+          <div
+            className={
+              compact
+                ? "grid grid-cols-[1fr_auto] gap-3"
+                : "grid grid-cols-[1fr_auto] gap-3 md:contents"
+            }
+          >
             <SelectInput
               aria-label="Sort"
               value={filters.sort}
@@ -195,7 +217,7 @@ export function TransactionFilters({
             onClick={() =>
               onChange({
                 q: "",
-                range: "30d",
+                range: defaultRange,
                 from: "",
                 to: "",
                 status: "",

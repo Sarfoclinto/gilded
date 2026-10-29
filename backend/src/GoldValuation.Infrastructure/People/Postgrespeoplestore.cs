@@ -30,9 +30,8 @@ public sealed class PostgresPeopleStore(NpgsqlDataSource dataSource, ILogger<Pos
     public async Task ChangeMyPasswordAsync(ICurrentContext me, string passwordHash, CancellationToken ct) =>
         await Scalar(me, "select gold.change_my_password($1)", ct, Text(passwordHash));
 
-    public async Task<string> ListCustomersAsync(ICurrentContext me, string? query, int limit, int offset, CancellationToken ct) =>
-        (await Scalar(me, "select gold.customers_page_json($1, $2, $3)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)query ?? DBNull.Value },
-            Int(limit), Int(offset)))!;
+    public async Task<string> ListCustomersAsync(ICurrentContext me, string filterJson, CancellationToken ct) =>
+        (await Scalar(me, "select gold.customers_query_json($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = filterJson }))!;
 
     public async Task<string> GetCustomerAsync(ICurrentContext me, Guid id, CancellationToken ct) =>
         (await Scalar(me, "select gold.customer_detail_json($1)", ct, Uuid(id)))!;

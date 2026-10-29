@@ -71,7 +71,7 @@ public class PeopleServiceTests
     [Fact]
     public async Task Customers_can_be_read_by_those_with_read_but_changed_only_with_manage()
     {
-        await _svc.ListCustomersAsync(Teller(), "ko", null, null, default);
+        await _svc.ListCustomersAsync(Teller(), "ko", null, null, null, null, default);
         await Assert.ThrowsAsync<AppException>(() => _svc.CreateCustomerAsync(Teller(), new CreateCustomerCommand(null, "Kofi", "0200000001", null), null, default));
         await Assert.ThrowsAsync<AppException>(() => _svc.UpdateCustomerAsync(Teller(), Guid.NewGuid(), JsonNode.Parse("""{"name":"X"}""")!.AsObject(), default));
         await _svc.UpdateCustomerAsync(Manager(), Guid.NewGuid(), JsonNode.Parse("""{"name":"Kofi B"}""")!.AsObject(), default);
@@ -82,10 +82,23 @@ public class PeopleServiceTests
     [Fact]
     public async Task Paging_is_kept_within_bounds()
     {
-        await _svc.ListCustomersAsync(Manager(), "  ", 5000, -4, default);
-        Assert.Null(_store.LastPage.Query);
-        Assert.Equal(100, _store.LastPage.Limit);
-        Assert.Equal(0, _store.LastPage.Offset);
+        await _svc.ListCustomersAsync(Manager(), "  ", null, null, 5000, -4, default);
+        Assert.Contains("\"q\":null", _store.LastPage);
+        Assert.Contains("\"limit\":100", _store.LastPage);
+        Assert.Contains("\"offset\":0", _store.LastPage);
+        Assert.Contains("\"filter\":\"all\"", _store.LastPage);
+        Assert.Contains("\"sort\":\"name\"", _store.LastPage);
+    }
+
+    [Fact]
+    public async Task Customer_filters_and_sorts_must_be_known_ones()
+    {
+        await _svc.ListCustomersAsync(Manager(), "kofi", "owes_us", "paid", 10, 20, default);
+        Assert.Contains("\"filter\":\"owes_us\"", _store.LastPage);
+        Assert.Contains("\"sort\":\"paid\"", _store.LastPage);
+        await Assert.ThrowsAsync<AppException>(() => _svc.ListCustomersAsync(Manager(), null, "nope", null, null, null, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ListCustomersAsync(Manager(), null, null, "sideways", null, null, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ListCustomersAsync(new Ctx([]), null, null, null, null, null, default));
     }
 
     [Fact]
@@ -128,7 +141,7 @@ public class PeopleServiceTests
     {
         public string? LastPayload;
         public string MyHash = "";
-        public (string? Query, int Limit, int Offset) LastPage;
+        public string? LastPage;
 
         public Task<string> ListUsersAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> ListRolesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
@@ -138,7 +151,7 @@ public class PeopleServiceTests
         public Task<string> MySecurityAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> MyPasswordHashAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult(MyHash);
         public Task ChangeMyPasswordAsync(ICurrentContext me, string hash, CancellationToken ct) { MyHash = hash; return Task.CompletedTask; }
-        public Task<string> ListCustomersAsync(ICurrentContext me, string? q, int limit, int offset, CancellationToken ct) { LastPage = (q, limit, offset); return Task.FromResult("{}"); }
+        public Task<string> ListCustomersAsync(ICurrentContext me, string filterJson, CancellationToken ct) { LastPage = filterJson; return Task.FromResult("{}"); }
         public Task<string> GetCustomerAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
         public Task<DbResult> CreateCustomerAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<string> UpdateCustomerAsync(ICurrentContext me, Guid id, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult("{}"); }

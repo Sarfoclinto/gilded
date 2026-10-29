@@ -126,5 +126,12 @@ export const transactionSchema = z.object({
   createdAt: z.string(),
   createdBy: z.object({ id: z.string(), displayName: z.string() }),
   flags: z.array(flagSchema),
+  priceAsOf: z.string().nullable().optional(),
+  voidedAt: z.string().nullable().optional(),
+  voidReason: z.string().nullable().optional(),
+  voidedBy: z
+    .object({ id: z.string(), displayName: z.string() })
+    .nullable()
+    .optional(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;

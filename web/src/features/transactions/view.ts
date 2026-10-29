@@ -47,6 +47,13 @@ export interface TransactionView {
   sync: "synced" | "waiting" | "failed";
   error?: string;
   createdBy?: string;
+  /** When it reached the server (a purchase recorded offline reaches it later than it was captured). */
+  createdAt?: string;
+  priceAsOf?: string;
+  formulaVersion?: string;
+  payoutPolicy?: string;
+  /** Set when the purchase was cancelled. */
+  cancelled?: { at: string | null; reason: string | null; by: string | null };
 }
 
 export const fromServer = (t: Transaction): TransactionView => ({
@@ -80,6 +87,18 @@ export const fromServer = (t: Transaction): TransactionView => ({
   flags: t.flags,
   sync: "synced",
   createdBy: t.createdBy.displayName,
+  createdAt: t.createdAt,
+  priceAsOf: t.priceAsOf ?? undefined,
+  formulaVersion: t.formulaVersion,
+  payoutPolicy: t.payout.policy,
+  cancelled:
+    t.status === "void"
+      ? {
+          at: t.voidedAt ?? null,
+          reason: t.voidReason ?? null,
+          by: t.voidedBy?.displayName ?? null,
+        }
+      : undefined,
 });
 
 const localPayments = (c: CreateTransaction): Payment[] => {

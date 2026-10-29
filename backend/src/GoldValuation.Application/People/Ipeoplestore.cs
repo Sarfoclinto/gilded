@@ -16,7 +16,8 @@ public interface IPeopleStore
     Task<string> MyPasswordHashAsync(ICurrentContext me, CancellationToken ct);
     Task ChangeMyPasswordAsync(ICurrentContext me, string passwordHash, CancellationToken ct);
 
-    Task<string> ListCustomersAsync(ICurrentContext me, string? query, int limit, int offset, CancellationToken ct);
+    /// <summary>`filterJson` is { q, filter, sort, limit, offset }, already checked by the service.</summary>
+    Task<string> ListCustomersAsync(ICurrentContext me, string filterJson, CancellationToken ct);
     Task<string> GetCustomerAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<DbResult> CreateCustomerAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> UpdateCustomerAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct);

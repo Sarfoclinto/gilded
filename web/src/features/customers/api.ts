@@ -45,6 +45,8 @@ export const customerRowSchema = z.object({
   notes: z.string().nullable().optional(),
   createdAt: z.string(),
   purchases: z.number(),
+  lifetimePaid: z.string().default("0"),
+  firstPurchaseAt: z.string().nullable().optional(),
   lastPurchaseAt: z.string().nullable().optional(),
   owesUs: z.string(),
   weOwe: z.string(),
@@ -68,10 +70,18 @@ export const customerDetailSchema = customerRowSchema.extend({
 });
 export type CustomerDetail = z.infer<typeof customerDetailSchema>;
 
+const summarySchema = z.object({
+  customers: z.number(),
+  active: z.number(),
+  owesUs: z.string(),
+  weOwe: z.string(),
+});
 const pageSchema = z.object({
   total: z.number(),
   items: z.array(customerRowSchema),
+  summary: summarySchema.optional(),
 });
+export type CustomerSummary = z.infer<typeof summarySchema>;
 
 export const customerAdminKeys = createKeys("customer-admin");
 
@@ -91,6 +101,20 @@ export function useCustomerPage(q: string, page: number, pageSize: number) {
           },
           signal,
         },
+        pageSchema,
+      ),
+    staleTime: 0,
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** One page of customers for the Customers screen's filters (see search.ts), with the company-wide totals. */
+export function useCustomerQuery(params: Record<string, string | number>) {
+  return useApiQuery({
+    queryKey: customerAdminKeys.list(params),
+    queryFn: ({ signal }) =>
+      request(
+        { method: "get", url: "/customers/list", params, signal },
         pageSchema,
       ),
     staleTime: 0,

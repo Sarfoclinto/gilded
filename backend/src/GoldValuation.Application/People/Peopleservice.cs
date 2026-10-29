@@ -71,10 +71,22 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
     }
 
     // ---------------------------------------------------------------- customers
-    public Task<string> ListCustomersAsync(ICurrentContext me, string? query, int? limit, int? offset, CancellationToken ct)
+    private static readonly string[] CustomerFilters = ["all", "owes_us", "we_owe", "active", "inactive"];
+    private static readonly string[] CustomerSorts = ["name", "recent", "purchases", "paid", "owes"];
+
+    public Task<string> ListCustomersAsync(ICurrentContext me, string? query, string? filter, string? sort, int? limit, int? offset, CancellationToken ct)
     {
         me.Require(Permissions.CustomersRead);
-        return store.ListCustomersAsync(me, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), Math.Clamp(limit ?? 25, 1, 100), Math.Max(offset ?? 0, 0), ct);
+        if (filter is not null && !CustomerFilters.Contains(filter)) throw new AppException("VALIDATION_FAILED", "That filter is not known.", 422);
+        if (sort is not null && !CustomerSorts.Contains(sort)) throw new AppException("VALIDATION_FAILED", "That sort order is not known.", 422);
+        var q = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
+        if (q is { Length: > 60 }) q = q[..60];
+        var payload = new System.Text.Json.Nodes.JsonObject
+        {
+            ["q"] = q, ["filter"] = filter ?? "all", ["sort"] = sort ?? "name",
+            ["limit"] = Math.Clamp(limit ?? 25, 1, 100), ["offset"] = Math.Max(offset ?? 0, 0),
+        };
+        return store.ListCustomersAsync(me, payload.ToJsonString(), ct);
     }
 
     public Task<string> GetCustomerAsync(ICurrentContext me, Guid id, CancellationToken ct)
