@@ -6,6 +6,7 @@ import { cedis } from "@/features/calculator/format";
 import { errorMessage } from "@/shared/api/errors";
 import { useApiInfiniteQuery } from "@/shared/api/hooks";
 import { Button } from "@/shared/ui/Button";
+import { SelectInput } from "@/shared/ui/SelectField";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { exportTimeline } from "@/features/exports/exportTimeline";
 import { reviewApi, reviewKeys } from "../api";
@@ -300,9 +301,8 @@ export default function BranchTimelinePage() {
           />
         ) : null}
         <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-          <select
+          <SelectInput
             aria-label="Branch"
-            className="min-h-11 rounded-lg border border-border bg-card px-2"
             value={branchId}
             onChange={(e) => setF({ ...f, branchId: e.target.value })}
           >
@@ -311,7 +311,7 @@ export default function BranchTimelinePage() {
                 {b.name}
               </option>
             ))}
-          </select>
+          </SelectInput>
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             From
             <input

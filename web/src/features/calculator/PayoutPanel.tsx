@@ -7,6 +7,7 @@ import {
   type SolveStrategy,
 } from "@gold/core";
 import { Card } from "@/shared/ui/Card";
+import { SelectInput } from "@/shared/ui/SelectField";
 import { cedis } from "./format";
 import { useActiveDrawer } from "@/features/drawer/hooks";
 import { limitsFromBalance } from "@/features/drawer/projection";
@@ -95,8 +96,7 @@ export function PayoutPanel({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           <span className="mb-1 block font-medium">Rounding</span>
-          <select
-            className="min-h-11 w-full rounded-lg border border-border bg-card px-2"
+          <SelectInput
             value={policy}
             onChange={(e) => {
               setOverride(null);
@@ -108,18 +108,17 @@ export function PayoutPanel({
                 {policyLabels[p]}
               </option>
             ))}
-          </select>
+          </SelectInput>
         </label>
         <label className="text-sm">
           <span className="mb-1 block font-medium">Notes</span>
-          <select
-            className="min-h-11 w-full rounded-lg border border-border bg-card px-2"
+          <SelectInput
             value={strategy}
             onChange={(e) => setStrategy(e.target.value as SolveStrategy)}
           >
             <option value="prefer-100s">Prefer 100s</option>
             <option value="fewest-notes">Fewest notes</option>
-          </select>
+          </SelectInput>
         </label>
       </div>
 

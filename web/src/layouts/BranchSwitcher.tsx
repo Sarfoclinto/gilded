@@ -1,5 +1,6 @@
-import { branches } from '@/features/branches/api';
-import { useAuth } from '@/features/auth/store';
+import { branches } from "@/features/branches/api";
+import { useAuth } from "@/features/auth/store";
+import { SelectInput } from "@/shared/ui/SelectField";
 
 export function BranchSwitcher() {
   const user = useAuth((s) => s.user);
@@ -9,20 +10,21 @@ export function BranchSwitcher() {
 
   const mine = (data ?? []).filter((b) => user?.branchIds.includes(b.id));
   if (mine.length === 0) return null;
-  if (mine.length === 1) return <span className="text-sm font-medium">{mine[0]!.name}</span>;
+  if (mine.length === 1)
+    return <span className="text-sm font-medium">{mine[0]!.name}</span>;
 
   return (
-    <select
+    <SelectInput
       aria-label="Branch"
-      value={activeBranchId ?? ''}
+      value={activeBranchId ?? ""}
       onChange={(e) => setActiveBranch(e.target.value)}
-      className="min-h-10 rounded-lg border border-border bg-card px-2 text-sm font-medium"
+      className="min-h-10 w-auto min-w-32 font-medium"
     >
       {mine.map((b) => (
         <option key={b.id} value={b.id}>
           {b.name}
         </option>
       ))}
-    </select>
+    </SelectInput>
   );
 }
