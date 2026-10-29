@@ -9,6 +9,7 @@ import { digitsOnly } from "@/shared/lib/numbers";
 import { SelectField } from "@/shared/ui/SelectField";
 import { TextField } from "@/shared/ui/TextField";
 import { useRepay } from "./api";
+import { repaidShare } from "./model";
 import type { Debt } from "./schemas";
 
 function Form({ debt, onClose }: { debt: Debt; onClose: () => void }) {
@@ -62,8 +63,20 @@ function Form({ debt, onClose }: { debt: Debt; onClose: () => void }) {
           {debt.party.name}
           {debt.party.phone ? ` · ${debt.party.phone}` : ""}
         </div>
-        <div className="tnum text-muted-foreground">
-          Outstanding {cedis(outstanding)} of {cedis(Number(debt.principal))}
+        <div className="tnum text-2xl font-bold">
+          {cedis(outstanding)}{" "}
+          <span className="text-sm font-normal text-muted-foreground">
+            still owed of {cedis(Number(debt.principal))}
+          </span>
+        </div>
+        <div
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-background"
+          aria-hidden
+        >
+          <div
+            className="h-full bg-emerald-600"
+            style={{ width: `${Math.round(repaidShare(debt) * 100)}%` }}
+          />
         </div>
       </div>
       <Segmented
@@ -84,12 +97,22 @@ function Form({ debt, onClose }: { debt: Debt; onClose: () => void }) {
         </div>
       ) : (
         <>
-          <TextField
-            label="Amount (GHS)"
-            inputMode="numeric"
-            value={amountText}
-            onChange={(e) => setAmountText(digitsOnly(e.target.value))}
-          />
+          <div className="flex items-end gap-2">
+            <TextField
+              className="flex-1"
+              label="Amount (GHS)"
+              inputMode="numeric"
+              value={amountText}
+              onChange={(e) => setAmountText(digitsOnly(e.target.value))}
+            />
+            <button
+              type="button"
+              onClick={() => setAmountText(String(Math.floor(outstanding)))}
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
+            >
+              All of it
+            </button>
+          </div>
           {!receivable ? (
             <SelectField
               label="Sent by branch"
@@ -116,6 +139,13 @@ function Form({ debt, onClose }: { debt: Debt; onClose: () => void }) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
+      {amount > 0 && amount <= outstanding ? (
+        <p className="tnum text-sm text-muted-foreground">
+          {amount === outstanding
+            ? "This clears the debt."
+            : `${cedis(outstanding - amount)} will still be owed.`}
+        </p>
+      ) : null}
       {amount > outstanding ? (
         <Alert
           type="warning"

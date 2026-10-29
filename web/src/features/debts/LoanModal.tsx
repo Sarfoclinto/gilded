@@ -10,6 +10,7 @@ import {
 } from "@/features/transactions/CustomerPicker";
 import { decimalOnly } from "@/shared/lib/numbers";
 import { TextField } from "@/shared/ui/TextField";
+import { dateInDays } from "./model";
 import { useIssueLoan } from "./api";
 
 function Form({ onClose }: { onClose: () => void }) {
@@ -67,31 +68,62 @@ function Form({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="space-y-4">
-      <CustomerPicker value={customer} onChange={setCustomer} />
-      <div>
-        <p className="mb-2 text-sm font-medium">Cash handed to the customer</p>
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold">1 · Who is the loan for?</h3>
+        <CustomerPicker value={customer} onChange={setCustomer} />
+      </section>
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold">
+          2 · Cash handed to the customer
+        </h3>
         <NoteCountInput value={lines} onChange={setLines} />
-      </div>
-      <TextField
-        label="What is it for? (optional)"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-      />
-      <TextField
-        label="Pay back by (optional)"
-        type="date"
-        value={dueDate}
-        onChange={(e) => setDueDate(e.target.value)}
-      />
-      <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
-        <input
-          type="checkbox"
-          className="h-5 w-5"
-          checked={security}
-          onChange={(e) => setSecurity(e.target.checked)}
+      </section>
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">3 · Terms</h3>
+        <TextField
+          label="What is it for? (optional)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
         />
-        Customer leaves unrefined gold as security
-      </label>
+        <div>
+          <TextField
+            label="Pay back by (optional)"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[7, 14, 30].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setDueDate(dateInDays(n))}
+                className="min-h-9 rounded-full border border-border bg-card px-3 text-xs font-medium hover:bg-muted"
+              >
+                In {n} days
+              </button>
+            ))}
+            {dueDate ? (
+              <button
+                type="button"
+                onClick={() => setDueDate("")}
+                className="min-h-9 px-2 text-xs underline"
+              >
+                No date
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            className="h-5 w-5"
+            checked={security}
+            onChange={(e) => setSecurity(e.target.checked)}
+          />
+          Customer leaves unrefined gold as security
+        </label>
+      </section>
       {security ? (
         <div className="space-y-3 rounded-lg border border-border p-3">
           <TextField
@@ -113,6 +145,26 @@ function Form({ onClose }: { onClose: () => void }) {
               placeholder="e.g. one lump, wrapped in red cloth"
             />
           </div>
+        </div>
+      ) : null}
+      {principal > 0 ? (
+        <div className="rounded-lg bg-muted p-3 text-sm">
+          <div>
+            <strong>{customer.name.trim() || "The customer"}</strong> takes{" "}
+            <strong className="tnum">{cedis(principal)}</strong>
+            {dueDate ? (
+              <>
+                {" "}
+                and pays back by <strong>{dueDate}</strong>
+              </>
+            ) : null}
+            .
+          </div>
+          {security && Number(topWeight) > 0 ? (
+            <div className="text-muted-foreground">
+              {topWeight} g of unrefined gold is held until the loan is paid.
+            </div>
+          ) : null}
         </div>
       ) : null}
       {issue.error ? (
@@ -148,7 +200,6 @@ export function LoanModal({
       footer={null}
       destroyOnHidden
       width={560}
-      styles={{ body: { padding: 15 }, container: { padding: 1 } }}
     >
       <Form onClose={onClose} />
     </Modal>
