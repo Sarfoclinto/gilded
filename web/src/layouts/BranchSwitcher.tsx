@@ -11,14 +11,18 @@ export function BranchSwitcher() {
   const mine = (data ?? []).filter((b) => user?.branchIds.includes(b.id));
   if (mine.length === 0) return null;
   if (mine.length === 1)
-    return <span className="text-sm font-medium">{mine[0]!.name}</span>;
+    return (
+      <span className="rounded-full border border-border bg-background px-3 py-2 text-sm font-medium">
+        {mine[0]!.name}
+      </span>
+    );
 
   return (
     <SelectInput
       aria-label="Branch"
       value={activeBranchId ?? ""}
       onChange={(e) => setActiveBranch(e.target.value)}
-      className="min-h-10 w-auto min-w-32 font-medium"
+      className="min-h-10 w-auto min-w-28 rounded-full font-medium"
     >
       {mine.map((b) => (
         <option key={b.id} value={b.id}>

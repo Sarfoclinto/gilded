@@ -29,7 +29,7 @@ export function NotificationBell() {
           unread ? `Notifications, ${unread} unread` : "Notifications"
         }
         onClick={() => setOpen(true)}
-        className="relative grid size-10 place-items-center rounded-full border border-border bg-background"
+        className="relative grid size-10 place-items-center rounded-full border border-border bg-background hover:bg-muted"
       >
         <BellIcon className="size-4" />
         {unread > 0 ? (

@@ -18,14 +18,16 @@ function Tile({
   to,
   title,
   children,
+  wide,
 }: {
   to: string;
   title: string;
   children: ReactNode;
+  wide?: boolean;
 }) {
   return (
-    <Link to={to} className="block">
-      <Card className="h-full">
+    <Link to={to} className={wide ? "col-span-2 block lg:col-span-1" : "block"}>
+      <Card className="h-full p-3 sm:p-4">
         <div className="text-sm text-muted-foreground">{title}</div>
         {children}
       </Card>
@@ -37,12 +39,12 @@ function PriceTile() {
   const branchId = useAuth((s) => s.activeBranchId);
   const price = useCurrentPrice(branchId);
   return (
-    <Tile to={paths.prices.href} title="Price per pound today">
+    <Tile to={paths.prices.href} title="Price per pound today" wide>
       {price.isLoading ? (
         <div className="mt-1 text-sm text-muted-foreground">Loading…</div>
       ) : price.data ? (
         <>
-          <div className="tnum text-3xl font-bold">
+          <div className="tnum text-2xl font-bold sm:text-3xl">
             GHS {Number(price.data.effectivePrice).toLocaleString("en-GH")}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
@@ -70,7 +72,7 @@ function DrawerTile() {
   return (
     <Tile to={paths.drawer.home.href} title="Cash drawer">
       {drawer.status === "open" && drawer.balance ? (
-        <div className="tnum text-3xl font-bold">
+        <div className="tnum text-2xl font-bold sm:text-3xl">
           {cedis(lineTotal(drawer.balance))}
         </div>
       ) : (
@@ -97,7 +99,7 @@ function SignoffTile() {
   const n = pending.data?.length ?? 0;
   return (
     <Tile to={paths.drawer.history.href} title="Days waiting for sign-off">
-      <div className="tnum text-3xl font-bold">{n}</div>
+      <div className="tnum text-2xl font-bold sm:text-3xl">{n}</div>
       <div className="text-xs text-muted-foreground">
         {n ? "Closed with differences. Tap to review." : "Nothing to review"}
       </div>
@@ -114,7 +116,7 @@ function MoneyTile() {
   const inn = receiving.data?.length ?? 0;
   return (
     <Tile to={paths.payments.href} title="Mobile money waiting">
-      <div className="tnum text-3xl font-bold">{out + inn}</div>
+      <div className="tnum text-2xl font-bold sm:text-3xl">{out + inn}</div>
       <div className="text-xs text-muted-foreground">
         {out} to send · {inn} on the way for our customers
       </div>
@@ -134,7 +136,7 @@ function DebtTile() {
     (l ?? []).reduce((s, d) => s + Number(d.outstanding), 0);
   return (
     <Tile to={paths.debts.href} title="Debts">
-      <div className="tnum text-lg font-semibold">
+      <div className="tnum text-base font-semibold sm:text-lg">
         Owed to us {cedis(sum(owedToUs.data))}
       </div>
       <div className="tnum text-sm text-muted-foreground">
@@ -150,7 +152,7 @@ function HeldTile() {
   const list = held.data ?? [];
   return (
     <Tile to={paths.collateral.href} title="Unrefined gold held">
-      <div className="tnum text-lg font-semibold">
+      <div className="tnum text-base font-semibold sm:text-lg">
         {grams(list.reduce((s, c) => s + Number(c.topWeight), 0))}
       </div>
       <div className="text-xs text-muted-foreground">
@@ -163,14 +165,14 @@ function HeldTile() {
 export default function DashboardPage() {
   const user = useAuth((s) => s.user);
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4">
+    <div className="mx-auto max-w-5xl space-y-4 p-3 sm:p-4">
       <h1 className="text-xl font-bold">Hello, {user?.displayName}</h1>
       <Can permission={PERMISSIONS.TRANSACTIONS_CREATE}>
         <Link to={paths.transactions.create.href} className="block">
           <Button className="w-full">New transaction</Button>
         </Link>
       </Can>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Can permission={PERMISSIONS.TRANSACTIONS_READ}>
           <PriceTile />
         </Can>

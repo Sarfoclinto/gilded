@@ -1,6 +1,6 @@
-import { hasAccess } from '@/features/auth/access';
-import type { User } from '@/features/auth/schemas';
-import type { AppMenuItem } from './menu';
+import { hasAccess } from "@/features/auth/access";
+import type { User } from "@/features/auth/schemas";
+import type { AppMenuItem } from "./menu";
 
 /**
  * Pure and easy to test.
@@ -8,10 +8,17 @@ import type { AppMenuItem } from './menu';
  * 2. Otherwise shown only if the user passes hasAccess().
  * 3. Parents are filtered by their children; a parent with none left is dropped (a heading with nothing under it is noise).
  */
-export function filterMenu(items: AppMenuItem[], user: User | null): AppMenuItem[] {
+export function filterMenu(
+  items: AppMenuItem[],
+  user: User | null,
+): AppMenuItem[] {
   const out: AppMenuItem[] = [];
   for (const item of items) {
-    if ((item.permission || item.roles) && !hasAccess(user, { permission: item.permission, roles: item.roles })) continue;
+    if (
+      (item.permission || item.roles) &&
+      !hasAccess(user, { permission: item.permission, roles: item.roles })
+    )
+      continue;
     if (item.children) {
       const children = filterMenu(item.children, user);
       if (children.length === 0) continue;
@@ -28,23 +35,36 @@ export function flatten(items: AppMenuItem[]): AppMenuItem[] {
 }
 
 /** Which menu key is "current" for a path: the longest key that is a prefix, so /transactions/abc highlights Transactions. */
-export function selectedKey(pathname: string, items: AppMenuItem[]): string | undefined {
+export function selectedKey(
+  pathname: string,
+  items: AppMenuItem[],
+): string | undefined {
   const keys = flatten(items)
     .map((i) => i.key)
-    .filter((k) => k.startsWith('/'));
+    .filter((k) => k.startsWith("/"));
   return keys
-    .filter((k) => (k === '/' ? pathname === '/' : pathname === k || pathname.startsWith(`${k}/`)))
+    .filter((k) =>
+      k === "/"
+        ? pathname === "/"
+        : pathname === k || pathname.startsWith(`${k}/`),
+    )
     .sort((a, b) => b.length - a.length)[0];
 }
 
 /** Keys of submenus that contain the selected item, so the right section is open. */
-export function openKeysFor(selected: string | undefined, items: AppMenuItem[]): string[] {
+export function openKeysFor(
+  selected: string | undefined,
+  items: AppMenuItem[],
+): string[] {
   if (!selected) return [];
   const walk = (list: AppMenuItem[], trail: string[]): string[] | null => {
     for (const i of list) {
       if (i.key === selected) return trail;
       if (i.children) {
-        const hit = walk(i.children, i.type === 'group' ? trail : [...trail, i.key]);
+        const hit = walk(
+          i.children,
+          i.type === "group" ? trail : [...trail, i.key],
+        );
         if (hit) return hit;
       }
     }
@@ -62,4 +82,28 @@ export function toAntd(items: AppMenuItem[]): unknown[] {
     type: i.type,
     children: i.children ? toAntd(i.children) : undefined,
   }));
+}
+
+/** "Section > Page" for the header, from the same menu data: the group (or parent) heading and the current item's title. */
+export function crumbsFor(pathname: string, items: AppMenuItem[]): string[] {
+  const selected = selectedKey(pathname, items);
+  if (!selected) return [];
+  const text = (n: AppMenuItem) =>
+    typeof n.label === "string" ? n.label : (n.title ?? "");
+  const walk = (list: AppMenuItem[], trail: string[]): string[] | null => {
+    for (const i of list) {
+      if (i.key === selected)
+        return [...trail, i.title ?? text(i)].filter(Boolean);
+      if (i.children) {
+        const hit = walk(i.children, [...trail, text(i)]);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
+  const trail = walk(items, []) ?? [];
+  // A section that only has one page adds nothing: "Home" not "Operations > Home".
+  return trail.length > 1 && trail[trail.length - 1] === trail[0]
+    ? [trail[0]!]
+    : trail;
 }

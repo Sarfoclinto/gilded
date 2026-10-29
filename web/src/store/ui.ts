@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface UIState {
   /** Desktop sidebar collapsed to icons. */
@@ -14,12 +14,16 @@ interface UIState {
 export const useUI = create<UIState>()(
   persist(
     (set) => ({
-      menuCollapsed: false,
+      // Until the person chooses, small laptop screens start with the slim icon menu so the page gets the room.
+      menuCollapsed: typeof window !== "undefined" && window.innerWidth < 1280,
       drawerOpen: false,
       setCollapsed: (menuCollapsed) => set({ menuCollapsed }),
       openDrawer: () => set({ drawerOpen: true }),
       closeDrawer: () => set({ drawerOpen: false }),
     }),
-    { name: 'gold.ui.v1', partialize: (s) => ({ menuCollapsed: s.menuCollapsed }) },
+    {
+      name: "gold.ui.v1",
+      partialize: (s) => ({ menuCollapsed: s.menuCollapsed }),
+    },
   ),
 );
