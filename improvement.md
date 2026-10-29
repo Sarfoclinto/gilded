@@ -1,26 +1,18 @@
-## General
+## New pages to redesign
+Before we go on with the predicted features and the scenario walk-through (offline mid-purchase, two devices editing, cash difference at close, short transfer, price feed failures), let's tackle these pages and redesign them, make them look nicer and improve UI/UX as we been doing.
+1. Branches page
+2. Users page
+3. Between branches page under review
+4. Differences page under review
+5. New transaction page
+6. Calculator page
 
-1. A shadcn select to replace all the other select usage except the ant select implementations.
+## Other requests.
+1. Another utility panel should be added to the utility panel that shows the current available total amount and denominations breakdown, so that telles can have a look up at some point. Admin must see for all branches or should be able to filter. A note should be attached to what the admin see letting him know when the record he is seeing was fetched, since we support offline and some branch's activities might have happened offline and not synced yet
 
-## Requested updates to be considered
+2. On the newly well designed branches page, on-branch-click, there should be a branch detail page for admins, to see some details. The page should show all active workers(tellers, managers, kitchen-boys) in that branch, a snapshot of the total available cash(not based on denominations since he can see that on the newly requested utility panel), debts and goods. And a few recent transactions(not really necessary though. You can replace that with something more relavant)
 
-1. Better and seperate or differnt dashboard screens for the different roles, with summaries, graphs, charts and KPI that pertains to the users role. (imp)
-2. Header/Navbar design should be improved a little to look more nicer and better, also considering all screens. (imp)
-3. (fix) Even after `Check and use` button click on the automatic price check page, with a success toast, the home still shows a `price not set` in red.
-4. (imp) Better and nicer login and change password page.
-5. (imp) Better display/rendering(UI update) and filtering of transactions on the `All Transaction` page(filtering, sorting, pagination)
-6. (imp) Better and nicely designed transaction's detail page.
-7. (imp) Customer details page's transactions should have filters and should be designed more nicely.
-8. (imp) Customer's page should be designed more nicely.
-9. (fix) Branches not showing on new transfer page (the select option is empty and hindering transfer test)
-10. (imp) Better design of the transfer page
-11. (imp) Better design of day opening and closing (should allow an optional user amount input even if it won't be used)
-12. (fix) Branches in `new transaction` page for mobile moneY payment shows just the logged in person's branch instead of the list of the other branches.
-13. (imp) General: Forms that demands denominations input should accept an optional amount field with. It feels unneeccessary though.
+## Additional new features
+1. Audit-trail viewer page with very nice design page(UI/UX), with deep search, pagination, sorting and filtering.
+2. Role accessment, assignment and management UI. Well designed.
 
-## Legend
-
-1. `(fix)` -> A fix.
-2. `(imp)` -> Enhancement or improvement of functionality or UI update.
-
-# Note: I need you anticipations and predictions of other features/screens the system/users would need, want and want or like or `nice to have`
