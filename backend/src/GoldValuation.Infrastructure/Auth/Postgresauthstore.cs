@@ -108,7 +108,7 @@ public sealed class PostgresAuthStore(NpgsqlDataSource dataSource) : IAuthStore
 
             var permissions = new List<string>();
             await using (var cmd = new NpgsqlCommand("select p from gold.effective_permissions($1) p", conn, tx)
-            { Parameters = { new NpgsqlParameter { Value = userId } } })
+                { Parameters = { new NpgsqlParameter { Value = userId } } })
             await using (var reader = await cmd.ExecuteReaderAsync(ct))
             {
                 while (await reader.ReadAsync(ct)) permissions.Add(reader.GetString(0));
@@ -116,7 +116,7 @@ public sealed class PostgresAuthStore(NpgsqlDataSource dataSource) : IAuthStore
 
             var branches = new List<Guid>();
             await using (var cmd = new NpgsqlCommand("select b from gold.user_branch_ids($1) b", conn, tx)
-            { Parameters = { new NpgsqlParameter { Value = userId } } })
+                { Parameters = { new NpgsqlParameter { Value = userId } } })
             await using (var reader = await cmd.ExecuteReaderAsync(ct))
             {
                 while (await reader.ReadAsync(ct)) branches.Add(reader.GetGuid(0));
@@ -134,6 +134,17 @@ public sealed class PostgresAuthStore(NpgsqlDataSource dataSource) : IAuthStore
                 from gold.user_branch_ids($1) ids join gold.branches b on b.id = ids
                 order by b.is_main desc, b.name
                 """, conn, tx) { Parameters = { new NpgsqlParameter { Value = userId } } };
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+                list.Add(new BranchInfo(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetBoolean(3)));
+            return list;
+        }, ct)!;
+
+    public Task<IReadOnlyList<BranchInfo>> ListAllBranchesAsync(Guid tenantId, Guid userId, CancellationToken ct) =>
+        InTenant<IReadOnlyList<BranchInfo>>(tenantId, userId, async (conn, tx) =>
+        {
+            var list = new List<BranchInfo>();
+            await using var cmd = new NpgsqlCommand("select id, name, code, is_main from gold.branches where is_active order by is_main desc, name", conn, tx);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
                 list.Add(new BranchInfo(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetBoolean(3)));
@@ -198,7 +209,7 @@ public sealed class PostgresAuthStore(NpgsqlDataSource dataSource) : IAuthStore
         InTenant<object?>(tenantId, null, async (conn, tx) =>
         {
             await using var cmd = new NpgsqlCommand("select gold.revoke_refresh_family($1)", conn, tx)
-            { Parameters = { new NpgsqlParameter { Value = tokenHash } } };
+                { Parameters = { new NpgsqlParameter { Value = tokenHash } } };
             await cmd.ExecuteNonQueryAsync(ct);
             return null;
         }, ct);

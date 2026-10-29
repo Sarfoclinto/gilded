@@ -103,5 +103,8 @@ public sealed class AuthService(IAuthStore store, IPasswordHasher hasher, IAcces
     public Task<IReadOnlyList<BranchInfo>> BranchesAsync(ICurrentContext me, CancellationToken ct) =>
         store.ListBranchesAsync(me.TenantId, me.UserId, ct);
 
+    public Task<IReadOnlyList<BranchInfo>> AllBranchesAsync(ICurrentContext me, CancellationToken ct) =>
+        store.ListAllBranchesAsync(me.TenantId, me.UserId, ct);
+
     private static AppException Expired() => new(SessionExpired, "Your session has ended. Please sign in again.", 401);
 }

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.14.0
+  version: 0.15.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -96,6 +96,24 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/User' }
         '401': { $ref: '#/components/responses/Error' }
+  /branches/all:
+    get:
+      tags: [Branches]
+      summary: Every active branch of the company (names only)
+      description: For choosing where a transfer goes or which branch sends mobile money. Unlike `/branches`, it is not limited to the caller's assignments.
+      responses:
+        '200':
+          description: Branches
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Branch' }
+        '401': { $ref: '#/components/responses/Error' }
   /branches:
     get:
       tags: [Branches]
@@ -118,7 +136,7 @@ paths:
       summary: Add a branch
       description: |
         Needs `branches:manage`. The code (2 to 6 letters or digits) appears in every document number and never changes.
-        A new branch has no price until one is set. Branch access of other people follows their own assignment, so assign it in Users.
+        A new branch starts on the latest reference price with margin 0 (provisional) when a price exists. Branch access of other people follows their own assignment, so assign it in Users.
         Directors see it after their next sign-in.
       requestBody:
         required: true

@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace GoldValuation.Application.Auth;
 
 public interface IPasswordHasher
@@ -24,6 +26,8 @@ public interface IAuthStore
     Task RecordLoginSuccessAsync(Guid tenantId, Guid userId, DateTimeOffset now, string? newPasswordHash, CancellationToken ct);
     Task<SessionUser?> LoadSessionUserAsync(Guid tenantId, Guid userId, CancellationToken ct);
     Task<IReadOnlyList<BranchInfo>> ListBranchesAsync(Guid tenantId, Guid userId, CancellationToken ct);
+    /// <summary>Every active branch of the company, for choosing a transfer destination or a sending branch. Names only.</summary>
+    Task<IReadOnlyList<BranchInfo>> ListAllBranchesAsync(Guid tenantId, Guid userId, CancellationToken ct);
     Task StartRefreshFamilyAsync(Guid tenantId, Guid userId, byte[] tokenHash, DateTimeOffset expiresAt, ClientInfo client, CancellationToken ct);
     Task<RotationResult> RotateRefreshTokenAsync(Guid tenantId, byte[] oldHash, byte[] newHash, DateTimeOffset expiresAt, ClientInfo client, CancellationToken ct);
     Task RevokeRefreshFamilyAsync(Guid tenantId, byte[] tokenHash, CancellationToken ct);

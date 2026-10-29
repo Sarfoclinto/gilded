@@ -19,9 +19,25 @@ export const branches = createResource({
   label: "Branch",
 });
 
-/** Branch names by id, for showing "Kumasi" instead of a uuid. Empty until the list has loaded. */
+/**
+ * Every active branch of the company (names only). `branches` above is only the ones this person works in; pickers that name another
+ * branch (transfer destination, the branch sending mobile money) and screens that show another branch's name need this list.
+ * The key starts with 'branches' so it is refreshed whenever branches change.
+ */
+export function useAllBranches() {
+  return useApiQuery({
+    queryKey: [...branches.keys.all, "all"] as const,
+    queryFn: ({ signal }) =>
+      request(
+        { method: "get", url: "/branches/all", signal },
+        z.array(branchSchema),
+      ),
+  });
+}
+
+/** Branch names by id, for showing "Kumasi" instead of a uuid, for every branch of the company. Empty until the list has loaded. */
 export function useBranchNames(): Record<string, string> {
-  const { data } = branches.useList();
+  const { data } = useAllBranches();
   return Object.fromEntries((data ?? []).map((b) => [b.id, b.name]));
 }
 

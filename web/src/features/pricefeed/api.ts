@@ -111,7 +111,15 @@ export const useCheckNow = () =>
         z.object({ result: z.string().optional() }).loose(),
       ),
     invalidates: after,
-    successMessage: "Checked",
+    successMessage: (d) =>
+      (
+        ({
+          applied: "New price is now in use",
+          unchanged: "Nothing new: the price is already up to date",
+          held: "Found a big change: a director must confirm it",
+          failed: "Could not read the price. See the message below.",
+        }) as Record<string, string>
+      )[d.result ?? ""] ?? "Checked",
   });
 
 export function useDecideHeld() {

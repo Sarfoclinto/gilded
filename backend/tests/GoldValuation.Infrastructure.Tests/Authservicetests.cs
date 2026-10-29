@@ -220,6 +220,9 @@ public class AuthServiceTests
         public Task<IReadOnlyList<BranchInfo>> ListBranchesAsync(Guid tenantId, Guid userId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<BranchInfo>>([]);
 
+        public Task<IReadOnlyList<BranchInfo>> ListAllBranchesAsync(Guid tenantId, Guid userId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<BranchInfo>>([new BranchInfo(Guid.NewGuid(), "Kumasi", "KSI", true), new BranchInfo(Guid.NewGuid(), "Tarkwa", "TKW", false)]);
+
         public Task StartRefreshFamilyAsync(Guid tenantId, Guid userId, byte[] tokenHash, DateTimeOffset expiresAt, ClientInfo client, CancellationToken ct)
         {
             var family = Guid.NewGuid();
