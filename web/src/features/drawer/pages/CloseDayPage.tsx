@@ -13,10 +13,13 @@ import { dayKeys, daysApi } from "../api";
 import {
   checkFigures,
   closingProblems,
+  closingProgress,
   figureLabel,
+  figureState,
   figureUnit,
   type Declared,
 } from "../closing";
+import { FigureBadge } from "../FigureBadge";
 import { linesText } from "../format";
 import { useActiveDrawer, useClosingPreview, useDayActivity } from "../hooks";
 import { DayActivityPanel } from "../DayActivityPanel";
@@ -65,6 +68,11 @@ export default function CloseDayPage() {
     [preview, cash, text],
   ); // eslint-disable-line react-hooks/exhaustive-deps
   const problems = preview ? closingProblems(checks, why, confirmed) : [];
+  const progress = closingProgress(
+    checks,
+    Object.keys(cash).length > 0 ||
+      (preview ? Number(preview.expected.cash.value) === 0 : false),
+  );
   const outdated = close.error?.code === "CONFIRMATION_OUTDATED";
 
   if (view.status !== "open" || !dayId) {
@@ -109,13 +117,18 @@ export default function CloseDayPage() {
     const c = checks.find((x) => x.figure === f);
     return (
       <Card key={f} className="space-y-2">
-        <div className="flex items-baseline justify-between gap-2">
-          <label className="font-medium" htmlFor={`fig-${f}`}>
-            {figureLabel[f]}
-          </label>
-          <span className="tnum text-xs text-muted-foreground">
-            Books: {preview ? unitText(f, c?.expected ?? "0") : "…"}
-          </span>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <label className="font-medium" htmlFor={`fig-${f}`}>
+              {figureLabel[f]}
+            </label>
+            <div className="tnum text-xs text-muted-foreground">
+              Books: {preview ? unitText(f, c?.expected ?? "0") : "…"}
+            </div>
+          </div>
+          {c ? (
+            <FigureBadge state={figureState(c, text[key].trim() !== "")} />
+          ) : null}
         </div>
         <Input
           id={`fig-${f}`}
@@ -137,6 +150,7 @@ export default function CloseDayPage() {
   function explainBox(f: Figure) {
     const c = checks.find((x) => x.figure === f);
     if (!c || c.invalid || !c.needsReason) return null;
+    if (f === "cash" && Object.keys(cash).length === 0) return null;
     return (
       <div className="space-y-1">
         <p className="tnum text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -158,12 +172,14 @@ export default function CloseDayPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
-      <h1 className="text-xl font-bold">Close the day · {view.businessDate}</h1>
-      <p className="text-sm text-muted-foreground">
-        Count everything the branch really holds and enter it below. If a figure
-        differs from the books, say why. Nothing is overwritten: the books and
-        your figures are both kept.
-      </p>
+      <div>
+        <h1 className="text-xl font-bold">Close the day</h1>
+        <p className="text-sm text-muted-foreground">
+          {view.businessDate} · count everything the branch really holds. If a
+          figure differs from the books, say why. Nothing is overwritten: the
+          books and your figures are both kept.
+        </p>
+      </div>
 
       <Button
         variant="secondary"
@@ -231,13 +247,24 @@ export default function CloseDayPage() {
 
       {preview ? (
         <>
+          <h2 className="text-sm font-semibold">1 · Cash</h2>
           <Card className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <span className="font-medium">{figureLabel.cash}</span>
-              <span className="tnum text-xs text-muted-foreground">
-                Books: {cedis(Number(preview.expected.cash.value))} ·{" "}
-                {linesText(preview.expected.cash.lines)}
-              </span>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="font-medium">{figureLabel.cash}</h2>
+                <div className="tnum text-xs text-muted-foreground">
+                  Books: {cedis(Number(preview.expected.cash.value))} ·{" "}
+                  {linesText(preview.expected.cash.lines)}
+                </div>
+              </div>
+              {(() => {
+                const c = checks.find((x) => x.figure === "cash");
+                return c ? (
+                  <FigureBadge
+                    state={figureState(c, Object.keys(cash).length > 0)}
+                  />
+                ) : null;
+              })()}
             </div>
             <NoteCountInput
               value={cash}
@@ -251,13 +278,17 @@ export default function CloseDayPage() {
               </p>
             ) : null}
           </Card>
+          <h2 className="pt-2 text-sm font-semibold">2 · Gold in the branch</h2>
           {field("goodsTop", "goods_top")}
           {field("goodsDown", "goods_down")}
           {field("goodsValue", "goods_value")}
+          <h2 className="pt-2 text-sm font-semibold">3 · Money</h2>
           {field("debt", "debt")}
           {field("payable", "payable")}
+          <h2 className="pt-2 text-sm font-semibold">4 · Held as security</h2>
           {field("custodyTop", "custody_top")}
 
+          <h2 className="pt-2 text-sm font-semibold">5 · Confirm</h2>
           <Card className="space-y-3 border-primary/40">
             <Checkbox
               checked={confirmed}
@@ -300,7 +331,34 @@ export default function CloseDayPage() {
             </ul>
           ) : null}
 
-          <div className="sticky bottom-0 -mx-4 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+          <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-4">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted-foreground">
+                {progress.entered} of {progress.total} figures entered
+              </span>
+              <span
+                className={
+                  progress.differ
+                    ? "font-semibold text-amber-700"
+                    : "text-muted-foreground"
+                }
+              >
+                {progress.differ
+                  ? `${progress.differ} differ from the books`
+                  : "None differ so far"}
+              </span>
+            </div>
+            <div
+              className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted"
+              aria-hidden
+            >
+              <div
+                className="h-full bg-emerald-600 transition-all"
+                style={{
+                  width: `${(progress.entered / progress.total) * 100}%`,
+                }}
+              />
+            </div>
             <Button
               className="w-full"
               onClick={submit}

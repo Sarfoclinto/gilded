@@ -160,3 +160,35 @@ export function closingProblems(
     out.push("Tick the confirmation that you physically verified everything.");
   return out;
 }
+
+export type FigureState =
+  | "empty"
+  | "invalid"
+  | "matches"
+  | "notes"
+  | "short"
+  | "over";
+
+/** What to show next to a figure while it is being filled in. "notes" = same value, different mix of notes. */
+export function figureState(c: FigureCheck, entered: boolean): FigureState {
+  if (!entered) return "empty";
+  if (c.invalid) return "invalid";
+  if (c.valueDiffers) return c.difference < 0 ? "short" : "over";
+  return c.needsReason ? "notes" : "matches";
+}
+
+/** How far along the closing is: figures entered, and how many of those differ. */
+export function closingProgress(
+  checks: FigureCheck[],
+  enteredCash: boolean,
+): { entered: number; total: number; differ: number } {
+  let entered = 0;
+  let differ = 0;
+  for (const c of checks) {
+    const done = c.figure === "cash" ? enteredCash : c.declared.trim() !== "";
+    if (!done) continue;
+    entered++;
+    if (c.needsReason) differ++;
+  }
+  return { entered, total: checks.length, differ };
+}

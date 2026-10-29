@@ -9,10 +9,18 @@ import { useApiMutation } from "@/shared/api/hooks";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { dayKeys, daysApi } from "../api";
-import { linesText, signed } from "../format";
+import { linesText } from "../format";
 import { useActiveDrawer } from "../hooks";
 import { NoteCountInput } from "../NoteCountInput";
 import { localDate } from "../projection";
+
+const longDate = (d: string) =>
+  new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
 const same = (a: Lines, b: Lines) =>
   Object.keys(subtractLines(a, b)).length === 0;
@@ -70,7 +78,12 @@ export default function OpenDayPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
-      <h1 className="text-xl font-bold">Open the day · {today}</h1>
+      <div>
+        <h1 className="text-xl font-bold">Open the day</h1>
+        <p className="text-sm text-muted-foreground">
+          {longDate(today)} · count the drawer before the first customer.
+        </p>
+      </div>
       {blocked ? (
         <Alert
           type="info"
@@ -87,11 +100,16 @@ export default function OpenDayPage() {
           title="This is the first day for this branch. What you count now becomes the starting balance."
         />
       ) : books ? (
-        <Card className="flex items-center justify-between gap-3">
-          <div className="text-sm">
-            <div className="font-medium">The books say the drawer holds</div>
-            <div className="tnum text-muted-foreground">
-              {cedis(lineTotal(books))} · {linesText(books)}
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 text-sm">
+            <div className="text-xs uppercase text-muted-foreground">
+              The books say the drawer holds
+            </div>
+            <div className="tnum text-2xl font-bold">
+              {cedis(lineTotal(books))}
+            </div>
+            <div className="tnum text-xs text-muted-foreground">
+              {linesText(books)}
             </div>
           </div>
           <Button
@@ -99,14 +117,12 @@ export default function OpenDayPage() {
             onClick={() => setLines({ ...books })}
             disabled={!!blocked}
           >
-            Same as the books
+            It is all there
           </Button>
         </Card>
       ) : null}
 
-      <p className="text-sm text-muted-foreground">
-        Count the notes in the drawer and enter what you really have.
-      </p>
+      <h2 className="text-sm font-semibold">Count the notes you really have</h2>
       <NoteCountInput
         value={lines}
         onChange={setLines}
@@ -121,11 +137,13 @@ export default function OpenDayPage() {
               {diffAmount === 0
                 ? "Same value, different notes"
                 : diffAmount < 0
-                  ? "Short by"
-                  : "Over by"}
+                  ? "Your count is short by"
+                  : "Your count is over by"}
             </span>
-            <strong className="tnum text-xl">
-              {diffAmount === 0 ? "" : signed(diffAmount)}
+            <strong
+              className={`tnum text-xl ${diffAmount < 0 ? "text-red-600" : ""}`}
+            >
+              {diffAmount === 0 ? "" : cedis(Math.abs(diffAmount))}
             </strong>
           </div>
           <Input.TextArea
@@ -157,7 +175,7 @@ export default function OpenDayPage() {
           Open the day with {cedis(lineTotal(lines))}
         </Button>
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          Opening needs a connection, because the count is checked against the
+          Opening needs a connection, because your count is checked against the
           books.
         </p>
       </div>

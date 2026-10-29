@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   checkFigures,
   closingProblems,
+  closingProgress,
+  figureState,
   sameNumber,
   validFigure,
   type Declared,
+  type FigureCheck,
 } from "./closing";
 import type { ClosingPreview } from "./schemas";
 
@@ -78,5 +81,47 @@ describe("closing checks", () => {
     expect(checkFigures(preview, { ...same, debt: "" })[4]!.invalid).toBe(true);
     expect(validFigure("1.23456", "goods_top")).toBe(false);
     expect(validFigure("1.234", "debt")).toBe(false);
+  });
+});
+
+describe("figure state and progress", () => {
+  const base = {
+    figure: "debt",
+    expected: "100",
+    declared: "100",
+    difference: 0,
+    needsReason: false,
+    valueDiffers: false,
+    invalid: false,
+  } as FigureCheck;
+  it("names each state", () => {
+    expect(figureState(base, false)).toBe("empty");
+    expect(figureState({ ...base, invalid: true }, true)).toBe("invalid");
+    expect(figureState(base, true)).toBe("matches");
+    expect(
+      figureState(
+        { ...base, valueDiffers: true, needsReason: true, difference: -5 },
+        true,
+      ),
+    ).toBe("short");
+    expect(
+      figureState(
+        { ...base, valueDiffers: true, needsReason: true, difference: 5 },
+        true,
+      ),
+    ).toBe("over");
+    expect(figureState({ ...base, needsReason: true }, true)).toBe("notes");
+  });
+  it("counts entered and differing figures", () => {
+    const checks = [
+      base,
+      { ...base, figure: "payable", declared: "", needsReason: false },
+      { ...base, figure: "goods_top", needsReason: true, valueDiffers: true },
+    ] as FigureCheck[];
+    expect(closingProgress(checks, false)).toEqual({
+      entered: 2,
+      total: 3,
+      differ: 1,
+    });
   });
 });
