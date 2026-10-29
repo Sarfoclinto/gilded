@@ -218,6 +218,28 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return store.SearchTransactionsAsync(me, filter.ToJsonString(), ct);
     }
 
+    /// <summary>
+    /// Figures for the home screen. Everyone with transactions:read gets today, the trend, payments, gold on hand and their own purchases for the branches
+    /// they work in. How the other staff are doing (per-teller totals, top customers, cash differences) needs reports:read and is removed otherwise.
+    /// </summary>
+    public async Task<string> DashboardAsync(ICurrentContext me, Guid? branchId, int? days, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsRead);
+        if (branchId is { } b) me.RequireBranch(b);
+        var filter = new System.Text.Json.Nodes.JsonObject
+        {
+            ["scope"] = new System.Text.Json.Nodes.JsonArray(me.BranchIds.Select(x => (System.Text.Json.Nodes.JsonNode?)x.ToString()).ToArray()),
+            ["branchId"] = branchId?.ToString(),
+            ["days"] = Math.Clamp(days ?? 14, 7, 60),
+            ["mine"] = me.UserId.ToString(),
+        };
+        var json = await store.DashboardAsync(me, filter.ToJsonString(), ct);
+        if (me.Has(Permissions.ReportsRead)) return json;
+        var node = System.Text.Json.Nodes.JsonNode.Parse(json)!.AsObject();
+        foreach (var key in new[] { "tellers", "topCustomers", "cashDifferences" }) node.Remove(key);
+        return node.ToJsonString();
+    }
+
     public Task<string> ListTransactionsAsync(ICurrentContext me, Guid branchId, int? limit, CancellationToken ct)
     {
         me.Require(Permissions.TransactionsRead);

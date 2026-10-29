@@ -62,6 +62,8 @@ public static class OperationsEndpoints
             Data(await ops.ListTransactionsAsync(me, branchId, limit, ct)));
         api.MapGet("/transactions/search", async ([AsParameters] TransactionSearch s, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.SearchTransactionsAsync(me, s, ct)));
+        api.MapGet("/dashboard", async (Guid? branchId, int? days, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.DashboardAsync(me, branchId, days, ct)));
         api.MapPost("/transactions", async (CreateTransactionCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Created(await ops.CreateTransactionAsync(me, body, Key(http), ct)));
         api.MapGet("/transactions/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

@@ -56,6 +56,19 @@ public class OperationsServiceTests
     }
 
     [Fact]
+    public async Task The_dashboard_uses_only_the_callers_branches_and_hides_staff_comparisons_from_tellers()
+    {
+        var json = await _ops.DashboardAsync(Teller(), null, 500, default);
+        Assert.Contains($"\"scope\":[\"{Tarkwa}\"]", _store.LastDashboard);
+        Assert.Contains("\"days\":60", _store.LastDashboard);   // clamped
+        Assert.DoesNotContain("tellers", json);
+        Assert.DoesNotContain("cashDifferences", json);
+        Assert.Contains("series", json);
+        await Assert.ThrowsAsync<AppException>(() => _ops.DashboardAsync(Teller(), Kumasi, null, default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.DashboardAsync(new Ctx([], [Tarkwa]), null, null, default));
+    }
+
+    [Fact]
     public async Task The_idempotency_key_must_be_the_requests_own_id()
     {
         var id = Guid.NewGuid();
@@ -268,6 +281,8 @@ public class OperationsServiceTests
         public Task<string> ListTransactionsAsync(ICurrentContext me, Guid b, int l, CancellationToken ct) => Task.FromResult("[]");
         public string? LastSearch;
         public Task<string> SearchTransactionsAsync(ICurrentContext me, string filterJson, CancellationToken ct) { LastSearch = filterJson; return Task.FromResult("{\"items\":[],\"total\":0,\"sumPayable\":\"0\"}"); }
+        public string? LastDashboard;
+        public Task<string> DashboardAsync(ICurrentContext me, string filterJson, CancellationToken ct) { LastDashboard = filterJson; return Task.FromResult("{\"today\":{},\"tellers\":[],\"topCustomers\":[],\"cashDifferences\":{},\"series\":[]}"); }
         public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredTransaction);
         public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid id, string o, string? r, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid b, string role, CancellationToken ct) => Task.FromResult("[]");
