@@ -58,6 +58,7 @@ const paths = {
       label: "Transfer",
     },
   },
+  audit: { href: "/setup/audit", label: "Audit trail" },
   imports: { href: "/setup/import", label: "Bring in data" },
   changePassword: { href: "/change-password", label: "Choose a new password" },
   payments: { href: "/payments", label: "Mobile money" },

@@ -66,6 +66,7 @@ const NewTransferPage = lazy(
 const TransferDetailPage = lazy(
   () => import("@/features/transfers/pages/TransferDetailPage"),
 );
+const AuditPage = lazy(() => import("@/features/audit/pages/AuditPage"));
 const ImportPage = lazy(() => import("@/features/imports/pages/ImportPage"));
 const PriceFeedPage = lazy(
   () => import("@/features/pricefeed/pages/PriceFeedPage"),
@@ -198,6 +199,11 @@ export const appRoutes: AppRoute[] = [
     path: paths.transfers.detail.href,
     element: <TransferDetailPage />,
     access: { permission: PERMISSIONS.TRANSFERS_READ },
+  },
+  {
+    path: paths.audit.href,
+    element: <AuditPage />,
+    access: { permission: PERMISSIONS.AUDIT_READ },
   },
   {
     path: paths.imports.href,

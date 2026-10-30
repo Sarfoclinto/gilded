@@ -129,6 +129,24 @@ public class PeopleServiceTests
     }
 
     [Fact]
+    public async Task Audit_trail_needs_its_permission_passes_only_known_filters_and_limits_the_scope()
+    {
+        var q = new Dictionary<string, string?> { ["q"] = " float ", ["sort"] = "oldest", ["evil"] = "x", ["page"] = "2" };
+        await Assert.ThrowsAsync<AppException>(() => _svc.AuditSearchAsync(new Ctx([Permissions.ReportsRead]), q, default));
+        await _svc.AuditSearchAsync(new Ctx([Permissions.AuditRead]), q, default);
+        Assert.Contains("\"q\":\"float\"", _store.LastAudit);
+        Assert.DoesNotContain("evil", _store.LastAudit);
+        Assert.Equal([Tarkwa], _store.LastAuditScope);
+        await _svc.AuditSearchAsync(new Ctx([Permissions.AuditRead, Permissions.BranchesAll]), q, default);
+        Assert.Null(_store.LastAuditScope);
+        await Assert.ThrowsAsync<AppException>(() => _svc.AuditSearchAsync(new Ctx([Permissions.AuditRead]), new Dictionary<string, string?> { ["branchId"] = Guid.NewGuid().ToString() }, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.AuditSearchAsync(new Ctx([Permissions.AuditRead]), new Dictionary<string, string?> { ["sort"] = "random" }, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.AuditSearchAsync(new Ctx([Permissions.AuditRead]), new Dictionary<string, string?> { ["page"] = "x" }, default));
+        Assert.Contains(Permissions.AuditRead, Permissions.DefaultRoles["director"].Permissions);
+        Assert.DoesNotContain(Permissions.AuditRead, Permissions.DefaultRoles["manager"].Permissions);
+    }
+
+    [Fact]
     public void Standard_roles_get_the_new_permissions_as_agreed()
     {
         var roles = Permissions.DefaultRoles;
@@ -180,6 +198,8 @@ public class PeopleServiceTests
         public Task<string> ListBranchesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> CreateBranchAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<string> UpdateBranchAsync(ICurrentContext me, Guid id, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult("{}"); }
+        public string? LastAudit; public IReadOnlyCollection<Guid>? LastAuditScope = [];
+        public Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string f, CancellationToken ct) { LastAudit = f; LastAuditScope = scope; return Task.FromResult("{}"); }
         public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
     }

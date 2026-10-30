@@ -126,7 +126,7 @@ export function MenuDrawer() {
       closable={false}
       styles={{
         body: { padding: 0, background: SIDEBAR_BG },
-        section: { padding: 0 },
+        section: { padding: 0, background: SIDEBAR_BG },
       }}
     >
       <SidebarContent collapsed={false} />

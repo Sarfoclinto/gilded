@@ -43,6 +43,9 @@ public static class Permissions
     /// <summary>Bring in customers and past purchases from spreadsheets, and undo an import. Directors only.</summary>
     public const string ImportsManage = "imports:manage";
 
+    /// <summary>Read the audit trail: who did what, when and where. Directors only.</summary>
+    public const string AuditRead = "audit:read";
+
     private static readonly string[] Teller =
         [CalculatorUse, TransactionsRead, TransactionsCreate, DaysRead, DaysManage, DebtsRead, DebtsManage, CustomersRead,
          TransfersRead, TransfersCreate, TransfersReceive];
@@ -51,7 +54,7 @@ public static class Permissions
         [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview];
 
     private static readonly string[] Director =
-        [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage];
+        [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead];
 
     /// <summary>The three roles every new company starts with. A company can add its own later.</summary>
     public static IReadOnlyDictionary<string, (string Name, string[] Permissions)> DefaultRoles { get; } =

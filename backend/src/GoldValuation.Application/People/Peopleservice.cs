@@ -149,6 +149,29 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
         return store.CashOverviewAsync(me, me.BranchIds.ToArray(), branchId, ct);
     }
 
+    private static readonly string[] AuditFilters = ["q", "category", "action", "actorId", "branchId", "from", "to", "minAmount", "sort", "page", "size"];
+
+    /// <summary>
+    /// The audit trail: a searchable, sortable, paged feed of who did what. Needs audit:read. People who may see every branch see everything;
+    /// anyone else sees only events of their own branches. Only the known filter names are passed on.
+    /// </summary>
+    public Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyDictionary<string, string?> query, CancellationToken ct)
+    {
+        me.Require(Permissions.AuditRead);
+        var f = new JsonObject();
+        foreach (var k in AuditFilters)
+            if (query.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v)) f[k] = v.Trim();
+        if (f["branchId"] is { } b)
+        {
+            if (!Guid.TryParse(b.GetValue<string>(), out var id)) throw AppException.Invalid("That branch is not valid.");
+            if (!me.Has(Permissions.BranchesAll)) me.RequireBranch(id);
+        }
+        foreach (var n in new[] { "page", "size" })
+            if (f[n] is { } p && !int.TryParse(p.GetValue<string>(), out _)) throw AppException.Invalid($"{n} must be a number.");
+        if (f["sort"] is { } s && s.GetValue<string>() is not ("newest" or "oldest" or "amount")) throw AppException.Invalid("Sort must be newest, oldest or amount.");
+        return store.AuditSearchAsync(me, me.Has(Permissions.BranchesAll) ? null : me.BranchIds.ToArray(), f.ToJsonString(), ct);
+    }
+
     public Task<string> UpdateBranchAsync(ICurrentContext me, Guid id, JsonObject body, CancellationToken ct)
     {
         me.Require(Permissions.BranchesManage);
