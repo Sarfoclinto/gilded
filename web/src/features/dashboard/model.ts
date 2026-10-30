@@ -123,10 +123,13 @@ export function attention(
       text: `${plural(d.pendingMoney, "mobile money payment")} not confirmed yet`,
       to: paths.payments.href,
     });
-  const odd = ["CALC_MISMATCH", "PRICE_STALE", "NO_OPEN_DAY"].reduce(
-    (s, f) => s + (d.flags[f] ?? 0),
-    0,
-  );
+  const odd = [
+    "CALC_MISMATCH",
+    "PRICE_STALE",
+    "NO_OPEN_DAY",
+    "AFTER_CLOSE",
+    "CLOCK_AHEAD",
+  ].reduce((s, f) => s + (d.flags[f] ?? 0), 0);
   if (odd > 0)
     out.push({
       key: "flags",

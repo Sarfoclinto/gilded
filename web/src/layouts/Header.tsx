@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
+import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { ConnectionBadge } from "@/shared/ui/ConnectionBadge";
 import { BranchSwitcher } from "./BranchSwitcher";
@@ -40,6 +41,7 @@ const initials = (name?: string) =>
 export function Header() {
   const user = useAuth((s) => s.user);
   const logout = useLogout();
+  const { waiting } = useOutbox();
   const desktop = useIsDesktop();
   const { pathname } = useLocation();
   const crumbs = useMemo(
@@ -122,7 +124,19 @@ export function Header() {
                 <KeyRoundIcon className="size-4" /> Change my password
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => logout.mutate()}>
+            <DropdownMenuItem
+              onSelect={() => {
+                // Unsent purchases stay on this device and go out the next time this person signs in here.
+                if (
+                  waiting.length > 0 &&
+                  !window.confirm(
+                    `${waiting.length} saved ${waiting.length === 1 ? "entry has" : "entries have"} not reached the server yet. They stay on this device and are sent when you sign in here again, on a connection. Sign out anyway?`,
+                  )
+                )
+                  return;
+                logout.mutate();
+              }}
+            >
               <LogOutIcon className="size-4" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

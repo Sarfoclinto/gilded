@@ -7,8 +7,10 @@ export interface OutboxEntry<P = unknown> {
   /** Command id. For a transaction this is the transaction id and the Idempotency-Key. */
   id: string;
   type: string;
+  /** Who saved it. Only that person's session sends it, so a purchase is never recorded under someone else. */
+  userId?: string;
   payload: P;
-  status: 'pending' | 'syncing' | 'failed';
+  status: "pending" | "syncing" | "failed";
   attempts: number;
   createdAt: number;
   nextAttemptAt: number;
@@ -36,19 +38,24 @@ export class MemoryOutboxStore implements OutboxStore {
   }
 }
 
-const DB = 'gold-offline';
-const STORE = 'outbox';
+const DB = "gold-offline";
+const STORE = "outbox";
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id' });
+    req.onupgradeneeded = () =>
+      req.result.createObjectStore(STORE, { keyPath: "id" });
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-function wrap<T>(db: IDBDatabase, mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+function wrap<T>(
+  db: IDBDatabase,
+  mode: IDBTransactionMode,
+  fn: (s: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, mode);
     const req = fn(tx.objectStore(STORE));
@@ -62,19 +69,23 @@ export class IndexedDbOutboxStore implements OutboxStore {
   readonly durable = true;
   private db: Promise<IDBDatabase> = open();
   async getAll() {
-    return wrap(await this.db, 'readonly', (s) => s.getAll() as IDBRequest<OutboxEntry[]>);
+    return wrap(
+      await this.db,
+      "readonly",
+      (s) => s.getAll() as IDBRequest<OutboxEntry[]>,
+    );
   }
   async put(entry: OutboxEntry) {
-    await wrap(await this.db, 'readwrite', (s) => s.put(entry));
+    await wrap(await this.db, "readwrite", (s) => s.put(entry));
   }
   async remove(id: string) {
-    await wrap(await this.db, 'readwrite', (s) => s.delete(id));
+    await wrap(await this.db, "readwrite", (s) => s.delete(id));
   }
 }
 
 export async function createBestStore(): Promise<OutboxStore> {
   try {
-    if (typeof indexedDB === 'undefined') return new MemoryOutboxStore();
+    if (typeof indexedDB === "undefined") return new MemoryOutboxStore();
     const store = new IndexedDbOutboxStore();
     await store.getAll(); // proves it opens and works
     return store;

@@ -185,6 +185,9 @@ export const flagText: Record<string, string> = {
   CALC_MISMATCH: "Server amount differs from the device",
   PRICE_STALE: "Price was old when used",
   HISTORICAL: "Imported from a past record. No cash or gold was moved.",
+  AFTER_CLOSE:
+    "Made before its day closed but reached the server after. That day's count will be off by this amount.",
+  CLOCK_AHEAD: "The device clock was ahead, so the server's time was used.",
   NO_OPEN_DAY:
     "No open day when this reached the server. The cash still left the books.",
 };
