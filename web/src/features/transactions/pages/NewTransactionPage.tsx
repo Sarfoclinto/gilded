@@ -252,14 +252,12 @@ export default function NewTransactionPage() {
       return;
     }
     if (cmd.customerId)
-      useCustomerDirectory
-        .getState()
-        .remember({
-          id: cmd.customerId,
-          name: cmd.customerName,
-          phone: cmd.customerPhone,
-          atBranch: true,
-        });
+      useCustomerDirectory.getState().remember({
+        id: cmd.customerId,
+        name: cmd.customerName,
+        phone: cmd.customerPhone,
+        atBranch: true,
+      });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
     toast.success(
       online
@@ -349,10 +347,14 @@ export default function NewTransactionPage() {
             {drawer.status === "closed"
               ? "Today is closed."
               : "The day is not open."}{" "}
-            Open the day before paying customers.
+            {drawer.status === "closed"
+              ? "If a customer has come in, open it again with a reason."
+              : "Open the day before paying customers."}
           </p>
           <Link to={paths.drawer.open.href}>
-            <Button variant="secondary">Open day</Button>
+            <Button variant="secondary">
+              {drawer.status === "closed" ? "Open again" : "Open day"}
+            </Button>
           </Link>
         </Card>
       ) : null}

@@ -13,6 +13,7 @@ import { useActiveDrawer } from "@/features/drawer/hooks";
 import { limitsFromBalance } from "@/features/drawer/projection";
 import { packText } from "@/features/transactions/format";
 import { useNoteLimits } from "./useNoteLimits";
+import { checkManual, setCount, type Counts } from "./manualNotes";
 
 const policyLabels: Record<PayablePolicy, string> = {
   down: "Round down (customer gets less)",
@@ -44,6 +45,11 @@ export function PayoutPanel({
 }) {
   const [policy, setPolicy] = useState<PayablePolicy>("down");
   const [strategy, setStrategy] = useState<SolveStrategy>("prefer-100s");
+  // Notes picked by hand instead of the suggestion. Only applies to the cash amount it was made for.
+  const [manualState, setManualState] = useState<{
+    forCash: number;
+    counts: Counts;
+  } | null>(null);
   const [override, setOverride] = useState<{
     forAmount: number;
     value: number;
@@ -74,9 +80,28 @@ export function PayoutPanel({
     [cashPart, limits, strategy],
   );
 
+  const manual =
+    manualState && manualState.forCash === cashPart && cashPart > 0
+      ? manualState.counts
+      : null;
+  const check = manual ? checkManual(manual, cashPart, limits) : null;
+
   useEffect(() => {
     if (!onResult) return;
-    if (tooMuch || !result.ok) return onResult(null);
+    if (tooMuch) return onResult(null);
+    if (check)
+      return onResult(
+        check.valid
+          ? {
+              policy,
+              strategy,
+              payable: String(payable),
+              lines: check.lines,
+              totalNotes: Object.values(check.lines).reduce((a, b) => a + b, 0),
+            }
+          : null,
+      );
+    if (!result.ok) return onResult(null);
     const lines = Object.fromEntries(
       Object.entries(result.lines).filter(([, n]) => (n ?? 0) > 0),
     ) as Record<string, number>;
@@ -87,7 +112,7 @@ export function PayoutPanel({
       lines,
       totalNotes: result.totalNotes,
     });
-  }, [result, tooMuch, policy, strategy, payable, onResult]);
+  }, [result, check, tooMuch, policy, strategy, payable, onResult]);
 
   return (
     <Card className="space-y-4">
@@ -143,11 +168,107 @@ export function PayoutPanel({
         </div>
       ) : null}
 
+      {manual && check && !tooMuch ? (
+        <div className="space-y-2 rounded-lg border border-amber-500/50 bg-amber-500/5 p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="text-sm font-semibold">Choose the notes</h3>
+            <button
+              type="button"
+              className="min-h-10 text-sm underline"
+              onClick={() => setManualState(null)}
+            >
+              Use the suggestion
+            </button>
+          </div>
+          <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+            {DENOMINATIONS.filter(
+              (d) => limits[`${d}`] !== undefined || (manual[`${d}`] ?? 0) > 0,
+            ).map((d) => {
+              const n = manual[`${d}`] ?? 0;
+              const have = limits[`${d}`];
+              const set = (v: number) =>
+                setManualState({
+                  forCash: cashPart,
+                  counts: setCount(manual, d, v),
+                });
+              return (
+                <li
+                  key={d}
+                  className="flex items-center justify-between gap-2 px-3 py-2"
+                >
+                  <div>
+                    <div className="font-semibold">GHS {d}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {have == null
+                        ? "Count not known"
+                        : `${have.toLocaleString("en-GH")} in the drawer`}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={`One less GHS ${d}`}
+                      className="size-10 rounded-lg border border-border"
+                      onClick={() => set(n - 1)}
+                    >
+                      −
+                    </button>
+                    <input
+                      inputMode="numeric"
+                      aria-label={`Number of GHS ${d} notes`}
+                      className="tnum h-10 w-20 rounded-lg border border-border bg-card px-2 text-center"
+                      value={n === 0 ? "" : String(n)}
+                      placeholder="0"
+                      onChange={(e) =>
+                        set(Number(e.target.value.replace(/\D/g, "")))
+                      }
+                    />
+                    <button
+                      type="button"
+                      aria-label={`One more GHS ${d}`}
+                      className="size-10 rounded-lg border border-border"
+                      onClick={() => set(n + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="flex items-baseline justify-between text-sm">
+            <span className="text-muted-foreground">
+              {check.remaining > 0
+                ? "Still to give"
+                : check.remaining < 0
+                  ? "Given too much by"
+                  : "Adds up exactly"}
+            </span>
+            <strong
+              className={`tnum ${check.remaining === 0 ? "text-emerald-600" : "text-red-600"}`}
+            >
+              {check.remaining === 0
+                ? cedis(check.total)
+                : cedis(Math.abs(check.remaining))}
+            </strong>
+          </div>
+          {Object.keys(check.overStock).length > 0 ? (
+            <p role="alert" className="text-sm text-red-600">
+              The drawer does not have enough:{" "}
+              {Object.entries(check.overStock)
+                .map(([d, n]) => `GHS ${d} (${n} too many)`)
+                .join(", ")}
+              .
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {cashPart === 0 && !tooMuch ? (
         <p className="text-sm text-muted-foreground">
           Nothing is paid in cash, so no notes leave the drawer.
         </p>
-      ) : result.ok && !tooMuch ? (
+      ) : manual ? null : result.ok && !tooMuch ? (
         <div>
           <ul className="divide-y divide-border rounded-lg border border-border">
             {result.display.map((row) => (
@@ -183,6 +304,20 @@ export function PayoutPanel({
             <span className="text-muted-foreground">Total pieces </span>
             <strong>{result.totalNotes.toLocaleString("en-GH")}</strong>
           </p>
+          {!manual ? (
+            <button
+              type="button"
+              className="mt-2 min-h-10 rounded-lg border border-border bg-card px-3 text-sm font-medium"
+              onClick={() =>
+                setManualState({
+                  forCash: cashPart,
+                  counts: { ...result.lines } as Counts,
+                })
+              }
+            >
+              Customer wants other notes
+            </button>
+          ) : null}
         </div>
       ) : tooMuch ? null : !result.ok ? (
         <div

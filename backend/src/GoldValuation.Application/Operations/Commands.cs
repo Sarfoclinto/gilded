@@ -23,7 +23,7 @@ public sealed record CreateTransactionCommand(
 public sealed record PersonRef(string? Name, string? Phone);
 
 public sealed record OpenDayCommand(
-    Guid Id, Guid BranchId, string? BusinessDate, Dictionary<string, int>? Lines, string? Source, DateTimeOffset CapturedAt, string? Explanation);
+    Guid Id, Guid BranchId, string? BusinessDate, Dictionary<string, int>? Lines, string? Source, DateTimeOffset CapturedAt, string? Explanation, bool? AfterClose = null);
 
 public sealed record MovementCommand(
     Guid Id, Guid DayId, Guid BranchId, string? Kind, Dictionary<string, int>? Lines, string? Note, DateTimeOffset CapturedAt);

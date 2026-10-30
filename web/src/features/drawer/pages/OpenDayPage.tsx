@@ -43,11 +43,9 @@ export default function OpenDayPage() {
   });
 
   const blocked =
-    view.status === "open"
-      ? "A day is already open for this branch."
-      : view.status === "closed" && view.businessDate === today
-        ? "Today was already opened and closed. The next day can be opened tomorrow."
-        : null;
+    view.status === "open" ? "A day is already open for this branch." : null;
+  // Closed earlier today, but a customer has come in: a second session on the same date, with a reason. The closed count is not touched.
+  const afterClose = view.status === "closed" && view.businessDate === today;
 
   // What the books say the drawer holds. null before the branch's very first day (the count then sets the starting balance).
   const books = state?.carryOver ?? null;
@@ -56,15 +54,29 @@ export default function OpenDayPage() {
   const differs = books !== null && hasCount && !same(lines, books);
   const diffAmount = books ? lineTotal(lines) - lineTotal(books) : 0;
   const needsReason = differs;
-  const canSave =
-    !!branchId &&
-    hasCount &&
-    !blocked &&
-    !open.isPending &&
-    (!needsReason || explanation.trim().length >= 5);
+  const canSave = afterClose
+    ? !!branchId && !open.isPending && explanation.trim().length >= 5
+    : !!branchId &&
+      hasCount &&
+      !blocked &&
+      !open.isPending &&
+      (!needsReason || explanation.trim().length >= 5);
 
   function submit() {
     if (!canSave || !branchId) return;
+    if (afterClose) {
+      open.mutate({
+        id: commandId,
+        branchId,
+        businessDate: today,
+        lines: books ?? {},
+        source: "carried",
+        capturedAt: new Date().toISOString(),
+        explanation: explanation.trim(),
+        afterClose: true,
+      });
+      return;
+    }
     open.mutate({
       id: commandId,
       branchId,
@@ -93,7 +105,29 @@ export default function OpenDayPage() {
         />
       ) : null}
 
-      {first ? (
+      {afterClose ? (
+        <Card className="space-y-3 border-amber-500/60">
+          <p className="text-sm font-medium">
+            Today was already closed. The closed count stays exactly as it was.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Open it again only for a customer who must be served now. The drawer
+            starts from the closing books
+            {books ? ` (${cedis(lineTotal(books))})` : ""}, you count it again
+            when you close, and the manager is told.
+          </p>
+          <Input.TextArea
+            rows={3}
+            maxLength={500}
+            placeholder="Why is the day opened again? (required)"
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            status={explanation.trim().length >= 5 ? undefined : "warning"}
+          />
+        </Card>
+      ) : null}
+
+      {afterClose ? null : first ? (
         <Alert
           type="info"
           showIcon
@@ -122,15 +156,21 @@ export default function OpenDayPage() {
         </Card>
       ) : null}
 
-      <h2 className="text-sm font-semibold">Count the notes you really have</h2>
-      <NoteCountInput
-        value={lines}
-        onChange={setLines}
-        disabled={!!blocked}
-        expected={books ?? undefined}
-      />
+      {afterClose ? null : (
+        <h2 className="text-sm font-semibold">
+          Count the notes you really have
+        </h2>
+      )}
+      {afterClose ? null : (
+        <NoteCountInput
+          value={lines}
+          onChange={setLines}
+          disabled={!!blocked}
+          expected={books ?? undefined}
+        />
+      )}
 
-      {differs ? (
+      {differs && !afterClose ? (
         <Card className="space-y-3 border-amber-500/60">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-medium">
@@ -172,12 +212,16 @@ export default function OpenDayPage() {
           disabled={!canSave}
           loading={open.isPending}
         >
-          Open the day with {cedis(lineTotal(lines))}
+          {afterClose
+            ? "Open the day again"
+            : `Open the day with ${cedis(lineTotal(lines))}`}
         </Button>
-        <p className="mt-2 text-center text-xs text-muted-foreground">
-          Opening needs a connection, because your count is checked against the
-          books.
-        </p>
+        {afterClose ? null : (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Opening needs a connection, because your count is checked against
+            the books.
+          </p>
+        )}
       </div>
     </div>
   );

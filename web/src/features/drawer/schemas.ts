@@ -121,6 +121,8 @@ export interface OpenDayInput {
   source: "counted" | "carried";
   capturedAt: string;
   explanation?: string | null;
+  /** A customer came after the day was closed: a second session on the same date, with the reason in `explanation`. */
+  afterClose?: boolean;
 }
 
 export interface CloseDayInput {
