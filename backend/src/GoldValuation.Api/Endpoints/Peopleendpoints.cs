@@ -47,6 +47,10 @@ public static class PeopleEndpoints
         api.MapGet("/branches/manage", async (ICurrentContext me, PeopleService svc, CancellationToken ct) => Data(await svc.ListBranchesAsync(me, ct)));
         api.MapPost("/branches", async (CreateBranchCommand body, HttpContext http, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Created(await svc.CreateBranchAsync(me, body, Key(http), ct)));
+        api.MapGet("/branches/{id:guid}/overview", async (Guid id, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Data(await svc.BranchOverviewAsync(me, id, ct)));
+        api.MapGet("/cash/overview", async (Guid? branchId, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Data(await svc.CashOverviewAsync(me, branchId, ct)));
         api.MapPatch("/branches/{id:guid}", async (Guid id, JsonObject body, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Data(await svc.UpdateBranchAsync(me, id, body, ct)));
         return api;

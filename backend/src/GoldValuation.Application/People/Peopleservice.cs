@@ -130,6 +130,25 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
         return store.CreateBranchAsync(me, JsonSerializer.Serialize(c, Json), ct);
     }
 
+    /// <summary>One branch for the administrator: workers, what it holds, what needs attention. Needs reports:read and a branch the caller may see.</summary>
+    public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct)
+    {
+        me.Require(Permissions.ReportsRead);
+        me.RequireBranch(id);
+        return store.BranchOverviewAsync(me, id, ct);
+    }
+
+    /// <summary>
+    /// Cash and notes by denomination, as the books hold them now (nothing that is still waiting on a device is in it). A teller sees the
+    /// branches they work in; people who may see every branch see them all, or one when `branchId` is given.
+    /// </summary>
+    public Task<string> CashOverviewAsync(ICurrentContext me, Guid? branchId, CancellationToken ct)
+    {
+        me.Require(Permissions.DaysRead);
+        if (branchId is { } b) me.RequireBranch(b);
+        return store.CashOverviewAsync(me, me.BranchIds.ToArray(), branchId, ct);
+    }
+
     public Task<string> UpdateBranchAsync(ICurrentContext me, Guid id, JsonObject body, CancellationToken ct)
     {
         me.Require(Permissions.BranchesManage);

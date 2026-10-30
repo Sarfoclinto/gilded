@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Modal, Table, Tag } from "antd";
+import { Alert, Modal } from "antd";
+import { Building2, ChevronRight } from "lucide-react";
+import { useCashOverview } from "@/features/cash/api";
+import { clock, grandTotal } from "@/features/cash/model";
+import { cedis } from "@/features/calculator/format";
+import { Kpi } from "@/features/dashboard/charts";
+import { Chip } from "@/shared/ui/Chip";
 import paths from "@/config/paths";
 import { errorMessage } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
@@ -15,6 +21,10 @@ import { BranchModal } from "../BranchModal";
 export default function BranchesPage() {
   const list = useManagedBranches();
   const update = useUpdateBranch();
+  const cash = useCashOverview(null);
+  const cashById = new Map(
+    (cash.data?.branches ?? []).map((c) => [c.branchId, c]),
+  );
   const [editing, setEditing] = useState<{
     branch: ManagedBranch | null;
   } | null>(null);
@@ -35,44 +45,87 @@ export default function BranchesPage() {
       {list.error ? (
         <Alert type="error" showIcon title={errorMessage(list.error)} />
       ) : null}
-      <Table<ManagedBranch>
-        rowKey="id"
-        size="middle"
-        loading={list.isLoading}
-        dataSource={list.data ?? []}
-        pagination={false}
-        scroll={{ x: 620 }}
-        columns={[
-          {
-            title: "Name",
-            dataIndex: "name",
-            render: (v: string, b) => (
-              <div>
-                <div className="font-medium">{v}</div>
-                <div className="text-xs text-muted-foreground">{b.code}</div>
-              </div>
-            ),
-          },
-          { title: "Time zone", dataIndex: "timezone" },
-          {
-            title: "Status",
-            render: (_: unknown, b) => (
-              <div>
-                {b.isMain ? <Tag color="gold">Main</Tag> : null}
-                {b.isActive ? (
-                  <Tag color="green">Active</Tag>
-                ) : (
-                  <Tag>Switched off</Tag>
-                )}
-                {b.dayOpen ? <Tag color="blue">Day open</Tag> : null}
-              </div>
-            ),
-          },
-          {
-            title: "",
-            align: "right",
-            render: (_: unknown, b) => (
-              <div className="flex justify-end gap-2">
+      {list.isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : null}
+      {list.data ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Kpi
+            label="Active branches"
+            value={list.data.filter((b) => b.isActive).length}
+            sub={
+              <span className="text-xs text-muted-foreground">
+                {list.data.length - list.data.filter((b) => b.isActive).length}{" "}
+                switched off
+              </span>
+            }
+          />
+          <Kpi
+            label="Days open now"
+            value={list.data.filter((b) => b.dayOpen).length}
+          />
+          <Kpi
+            label="Cash across branches"
+            value={cash.data ? cedis(grandTotal(cash.data.branches)) : "—"}
+            sub={
+              cash.data ? (
+                <span className="text-xs text-muted-foreground">
+                  as of {clock(cash.data.asOf)}
+                </span>
+              ) : undefined
+            }
+          />
+          <Kpi
+            label="Time zones"
+            value={new Set(list.data.map((b) => b.timezone)).size}
+          />
+        </div>
+      ) : null}
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {(list.data ?? []).map((b) => {
+          const c = cashById.get(b.id);
+          return (
+            <li
+              key={b.id}
+              className={`rounded-xl border border-border bg-card ${b.isActive ? "" : "opacity-70"}`}
+            >
+              <Link
+                to={paths.people.branch.to(b.id)}
+                className="block rounded-t-xl p-4 hover:bg-muted/40"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-navy text-white">
+                      <Building2 className="size-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{b.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {b.code} · {b.timezone}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="mt-2 size-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {b.isMain ? <Chip tone="amber">Main</Chip> : null}
+                  {b.isActive ? (
+                    <Chip tone="green">Active</Chip>
+                  ) : (
+                    <Chip>Switched off</Chip>
+                  )}
+                  {b.dayOpen ? <Chip tone="sky">Day open</Chip> : null}
+                </div>
+                {c ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Cash{" "}
+                    <span className="font-semibold text-foreground tabular-nums">
+                      {cedis(c.cashValue)}
+                    </span>
+                  </p>
+                ) : null}
+              </Link>
+              <div className="flex justify-end gap-2 border-t border-border px-3 py-2">
                 <Button
                   variant="secondary"
                   onClick={() => setEditing({ branch: b })}
@@ -94,10 +147,10 @@ export default function BranchesPage() {
                   </Button>
                 ) : null}
               </div>
-            ),
-          },
-        ]}
-      />
+            </li>
+          );
+        })}
+      </ul>
       <BranchModal
         open={!!editing}
         branch={editing?.branch ?? null}

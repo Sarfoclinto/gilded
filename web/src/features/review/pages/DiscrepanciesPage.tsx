@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Alert, Drawer, Modal, Segmented, Table } from "antd";
+import { Alert, Drawer, Modal, Segmented } from "antd";
+import { SearchIcon } from "lucide-react";
+import { useBranchNames } from "@/features/branches/api";
+import { Kpi } from "@/features/dashboard/charts";
+import { EmptyState, Pager } from "@/shared/ui/DataTable";
 import { cedis } from "@/features/calculator/format";
 import { when } from "@/features/transactions/format";
 import { Link } from "react-router-dom";
@@ -18,6 +22,16 @@ import {
   kindLabel,
   resolutionLabel,
 } from "../labels";
+import {
+  direction,
+  filterCases,
+  isClosed,
+  NO_CASE_FILTERS,
+  openFor,
+  summarizeCases,
+  type CaseFilters,
+  type CaseSort,
+} from "../model";
 import { RESOLUTION_TYPES, type Case } from "../schemas";
 
 type View = "active" | "resolved" | "all";
@@ -103,7 +117,11 @@ function CaseDrawer({
               </div>
               <div>
                 <dt className="text-muted-foreground">Difference</dt>
-                <dd className="font-semibold">{figure(c, c.difference)}</dd>
+                <dd
+                  className={`font-semibold ${direction(c) === "short" ? "text-red-700" : direction(c) === "over" ? "text-emerald-700" : ""}`}
+                >
+                  {figure(c, c.difference)}
+                </dd>
               </div>
             </dl>
             {c.reportedExplanation ? (
@@ -270,79 +288,249 @@ function CaseDrawer({
   );
 }
 
+const PAGE = 12;
+const SORTS: [CaseSort, string][] = [
+  ["newest", "Newest"],
+  ["oldest", "Oldest"],
+  ["biggest", "Biggest"],
+];
+
+function DiffFigure({ c }: { c: Case }) {
+  const d = direction(c);
+  const text =
+    c.difference == null
+      ? "—"
+      : `${d === "over" ? "+" : ""}${figure(c, c.difference)}`;
+  return (
+    <div className="text-right">
+      <p
+        className={`tnum text-lg font-bold ${d === "short" ? "text-red-700" : d === "over" ? "text-emerald-700" : ""}`}
+      >
+        {text}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {d === "short" ? "short" : d === "over" ? "over" : ""}
+      </p>
+    </div>
+  );
+}
+
 export default function DiscrepanciesPage() {
   const [view, setView] = useState<View>("active");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [f, setF] = useState<CaseFilters>(NO_CASE_FILTERS);
+  const [page, setPage] = useState(1);
   const list = useCases({ status: view });
+  const names = useBranchNames();
+  const all = (list.data ?? []).filter((c) =>
+    view === "resolved" ? isClosed(c) : true,
+  );
+  const stats = summarizeCases(all);
+  const rows = filterCases(all, f);
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  const cur = Math.min(page, pages);
+  const shown = rows.slice((cur - 1) * PAGE, cur * PAGE);
+  const set = (patch: Partial<CaseFilters>) => {
+    setF({ ...f, ...patch });
+    setPage(1);
+  };
+  const kinds = [...new Set(all.map((c) => c.kind))];
   return (
     <div className="mx-auto max-w-5xl space-y-4 p-4 pb-8">
       <PageHeader
-        title="Review"
+        title="Differences"
         subtitle="Differences found when counting, closing or receiving, waiting for a decision."
       />
-      <div className="sticky top-0 z-10 -mx-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur">
-        <Segmented
-          value={view}
-          onChange={(v) => setView(v as View)}
-          options={[
-            { label: "Needs attention", value: "active" },
-            { label: "Closed", value: "resolved" },
-            { label: "All", value: "all" },
-          ]}
-        />
-      </div>
+      <Segmented
+        value={view}
+        onChange={(v) => {
+          setView(v as View);
+          setPage(1);
+        }}
+        options={[
+          { label: "Needs attention", value: "active" },
+          { label: "Closed", value: "resolved" },
+          { label: "All", value: "all" },
+        ]}
+      />
       {list.error ? (
         <Alert type="error" showIcon title={errorMessage(list.error)} />
       ) : null}
-      <Table<Case>
-        rowKey="id"
-        size="middle"
-        loading={list.isLoading}
-        dataSource={(list.data ?? []).filter((c) =>
-          view === "resolved"
-            ? c.status === "resolved" || c.status === "written_off"
-            : true,
-        )}
-        pagination={{ pageSize: 15, hideOnSinglePage: true }}
-        scroll={{ x: 720 }}
-        locale={{
-          emptyText: view === "active" ? "Nothing needs attention" : "No cases",
-        }}
-        onRow={(c) => ({
-          onClick: () => setOpenId(c.id),
-          style: { cursor: "pointer" },
-        })}
-        columns={[
-          {
-            title: "Case",
-            render: (_: unknown, c) => (
-              <div>
-                <div className="font-medium">{kindLabel[c.kind] ?? c.kind}</div>
-                <div className="text-xs text-muted-foreground">
-                  {c.asset ? (assetLabel[c.asset] ?? c.asset) : "General"}
+      {view !== "resolved" && list.data ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Kpi
+            label="Waiting"
+            value={stats.live}
+            sub={
+              <span className="text-xs text-muted-foreground">
+                {stats.untouched} untouched · {stats.beingLookedAt} being looked
+                at
+              </span>
+            }
+          />
+          <Kpi
+            label="Net cash difference"
+            value={`${stats.netCash > 0 ? "+" : ""}${cedis(stats.netCash)}`}
+            sub={
+              <span className="text-xs text-muted-foreground">
+                {stats.netCash < 0
+                  ? "short overall"
+                  : stats.netCash > 0
+                    ? "over overall"
+                    : "balanced"}
+              </span>
+            }
+          />
+          <Kpi
+            label="Oldest waiting"
+            value={
+              stats.oldestDays == null
+                ? "—"
+                : `${stats.oldestDays} day${stats.oldestDays === 1 ? "" : "s"}`
+            }
+          />
+          <Kpi label="Shown" value={rows.length} />
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-52 flex-1">
+          <SearchIcon
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            className="min-h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            placeholder="Search branch, transfer, person or explanation"
+            value={f.q}
+            onChange={(e) => set({ q: e.target.value })}
+          />
+        </div>
+        <select
+          aria-label="Branch"
+          className="min-h-11 rounded-lg border border-border bg-card px-3 text-sm"
+          value={f.branch}
+          onChange={(e) => set({ branch: e.target.value })}
+        >
+          <option value="">Every branch</option>
+          {Object.entries(names).map(([id, n]) => (
+            <option key={id} value={id}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Kind"
+          className="min-h-11 rounded-lg border border-border bg-card px-3 text-sm"
+          value={f.kind}
+          onChange={(e) => set({ kind: e.target.value })}
+        >
+          <option value="">Every kind</option>
+          {kinds.map((k) => (
+            <option key={k} value={k}>
+              {kindLabel[k] ?? k}
+            </option>
+          ))}
+        </select>
+        <Segmented
+          value={f.sort}
+          onChange={(v) => set({ sort: v as CaseSort })}
+          options={SORTS.map(([value, label]) => ({ value, label }))}
+        />
+      </div>
+
+      {list.isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : null}
+      {!list.isLoading && rows.length === 0 ? (
+        <EmptyState
+          title={
+            all.length
+              ? "Nothing matches"
+              : view === "active"
+                ? "Nothing needs attention"
+                : "No cases"
+          }
+          hint={
+            all.length
+              ? "Try another search or filter."
+              : view === "active"
+                ? "Every difference has been looked at."
+                : undefined
+          }
+          action={
+            all.length ? (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setF(NO_CASE_FILTERS);
+                  setPage(1);
+                }}
+              >
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <ul className="space-y-3">
+          {shown.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => setOpenId(c.id)}
+                className="block w-full rounded-xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {kindLabel[c.kind] ?? c.kind}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {c.branchName}
+                      {c.asset ? ` · ${assetLabel[c.asset] ?? c.asset}` : ""}
+                      {c.businessDate ? ` · day ${c.businessDate}` : ""}
+                    </p>
+                  </div>
+                  <DiffFigure c={c} />
                 </div>
-              </div>
-            ),
-          },
-          { title: "Branch", dataIndex: "branchName" },
-          {
-            title: "Difference",
-            align: "right",
-            render: (_: unknown, c) => (
-              <span className="tnum">{figure(c, c.difference)}</span>
-            ),
-          },
-          { title: "Opened", render: (_: unknown, c) => when(c.openedAt) },
-          {
-            title: "Looked after by",
-            render: (_: unknown, c) => c.assignedTo?.displayName ?? "—",
-          },
-          {
-            title: "Status",
-            render: (_: unknown, c) => <CaseStatusChip status={c.status} />,
-          },
-        ]}
-      />
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <CaseStatusChip status={c.status} />
+                  <span className="text-xs text-muted-foreground">
+                    {isClosed(c)
+                      ? `Closed ${c.resolvedAt ? when(c.resolvedAt) : ""}`
+                      : openFor(c.openedAt)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {c.assignedTo
+                      ? `Looked after by ${c.assignedTo.displayName}`
+                      : isClosed(c)
+                        ? ""
+                        : "Nobody has taken it yet"}
+                  </span>
+                  {c.transferReference ? (
+                    <span className="text-xs text-muted-foreground">
+                      Transfer {c.transferReference}
+                    </span>
+                  ) : null}
+                </div>
+                {c.reportedExplanation ? (
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    “{c.reportedExplanation}”
+                  </p>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {rows.length > PAGE ? (
+        <Pager
+          text={`${(cur - 1) * PAGE + 1}–${Math.min(rows.length, cur * PAGE)} of ${rows.length}`}
+          page={cur}
+          pages={pages}
+          onPage={setPage}
+        />
+      ) : null}
       <CaseDrawer id={openId} onClose={() => setOpenId(null)} />
     </div>
   );

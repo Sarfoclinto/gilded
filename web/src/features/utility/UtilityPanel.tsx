@@ -3,6 +3,9 @@ import { Drawer, Segmented } from "antd";
 import { Calculator, X } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { CalculatorBody } from "@/features/calculator/CalculatorPage";
+import { CashBody } from "@/features/cash/CashBody";
+import { useHasPermission } from "@/features/auth/useHasPermission";
+import { PERMISSIONS } from "@/config/permissions";
 import { PayoutPanel } from "@/features/calculator/PayoutPanel";
 import { TextField } from "@/shared/ui/TextField";
 import { decimalOnly } from "@/shared/lib/numbers";
@@ -33,16 +36,18 @@ function NominationsBody() {
 
 /** The panel content: the same calculators as the pages, working beside whatever page is open. Nothing here saves by itself. */
 export function UtilityContent() {
-  const [tab, setTab] = useState<"calculator" | "notes">("calculator");
+  const [tab, setTab] = useState<"calculator" | "notes" | "cash">("calculator");
+  const canSeeCash = useHasPermission(PERMISSIONS.DAYS_READ);
   return (
     <div className="space-y-4 p-4">
       <Segmented
         block
         value={tab}
-        onChange={(v) => setTab(v as "calculator" | "notes")}
+        onChange={(v) => setTab(v as "calculator" | "notes" | "cash")}
         options={[
           { label: "Calculator", value: "calculator" },
           { label: "Notes", value: "notes" },
+          ...(canSeeCash ? [{ label: "Cash", value: "cash" }] : []),
         ]}
       />
       {/* Both stay mounted so switching tabs keeps what was typed. */}
@@ -54,6 +59,8 @@ export function UtilityContent() {
       <div hidden={tab !== "notes"}>
         <NominationsBody />
       </div>
+      {/* Mounted only while looked at, so opening the tab asks for fresh figures. */}
+      {tab === "cash" && canSeeCash && <CashBody />}
     </div>
   );
 }

@@ -105,3 +105,90 @@ export function useUpdateBranch() {
     successMessage: "Saved",
   });
 }
+
+// ---------------------------------------------------------------- one branch at a glance (admin)
+const num = z.coerce.string();
+export const branchOverviewSchema = z.object({
+  asOf: z.string(),
+  branch: managedBranchSchema,
+  workers: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      username: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+      role: z.object({ key: z.string(), name: z.string() }),
+      isPrimary: z.boolean().optional(),
+      lastLoginAt: z.string().nullable().optional(),
+    }),
+  ),
+  snapshot: z.object({
+    cash: num,
+    goodsTop: num,
+    goodsDown: num,
+    goodsValue: num,
+    debt: num,
+    payable: num,
+    custodyTop: num,
+  }),
+  today: z.object({
+    count: z.coerce.number(),
+    paid: num,
+    voided: z.coerce.number(),
+  }),
+  openDay: z
+    .object({
+      id: z.string(),
+      businessDate: z.string(),
+      openedAt: z.string(),
+      openedBy: z
+        .object({ id: z.string(), displayName: z.string() })
+        .nullable()
+        .optional(),
+    })
+    .nullable(),
+  attention: z.object({
+    signoffPending: z.coerce.number(),
+    openDifferences: z.coerce.number(),
+    transfersComing: z.coerce.number(),
+    transfersGoing: z.coerce.number(),
+    moneyWaiting: z.coerce.number(),
+    moneyToSend: z.coerce.number(),
+  }),
+  debts: z.object({ owedToUs: num, weOwe: num, overdue: z.coerce.number() }),
+  recentDays: z.array(
+    z.object({
+      id: z.string(),
+      date: z.string(),
+      status: z.string(),
+      signoff: z.string().nullable().optional(),
+      differences: z.coerce.number(),
+      cashDifference: num.nullable().optional(),
+    }),
+  ),
+  recent: z.array(
+    z.object({
+      id: z.string(),
+      reference: z.string().nullable().optional(),
+      customerName: z.string().nullable().optional(),
+      payable: num,
+      status: z.string(),
+      capturedAt: z.string(),
+    }),
+  ),
+});
+export type BranchOverview = z.infer<typeof branchOverviewSchema>;
+
+export function useBranchOverview(id: string | undefined) {
+  return useApiQuery({
+    queryKey: managedBranchKeys.custom("overview", { id }),
+    queryFn: ({ signal }) =>
+      request(
+        { method: "get", url: `/branches/${id}/overview`, signal },
+        branchOverviewSchema,
+      ),
+    enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+}

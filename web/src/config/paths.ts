@@ -38,6 +38,11 @@ const paths = {
     },
     users: { href: "/people/users", label: "Users" },
     branches: { href: "/people/branches", label: "Branches" },
+    branch: {
+      href: "/people/branches/:id",
+      to: (id: string) => `/people/branches/${encodeURIComponent(id)}`,
+      label: "Branch",
+    },
   },
   review: {
     cases: { href: "/review/cases", label: "Differences" },

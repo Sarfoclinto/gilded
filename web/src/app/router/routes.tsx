@@ -47,6 +47,9 @@ const UsersPage = lazy(() => import("@/features/users/pages/UsersPage"));
 const BranchesPage = lazy(
   () => import("@/features/branches/pages/BranchesPage"),
 );
+const BranchDetailPage = lazy(
+  () => import("@/features/branches/pages/BranchDetailPage"),
+);
 const DiscrepanciesPage = lazy(
   () => import("@/features/review/pages/DiscrepanciesPage"),
 );
@@ -159,6 +162,11 @@ export const appRoutes: AppRoute[] = [
   {
     path: paths.people.branches.href,
     element: <BranchesPage />,
+    access: { permission: PERMISSIONS.BRANCHES_MANAGE },
+  },
+  {
+    path: paths.people.branch.href,
+    element: <BranchDetailPage />,
     access: { permission: PERMISSIONS.BRANCHES_MANAGE },
   },
   {

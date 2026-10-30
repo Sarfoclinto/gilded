@@ -110,6 +110,25 @@ public class PeopleServiceTests
     }
 
     [Fact]
+    public async Task Branch_overview_needs_reports_and_a_branch_the_caller_may_see()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _svc.BranchOverviewAsync(new Ctx([Permissions.DaysRead]), Tarkwa, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.BranchOverviewAsync(new Ctx([Permissions.ReportsRead]), Guid.NewGuid(), default));
+        await _svc.BranchOverviewAsync(new Ctx([Permissions.ReportsRead]), Tarkwa, default);
+    }
+
+    [Fact]
+    public async Task Cash_overview_is_limited_to_the_callers_branches()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _svc.CashOverviewAsync(new Ctx([]), null, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.CashOverviewAsync(new Ctx([Permissions.DaysRead]), Guid.NewGuid(), default));
+        await _svc.CashOverviewAsync(new Ctx([Permissions.DaysRead]), null, default);
+        Assert.Equal([Tarkwa], _store.LastScope);
+        await _svc.CashOverviewAsync(new Ctx([Permissions.DaysRead]), Tarkwa, default);
+        Assert.Equal(Tarkwa, _store.LastBranch);
+    }
+
+    [Fact]
     public void Standard_roles_get_the_new_permissions_as_agreed()
     {
         var roles = Permissions.DefaultRoles;
@@ -142,6 +161,8 @@ public class PeopleServiceTests
         public string? LastPayload;
         public string MyHash = "";
         public string? LastPage;
+        public IReadOnlyCollection<Guid>? LastScope;
+        public Guid? LastBranch;
 
         public Task<string> ListUsersAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> ListRolesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
@@ -159,5 +180,7 @@ public class PeopleServiceTests
         public Task<string> ListBranchesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> CreateBranchAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<string> UpdateBranchAsync(ICurrentContext me, Guid id, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult("{}"); }
+        public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
     }
 }

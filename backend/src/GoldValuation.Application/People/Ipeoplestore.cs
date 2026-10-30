@@ -26,4 +26,8 @@ public interface IPeopleStore
     Task<string> ListBranchesAsync(ICurrentContext me, CancellationToken ct);
     Task<DbResult> CreateBranchAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> UpdateBranchAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct);
+    Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct);
+
+    /// <summary>Cash by branch for the cash lookup. `scope` is the branches the caller may see; `branchId` narrows it to one.</summary>
+    Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct);
 }
