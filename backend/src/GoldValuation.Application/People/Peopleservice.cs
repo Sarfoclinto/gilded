@@ -16,7 +16,7 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
     public const int MinPasswordLength = 10;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
     private static readonly string[] UserFields = ["displayName", "email", "phone", "roleKey", "branchIds", "overrides", "isActive"];
-    private static readonly string[] CustomerFields = ["name", "phone", "notes"];
+    private static readonly string[] CustomerFields = ["name", "phone", "notes", "expected"];
     private static readonly string[] BranchFields = ["name", "timezone", "isActive"];
 
     // ---------------------------------------------------------------- users

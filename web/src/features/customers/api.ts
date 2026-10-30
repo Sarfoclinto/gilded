@@ -163,7 +163,12 @@ export function useUpdateCustomer() {
     CustomerDetail,
     {
       id: string;
-      changes: { name?: string; phone?: string; notes?: string | null };
+      changes: {
+        name?: string;
+        phone?: string;
+        notes?: string | null;
+        expected?: { name?: string; phone?: string; notes?: string | null };
+      };
     }
   >({
     mutationFn: ({ id, changes }) =>

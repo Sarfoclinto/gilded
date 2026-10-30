@@ -27,6 +27,8 @@ import {
 import { TransactionFilters } from "../TransactionFilters";
 import { fromOutbox, fromServer } from "../view";
 import { TX_CREATE } from "@/app/outbox";
+import { lineTotal } from "@gold/core";
+import { OUTBOX, type MovementCommand } from "@/features/drawer/schemas";
 
 const columns = transactionColumns();
 
@@ -119,28 +121,59 @@ export default function TransactionsPage() {
         </Card>
       ) : null}
 
-      {outbox.failed.map((e) => (
-        <Card
-          key={e.id}
-          className="space-y-2 border-red-500/50 bg-red-500/10"
-          role="alert"
-        >
-          <p className="text-sm font-medium">
-            The server refused one transaction
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {e.lastError?.message ?? "Unknown reason"}
-          </p>
-          <div className="flex gap-2">
-            <Link to={paths.transactions.detail.to(e.id)}>
-              <Button variant="secondary">View</Button>
-            </Link>
-            <Button variant="secondary" onClick={() => void outbox.retry(e.id)}>
-              Try again
-            </Button>
-          </div>
-        </Card>
-      ))}
+      {outbox.failed.map((e) => {
+        const move =
+          e.type === OUTBOX.MOVEMENT ? (e.payload as MovementCommand) : null;
+        return (
+          <Card
+            key={e.id}
+            className="space-y-2 border-red-500/50 bg-red-500/10"
+            role="alert"
+          >
+            <p className="text-sm font-medium">
+              {move
+                ? `The server refused a cash ${move.kind === "topup" ? "top-up" : "take-out"}`
+                : "The server refused one transaction"}
+            </p>
+            {move ? (
+              <p className="tnum text-xs">
+                {cedis(lineTotal(move.lines ?? {}))} · {move.note}
+              </p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              {e.lastError?.message ?? "Unknown reason"}
+            </p>
+            <div className="flex gap-2">
+              {move ? null : (
+                <Link to={paths.transactions.detail.to(e.id)}>
+                  <Button variant="secondary">View</Button>
+                </Link>
+              )}
+              <Button
+                variant="secondary"
+                onClick={() => void outbox.retry(e.id)}
+              >
+                Try again
+              </Button>
+              {move ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Remove this entry for good? Only do this if the cash did not really move, or you will record it another way.",
+                      )
+                    )
+                      void outbox.discard(e.id);
+                  }}
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+          </Card>
+        );
+      })}
 
       <div className="tnum flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm text-muted-foreground">
         <span>
