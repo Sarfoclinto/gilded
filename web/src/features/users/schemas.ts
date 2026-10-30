@@ -23,11 +23,20 @@ export const managedUserSchema = z.object({
 });
 export type ManagedUser = z.infer<typeof managedUserSchema>;
 
+export const roleMemberSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  username: z.string(),
+  isActive: z.boolean(),
+});
 export const roleSchema = z.object({
   key: z.string(),
   name: z.string(),
   isSystem: z.boolean(),
+  description: z.string().nullable().optional(),
   permissions: z.array(z.string()),
+  activeMembers: z.number().optional().default(0),
+  members: z.array(roleMemberSchema).optional().default([]),
 });
 export type Role = z.infer<typeof roleSchema>;
 

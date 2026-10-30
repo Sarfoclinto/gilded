@@ -20,6 +20,7 @@ import {
   detailLines,
   groupByDay,
   NO_FILTERS,
+  summaryOf,
   toneOf,
   toCsv,
   toQuery,
@@ -88,7 +89,7 @@ function DetailDrawer({
       {e ? (
         <div className="space-y-4">
           <div>
-            <p className="text-lg font-semibold">{e.summary}</p>
+            <p className="text-lg font-semibold">{summaryOf(e)}</p>
             <p className="text-sm text-muted-foreground">
               {new Date(e.at).toLocaleString("en-GH", {
                 dateStyle: "full",
@@ -461,7 +462,7 @@ export default function AuditPage() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">
-                        {e.summary}
+                        {summaryOf(e)}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {e.actor?.displayName ?? "The system"}

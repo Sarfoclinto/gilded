@@ -7,6 +7,9 @@ namespace GoldValuation.Application.People;
 public interface IPeopleStore
 {
     Task<string> ListUsersAsync(ICurrentContext me, CancellationToken ct);
+    Task<DbResult> CreateRoleAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
+    Task<string> UpdateRoleAsync(ICurrentContext me, string key, string payloadJson, CancellationToken ct);
+    Task DeleteRoleAsync(ICurrentContext me, string key, CancellationToken ct);
     Task<string> ListRolesAsync(ICurrentContext me, CancellationToken ct);
     Task<DbResult> CreateUserAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> UpdateUserAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct);

@@ -32,6 +32,45 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
         return store.ListRolesAsync(me, ct);
     }
 
+    private static readonly string[] RoleFields = ["name", "description", "permissions"];
+
+    private static void CheckPermissions(IEnumerable<string>? permissions)
+    {
+        var list = permissions?.ToList() ?? [];
+        if (list.Count == 0) throw AppException.Invalid("Choose at least one thing this role allows.", new Dictionary<string, string[]> { ["permissions"] = ["Choose at least one."] });
+        var unknown = list.Where(p => !Permissions.All.Contains(p)).ToList();
+        if (unknown.Count > 0) throw AppException.Invalid($"Not a permission: {string.Join(", ", unknown)}.", new Dictionary<string, string[]> { ["permissions"] = [$"Unknown: {string.Join(", ", unknown)}"] });
+    }
+
+    /// <summary>A company's own role. The standard roles are fixed; copy one to start from it. Needs users:manage.</summary>
+    public Task<DbResult> CreateRoleAsync(ICurrentContext me, CreateRoleCommand c, string? key, CancellationToken ct)
+    {
+        me.Require(Permissions.UsersManage);
+        if (c.Id is not { } id) throw AppException.Invalid("An id is needed.", new Dictionary<string, string[]> { ["id"] = ["Send a new uuid as id."] });
+        KeyMatches(key, id);
+        CheckPermissions(c.Permissions);
+        return store.CreateRoleAsync(me, JsonSerializer.Serialize(c, Json), ct);
+    }
+
+    /// <summary>Rename a custom role or change what it allows (its holders are signed out so the change is real at once). Needs users:manage.</summary>
+    public Task<string> UpdateRoleAsync(ICurrentContext me, string roleKey, JsonObject body, CancellationToken ct)
+    {
+        me.Require(Permissions.UsersManage);
+        var payload = new JsonObject();
+        foreach (var f in RoleFields) if (body.TryGetPropertyValue(f, out var v)) payload[f] = v?.DeepClone();
+        if (payload.Count == 0) throw AppException.Invalid("Nothing to change.");
+        if (payload["permissions"] is JsonArray a) CheckPermissions(a.Select(x => x?.GetValue<string>() ?? ""));
+        else if (payload.ContainsKey("permissions")) throw AppException.Invalid("Permissions must be a list.");
+        return store.UpdateRoleAsync(me, roleKey, payload.ToJsonString(), ct);
+    }
+
+    /// <summary>Delete a custom role nobody holds. Needs users:manage.</summary>
+    public Task DeleteRoleAsync(ICurrentContext me, string roleKey, CancellationToken ct)
+    {
+        me.Require(Permissions.UsersManage);
+        return store.DeleteRoleAsync(me, roleKey, ct);
+    }
+
     public Task<DbResult> CreateUserAsync(ICurrentContext me, CreateUserCommand c, string? key, CancellationToken ct)
     {
         me.Require(Permissions.UsersManage);

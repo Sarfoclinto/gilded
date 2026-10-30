@@ -13,6 +13,15 @@ export const CATEGORIES: { key: string; label: string }[] = [
   { key: "customer", label: "Customers" },
   { key: "setup", label: "Branches" },
 ];
+const WORDS: Record<string, string> = {
+  "role.created": "Created a role",
+  "role.updated": "Changed a role",
+  "role.deleted": "Deleted a role",
+};
+/** The sentence for an event: the server's wording, with the few actions it has only a generic phrase for tidied. */
+export const summaryOf = (e: Pick<AuditEvent, "action" | "summary">) =>
+  WORDS[e.action] ?? e.summary;
+
 export const categoryLabel = (k: string) =>
   CATEGORIES.find((c) => c.key === k)?.label ?? k;
 
@@ -197,7 +206,7 @@ export function toCsv(items: AuditEvent[]): string {
       e.branch?.name ?? "",
       categoryLabel(e.category),
       e.action,
-      e.summary,
+      summaryOf(e),
       e.amount ?? "",
     ]
       .map(q)

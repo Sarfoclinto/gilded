@@ -7,6 +7,7 @@ import {
   roleSchema,
   type CreateUserInput,
   type ManagedUser,
+  type Role,
   type UpdateUserInput,
 } from "./schemas";
 
@@ -30,7 +31,7 @@ export function useRoles() {
     queryKey: roleKeys.list({}),
     queryFn: ({ signal }) =>
       request({ method: "get", url: "/roles", signal }, z.array(roleSchema)),
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 
@@ -98,4 +99,68 @@ export function useChangeMyPassword() {
       successMessage: "Password changed",
     },
   );
+}
+
+// ---------------------------------------------------------------- roles (needs users:manage)
+export function useCreateRole() {
+  return useApiMutation<
+    Role,
+    {
+      id: string;
+      name: string;
+      description?: string | null;
+      permissions: string[];
+    }
+  >({
+    mutationFn: (cmd) =>
+      request(
+        {
+          method: "post",
+          url: "/roles",
+          data: cmd,
+          headers: { "Idempotency-Key": cmd.id },
+        },
+        roleSchema,
+      ),
+    invalidates: [roleKeys.all],
+    silent: true,
+  });
+}
+
+export function useUpdateRole() {
+  return useApiMutation<
+    Role,
+    {
+      key: string;
+      changes: {
+        name?: string;
+        description?: string | null;
+        permissions?: string[];
+      };
+    }
+  >({
+    mutationFn: ({ key, changes }) =>
+      request(
+        {
+          method: "patch",
+          url: `/roles/${encodeURIComponent(key)}`,
+          data: changes,
+        },
+        roleSchema,
+      ),
+    invalidates: [roleKeys.all, userKeys.all],
+    silent: true,
+  });
+}
+
+export function useDeleteRole() {
+  return useApiMutation<void, { key: string }>({
+    mutationFn: ({ key }) =>
+      requestVoid({
+        method: "delete",
+        url: `/roles/${encodeURIComponent(key)}`,
+      }),
+    invalidates: [roleKeys.all],
+    silent: true,
+  });
 }

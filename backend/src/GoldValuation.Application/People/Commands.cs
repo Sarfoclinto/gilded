@@ -15,4 +15,6 @@ public sealed record CreateCustomerCommand(Guid? Id, string? Name, string? Phone
 
 public sealed record MergeCustomersCommand(Guid? RemoveId);
 
+public sealed record CreateRoleCommand(Guid? Id, string? Name, string? Description, List<string>? Permissions);
+
 public sealed record CreateBranchCommand(Guid? Id, string? Code, string? Name, string? Timezone);

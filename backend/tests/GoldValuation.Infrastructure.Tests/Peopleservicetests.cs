@@ -147,6 +147,30 @@ public class PeopleServiceTests
     }
 
     [Fact]
+    public async Task Roles_need_users_manage_and_only_known_permissions()
+    {
+        var admin = new Ctx([Permissions.UsersManage]);
+        var id = Guid.NewGuid();
+        var ok = new CreateRoleCommand(id, "Shift Lead", null, [Permissions.DaysRead, Permissions.DaysManage]);
+        await Assert.ThrowsAsync<AppException>(() => _svc.CreateRoleAsync(new Ctx([Permissions.DaysRead]), ok, id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.CreateRoleAsync(admin, ok with { Permissions = [] }, id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.CreateRoleAsync(admin, ok with { Permissions = ["made:up"] }, id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.CreateRoleAsync(admin, ok, Guid.NewGuid().ToString(), default));
+        await _svc.CreateRoleAsync(admin, ok, id.ToString(), default);
+        Assert.Contains("days:manage", _store.LastPayload);
+
+        await Assert.ThrowsAsync<AppException>(() => _svc.UpdateRoleAsync(admin, "shift-lead", new System.Text.Json.Nodes.JsonObject(), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.UpdateRoleAsync(admin, "shift-lead", System.Text.Json.Nodes.JsonNode.Parse("{\"permissions\":[\"made:up\"]}")!.AsObject(), default));
+        await _svc.UpdateRoleAsync(admin, "shift-lead", System.Text.Json.Nodes.JsonNode.Parse("{\"name\":\"Lead\",\"evil\":1}")!.AsObject(), default);
+        Assert.DoesNotContain("evil", _store.LastPayload);
+
+        await Assert.ThrowsAsync<AppException>(() => _svc.DeleteRoleAsync(new Ctx([]), "shift-lead", default));
+        await _svc.DeleteRoleAsync(admin, "shift-lead", default);
+        Assert.Equal("shift-lead", _store.LastDeletedRole);
+        Assert.Contains(Permissions.AuditRead, Permissions.All);
+    }
+
+    [Fact]
     public void Standard_roles_get_the_new_permissions_as_agreed()
     {
         var roles = Permissions.DefaultRoles;
@@ -198,6 +222,10 @@ public class PeopleServiceTests
         public Task<string> ListBranchesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> CreateBranchAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<string> UpdateBranchAsync(ICurrentContext me, Guid id, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult("{}"); }
+        public Task<DbResult> CreateRoleAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
+        public Task<string> UpdateRoleAsync(ICurrentContext me, string key, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult("{}"); }
+        public string? LastDeletedRole;
+        public Task DeleteRoleAsync(ICurrentContext me, string key, CancellationToken ct) { LastDeletedRole = key; return Task.CompletedTask; }
         public string? LastAudit; public IReadOnlyCollection<Guid>? LastAuditScope = [];
         public Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string f, CancellationToken ct) { LastAudit = f; LastAuditScope = scope; return Task.FromResult("{}"); }
         public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");

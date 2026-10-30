@@ -16,6 +16,15 @@ public static class PeopleEndpoints
         // ---- users ----
         api.MapGet("/users", async (ICurrentContext me, PeopleService svc, CancellationToken ct) => Data(await svc.ListUsersAsync(me, ct)));
         api.MapGet("/roles", async (ICurrentContext me, PeopleService svc, CancellationToken ct) => Data(await svc.ListRolesAsync(me, ct)));
+        api.MapPost("/roles", async (CreateRoleCommand body, HttpContext http, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Created(await svc.CreateRoleAsync(me, body, Key(http), ct)));
+        api.MapPatch("/roles/{key}", async (string key, JsonObject body, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Data(await svc.UpdateRoleAsync(me, key, body, ct)));
+        api.MapDelete("/roles/{key}", async (string key, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+        {
+            await svc.DeleteRoleAsync(me, key, ct);
+            return Results.NoContent();
+        });
         api.MapPost("/users", async (CreateUserCommand body, HttpContext http, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Created(await svc.CreateUserAsync(me, body, Key(http), ct)));
         api.MapPatch("/users/{id:guid}", async (Guid id, JsonObject body, ICurrentContext me, PeopleService svc, CancellationToken ct) =>

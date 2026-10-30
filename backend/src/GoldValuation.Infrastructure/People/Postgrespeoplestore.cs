@@ -14,6 +14,15 @@ namespace GoldValuation.Infrastructure.People;
 public sealed class PostgresPeopleStore(NpgsqlDataSource dataSource, ILogger<PostgresPeopleStore> log) : IPeopleStore
 {
     public async Task<string> ListUsersAsync(ICurrentContext me, CancellationToken ct) => (await Scalar(me, "select gold.users_admin_json()", ct))!;
+    public async Task<DbResult> CreateRoleAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
+        Result(await Scalar(me, "select gold.create_role($1)", ct, Json(payloadJson)));
+
+    public async Task<string> UpdateRoleAsync(ICurrentContext me, string key, string payloadJson, CancellationToken ct) =>
+        (await Scalar(me, "select gold.update_role($1, $2)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = key }, Json(payloadJson)))!;
+
+    public async Task DeleteRoleAsync(ICurrentContext me, string key, CancellationToken ct) =>
+        await Scalar(me, "select gold.delete_role($1)::text", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = key });
+
     public async Task<string> ListRolesAsync(ICurrentContext me, CancellationToken ct) => (await Scalar(me, "select gold.roles_json()", ct))!;
 
     public async Task<DbResult> CreateUserAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>

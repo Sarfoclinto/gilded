@@ -44,6 +44,7 @@ const CustomerDetailPage = lazy(
   () => import("@/features/customers/pages/CustomerDetailPage"),
 );
 const UsersPage = lazy(() => import("@/features/users/pages/UsersPage"));
+const RolesPage = lazy(() => import("@/features/roles/pages/RolesPage"));
 const BranchesPage = lazy(
   () => import("@/features/branches/pages/BranchesPage"),
 );
@@ -158,6 +159,11 @@ export const appRoutes: AppRoute[] = [
   {
     path: paths.people.users.href,
     element: <UsersPage />,
+    access: { permission: PERMISSIONS.USERS_MANAGE },
+  },
+  {
+    path: paths.people.roles.href,
+    element: <RolesPage />,
     access: { permission: PERMISSIONS.USERS_MANAGE },
   },
   {

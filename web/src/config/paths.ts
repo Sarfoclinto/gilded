@@ -37,6 +37,7 @@ const paths = {
       label: "Customer",
     },
     users: { href: "/people/users", label: "Users" },
+    roles: { href: "/people/roles", label: "Roles" },
     branches: { href: "/people/branches", label: "Branches" },
     branch: {
       href: "/people/branches/:id",

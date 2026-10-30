@@ -46,6 +46,13 @@ public static class Permissions
     /// <summary>Read the audit trail: who did what, when and where. Directors only.</summary>
     public const string AuditRead = "audit:read";
 
+    /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
+    public static IReadOnlySet<string> All { get; } = typeof(Permissions)
+        .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+        .Where(f => f is { IsLiteral: true, IsInitOnly: false } && f.FieldType == typeof(string))
+        .Select(f => (string)f.GetRawConstantValue()!)
+        .ToHashSet();
+
     private static readonly string[] Teller =
         [CalculatorUse, TransactionsRead, TransactionsCreate, DaysRead, DaysManage, DebtsRead, DebtsManage, CustomersRead,
          TransfersRead, TransfersCreate, TransfersReceive];

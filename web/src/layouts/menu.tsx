@@ -21,6 +21,7 @@ import {
   UploadIcon,
   WalletIcon,
   ShieldCheckIcon,
+  KeyRoundIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -221,6 +222,13 @@ export const appMenu: AppMenuItem[] = [
         label: link(paths.people.users.href, paths.people.users.label),
         title: paths.people.users.label,
         icon: <UserCogIcon className={icon} />,
+        permission: PERMISSIONS.USERS_MANAGE,
+      },
+      {
+        key: paths.people.roles.href,
+        label: link(paths.people.roles.href, paths.people.roles.label),
+        title: paths.people.roles.label,
+        icon: <KeyRoundIcon className={icon} />,
         permission: PERMISSIONS.USERS_MANAGE,
       },
       {
