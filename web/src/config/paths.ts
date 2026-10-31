@@ -9,6 +9,8 @@ const paths = {
   transactions: {
     list: { href: "/transactions", label: "Transactions" },
     create: { href: "/transactions/new", label: "New transaction" },
+    /** Purchases saved but not yet paid out (two-step payout). */
+    toPay: { href: "/transactions/to-pay", label: "To pay" },
     /** Buy the refined result of gold held as loan security. */
     createFromHeld: {
       to: (collateralId: string) =>

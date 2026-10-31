@@ -17,6 +17,7 @@ import { ExchangeModal } from "@/features/drawer/ExchangeModal";
 import { useBranchNames } from "@/features/branches/api";
 import { cedis, percent } from "@/features/calculator/format";
 import { StackBar } from "@/features/dashboard/charts";
+import { PayModal } from "../PayModal";
 import {
   ResolvePaymentModal,
   type ResolveTarget,
@@ -85,6 +86,7 @@ export default function TransactionDetailPage() {
   const [target, setTarget] = useState<ResolveTarget | null>(null);
   const [copied, setCopied] = useState(false);
   const [exchanging, setExchanging] = useState(false);
+  const [paying, setPaying] = useState(false);
   const canManageDay = useHasPermission(PERMISSIONS.DAYS_MANAGE);
   const { view: drawer } = useActiveDrawer();
   const activeBranch = useAuth((st) => st.activeBranchId);
@@ -151,6 +153,7 @@ export default function TransactionDetailPage() {
                 pendingMoney={
                   t.payments.filter((p) => p.status === "pending").length
                 }
+                toPay={t.payout.stage === "to_pay"}
               />
             )}
           </div>
@@ -209,11 +212,21 @@ export default function TransactionDetailPage() {
             Copy as text
           </Button>
           {canManageDay &&
+          t.payout.stage === "to_pay" &&
+          t.branchId === activeBranch &&
+          !cancelled &&
+          t.sync !== "failed" ? (
+            <Button onClick={() => setPaying(true)}>
+              Pay {cedis(t.payout.cashDue)}
+            </Button>
+          ) : null}
+          {canManageDay &&
           drawer.status === "open" &&
           drawer.dayId &&
           t.branchId === activeBranch &&
           !cancelled &&
-          t.sync !== "waiting" ? (
+          t.sync !== "waiting" &&
+          t.payout.stage === "paid" ? (
             <Button variant="secondary" onClick={() => setExchanging(true)}>
               <ArrowLeftRightIcon className="mr-1.5 size-4" aria-hidden />
               Change notes
@@ -280,6 +293,22 @@ export default function TransactionDetailPage() {
           </div>
         </div>
       ) : null}
+      {t.payout.stage === "to_pay" && !cancelled ? (
+        <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm print:hidden">
+          <p className="font-semibold">
+            Waiting to be paid: {cedis(t.payout.cashDue)}
+          </p>
+          <p className="text-muted-foreground">
+            The gold is recorded. The cash has not left the drawer yet; whoever
+            pays it out chooses the notes.
+          </p>
+        </div>
+      ) : t.payout.paidBy && !cancelled ? (
+        <p className="text-sm text-muted-foreground print:hidden">
+          Paid out by {t.payout.paidBy}
+          {t.payout.paidAt ? ` · ${when(t.payout.paidAt)}` : ""}
+        </p>
+      ) : null}
       {t.flags.length > 0 ? (
         <ul className="flex flex-wrap gap-2">
           {t.flags.map((f) => (
@@ -301,7 +330,9 @@ export default function TransactionDetailPage() {
           <Section title="Amount">
             <div className={cancelled ? "opacity-60" : ""}>
               <div className="text-sm text-muted-foreground">
-                Paid to the customer
+                {t.payout.stage === "to_pay"
+                  ? "To be paid to the customer"
+                  : "Paid to the customer"}
               </div>
               <div
                 className={`tnum text-3xl font-bold ${cancelled ? "line-through" : ""}`}
@@ -535,6 +566,7 @@ export default function TransactionDetailPage() {
           </Section>
         </div>
       </div>
+      {paying ? <PayModal t={t} open onClose={() => setPaying(false)} /> : null}
       {drawer.dayId && activeBranch ? (
         <ExchangeModal
           open={exchanging}

@@ -8,7 +8,10 @@ import {
 } from "@/features/drawer/schemas";
 import { debtKeys, collateralKeys } from "@/features/debts/api";
 import { paymentKeys } from "@/features/payments/api";
-import type { CreateTransaction } from "@/features/transactions/schemas";
+import type {
+  CreateTransaction,
+  PayTransaction,
+} from "@/features/transactions/schemas";
 import type { Handler } from "@/shared/offline/outbox";
 import type { OutboxEntry } from "@/shared/offline/outboxStore";
 
@@ -22,11 +25,13 @@ export const outboxHandlers: Record<string, Handler> = {
     daysApi.movement(payload)) as Handler,
   [OUTBOX.EXCHANGE]: ((payload: ExchangeCommand) =>
     daysApi.exchange(payload)) as Handler,
+  [OUTBOX.PAY]: ((payload: PayTransaction) =>
+    transactionsApi.pay(payload)) as Handler,
 };
 
 /** After the server confirms a command, refresh what the screens show. */
 export const makeOnSynced = (qc: QueryClient) => (entry: OutboxEntry) => {
-  if (entry.type === TX_CREATE) {
+  if (entry.type === TX_CREATE || entry.type === OUTBOX.PAY) {
     // A purchase can move the drawer, open debts, settle one, release held gold and create mobile money parts.
     for (const key of [
       transactionKeys.all,

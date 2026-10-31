@@ -6,6 +6,7 @@ import {
   type NoteLimits,
 } from "@gold/core";
 import type { CreateTransaction } from "@/features/transactions/schemas";
+import type { PayTransaction } from "@/features/transactions/schemas";
 import type { DayState, ExchangeCommand, MovementCommand } from "./schemas";
 
 /**
@@ -24,6 +25,12 @@ export type Pending =
       payload: Pick<CreateTransaction, "branchId"> & {
         payout: { lines: Lines };
       };
+    }
+  /** Cash handed over for a purchase saved in two-step mode. The server counts it under the purchase's id. */
+  | {
+      id: string;
+      type: "transaction.pay";
+      payload: Pick<PayTransaction, "transactionId" | "branchId" | "lines">;
     };
 
 export interface DrawerView {
@@ -47,6 +54,7 @@ export function projectDrawer(
   state: DayState | null,
   pending: Pending[],
   branchId: string,
+  twoStep = false,
 ): DrawerView {
   const applied = new Set(state?.appliedIds ?? []);
   const status: DrawerView["status"] = state
@@ -64,7 +72,10 @@ export function projectDrawer(
   let pendingCount = 0;
 
   for (const p of pending) {
-    if (applied.has(p.id)) continue;
+    if (
+      applied.has(p.type === "transaction.pay" ? p.payload.transactionId : p.id)
+    )
+      continue;
     pendingCount++;
     switch (p.type) {
       case "drawer.movement": {
@@ -84,9 +95,21 @@ export function projectDrawer(
         break;
       }
       case "transaction.create": {
-        if (status !== "open" || p.payload.branchId !== branchId || !balance)
+        // Two-step: saving a purchase takes no cash out of the drawer; the payout does.
+        if (
+          twoStep ||
+          status !== "open" ||
+          p.payload.branchId !== branchId ||
+          !balance
+        )
           break;
         balance = subtractLines(balance, p.payload.payout.lines);
+        break;
+      }
+      case "transaction.pay": {
+        if (status !== "open" || p.payload.branchId !== branchId || !balance)
+          break;
+        balance = subtractLines(balance, p.payload.lines);
         break;
       }
     }

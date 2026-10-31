@@ -20,6 +20,7 @@ export function StatusCell({ t }: { t: TransactionView }) {
       sync={t.sync}
       flags={t.flags}
       pendingMoney={t.payments.filter((x) => x.status === "pending").length}
+      toPay={t.payout.stage === "to_pay"}
     />
   );
 }

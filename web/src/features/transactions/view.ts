@@ -35,6 +35,12 @@ export interface TransactionView {
     difference: string;
     lines: Record<string, number>;
     totalNotes: number;
+    /** to_pay: saved, the cash is still to be handed over. */
+    stage: "paid" | "to_pay";
+    cashDue: string;
+    suggestedLines: Record<string, number> | null;
+    paidBy: string | null;
+    paidAt: string | null;
   };
   /** How it was paid: cash, mobile money, owed, gold against a debt. While waiting on this device they are not confirmed yet. */
   payments: Payment[];
@@ -81,6 +87,11 @@ export const fromServer = (t: Transaction): TransactionView => ({
     difference: t.payout.difference,
     lines: t.payout.lines,
     totalNotes: t.payout.totalNotes,
+    stage: t.payout.stage,
+    cashDue: t.payout.cashDue,
+    suggestedLines: t.payout.suggestedLines ?? null,
+    paidBy: t.payout.paidBy?.displayName ?? null,
+    paidAt: t.payout.paidAt ?? null,
   },
   capturedAt: t.capturedAt,
   status: t.status,
@@ -128,8 +139,15 @@ const localPayments = (c: CreateTransaction): Payment[] => {
   ];
 };
 
+const cashPart = (c: CreateTransaction) =>
+  Number(c.payout.payable) -
+  (c.payout.split ?? []).reduce((s, p) => s + Number(p.amount), 0);
+
 /** Rebuilds the figures from the saved inputs with the same engine, so a waiting entry looks like a real one. */
-export const fromOutbox = (e: OutboxEntry): TransactionView => {
+export const fromOutbox = (
+  e: OutboxEntry,
+  twoStep = false,
+): TransactionView => {
   const c = e.payload as CreateTransaction;
   const items = c.items.map((i) => {
     const r = calculate({ top: i.top, down: i.down, price: i.price });
@@ -163,14 +181,22 @@ export const fromOutbox = (e: OutboxEntry): TransactionView => {
     representative: c.representative?.name
       ? { name: c.representative.name, phone: c.representative.phone ?? null }
       : null,
-    payments: localPayments(c),
+    payments: localPayments(c).filter((p) => !(twoStep && p.method === "cash")),
     items,
     calculatedAmount: String(total),
     payout: {
       payable: c.payout.payable,
       difference: String(Number(c.payout.payable) - total),
-      lines: c.payout.lines,
-      totalNotes: Object.values(c.payout.lines).reduce((s, n) => s + n, 0),
+      lines: twoStep ? {} : c.payout.lines,
+      totalNotes: twoStep
+        ? 0
+        : Object.values(c.payout.lines).reduce((s, n) => s + n, 0),
+      // In two-step mode the cash part waits to be paid once this reaches the server.
+      stage: twoStep && cashPart(c) > 0 ? "to_pay" : "paid",
+      cashDue: twoStep ? String(cashPart(c)) : "0",
+      suggestedLines: twoStep && cashPart(c) > 0 ? c.payout.lines : null,
+      paidBy: null,
+      paidAt: null,
     },
     capturedAt: c.capturedAt,
     status: "saved",

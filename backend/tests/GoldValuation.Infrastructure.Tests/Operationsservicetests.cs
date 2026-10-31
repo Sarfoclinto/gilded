@@ -52,6 +52,31 @@ public class OperationsServiceTests
         await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, ok, Guid.NewGuid().ToString(), default));
     }
 
+    [Fact]
+    public async Task Paying_needs_notes_a_purchase_in_the_callers_branch_and_sends_only_the_notes()
+    {
+        var id = Guid.NewGuid();
+        _store.StoredTransaction = $"{{\"id\":\"{id}\",\"branchId\":\"{Tarkwa}\"}}";
+        await _ops.PayTransactionAsync(Teller(), id, new(new() { ["100"] = 10 }, null, "1000"), default);
+        Assert.Contains("\"lines\":{\"100\":10}", _store.LastPay);
+        Assert.Contains("\"checkAmount\":1000", _store.LastPay);
+        await Assert.ThrowsAsync<AppException>(() => _ops.PayTransactionAsync(Teller(), id, new(null, null, null), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.PayTransactionAsync(Teller(), id, new(new() { ["100"] = 1 }, null, "abc"), default));
+        _store.StoredTransaction = $"{{\"id\":\"{id}\",\"branchId\":\"{Kumasi}\"}}";
+        await Assert.ThrowsAsync<AppException>(() => _ops.PayTransactionAsync(Teller(), id, new(new() { ["100"] = 10 }, null, null), default));
+    }
+
+    [Fact]
+    public async Task Everyone_reads_the_settings_but_only_those_allowed_change_them()
+    {
+        Assert.Equal("{}", await _ops.GetSettingsAsync(Teller(), default));
+        var change = new System.Text.Json.Nodes.JsonObject { ["payout.twoStep"] = true };
+        await Assert.ThrowsAsync<AppException>(() => _ops.SetSettingsAsync(Teller(), change, default));
+        var director = new Ctx([Permissions.SettingsManage], [Tarkwa]);
+        await _ops.SetSettingsAsync(director, change, default);
+        Assert.Contains("payout.twoStep", _store.LastSettings);
+    }
+
     private static TransactionSearch Search(Guid? branch = null, string? sort = null, string? from = null, string? q = null, int? limit = null) =>
         new(branch, null, q, from, null, null, null, null, null, sort, limit, null);
 
@@ -288,6 +313,12 @@ public class OperationsServiceTests
         public Task<DbResult> OpenDayAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<DbResult> RecordMovementAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<DbResult> RecordExchangeAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
+        public string? LastPay;
+        public Task<DbResult> PayTransactionAsync(ICurrentContext me, string p, CancellationToken ct) { LastPay = p; return Task.FromResult(new DbResult(false, "{}")); }
+        public Task<string> ToPayAsync(ICurrentContext me, Guid branchId, string? search, CancellationToken ct) => Task.FromResult("[]");
+        public string? LastSettings;
+        public Task<string> GetSettingsAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> SetSettingsAsync(ICurrentContext me, string s, CancellationToken ct) { LastSettings = s; return Task.FromResult(s); }
         public string? StoredDay;
         public string? LastSignoff;
         public Task<string> DayActivityAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");

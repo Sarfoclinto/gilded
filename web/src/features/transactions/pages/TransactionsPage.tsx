@@ -15,6 +15,8 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { ExportTransactionsButton } from "@/features/exports/ExportTransactionsButton";
 import { transactionColumns, TransactionCard } from "../columns";
 import { useTransactionSearch } from "../hooks";
+import { useSettings } from "@/features/settings/api";
+import type { PayTransaction } from "../schemas";
 import {
   appliedFilters,
   filtersFromParams,
@@ -38,6 +40,7 @@ export default function TransactionsPage() {
   const [sp, setSp] = useSearchParams();
   const filters = useMemo(() => filtersFromParams(sp), [sp]);
   const outbox = useOutbox();
+  const twoStep = useSettings()["payout.twoStep"];
   const branchList = branches.useList();
   const branchName = branchList.data?.find((b) => b.id === branchId)?.name;
 
@@ -71,7 +74,7 @@ export default function TransactionsPage() {
       unfiltered && branchId
         ? outbox.entries
             .filter((e) => e.type === TX_CREATE)
-            .map(fromOutbox)
+            .map((e) => fromOutbox(e, twoStep))
             .filter((t) => t.branchId === branchId)
         : [],
     [unfiltered, outbox.entries, branchId],
@@ -124,6 +127,8 @@ export default function TransactionsPage() {
       {outbox.failed.map((e) => {
         const move =
           e.type === OUTBOX.MOVEMENT ? (e.payload as MovementCommand) : null;
+        const pay =
+          e.type === OUTBOX.PAY ? (e.payload as PayTransaction) : null;
         return (
           <Card
             key={e.id}
@@ -131,10 +136,17 @@ export default function TransactionsPage() {
             role="alert"
           >
             <p className="text-sm font-medium">
-              {move
-                ? `The server refused a cash ${move.kind === "topup" ? "top-up" : "take-out"}`
-                : "The server refused one transaction"}
+              {pay
+                ? "The server refused a payout"
+                : move
+                  ? `The server refused a cash ${move.kind === "topup" ? "top-up" : "take-out"}`
+                  : "The server refused one transaction"}
             </p>
+            {pay ? (
+              <p className="tnum text-xs">
+                {cedis(lineTotal(pay.lines))} handed over
+              </p>
+            ) : null}
             {move ? (
               <p className="tnum text-xs">
                 {cedis(lineTotal(move.lines ?? {}))} · {move.note}
@@ -145,7 +157,11 @@ export default function TransactionsPage() {
             </p>
             <div className="flex gap-2">
               {move ? null : (
-                <Link to={paths.transactions.detail.to(e.id)}>
+                <Link
+                  to={paths.transactions.detail.to(
+                    pay ? pay.transactionId : e.id,
+                  )}
+                >
                   <Button variant="secondary">View</Button>
                 </Link>
               )}
@@ -155,13 +171,15 @@ export default function TransactionsPage() {
               >
                 Try again
               </Button>
-              {move ? (
+              {move || pay ? (
                 <Button
                   variant="secondary"
                   onClick={() => {
                     if (
                       window.confirm(
-                        "Remove this entry for good? Only do this if the cash did not really move, or you will record it another way.",
+                        pay
+                          ? "Remove this payout? Only do this if you did not hand the cash over, or it was already paid by someone else."
+                          : "Remove this entry for good? Only do this if the cash did not really move, or you will record it another way.",
                       )
                     )
                       void outbox.discard(e.id);

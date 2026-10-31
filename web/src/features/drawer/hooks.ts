@@ -4,17 +4,20 @@ import { useApiQuery } from "@/shared/api/hooks";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { dayKeys, daysApi } from "./api";
 import { projectDrawer, type Pending } from "./projection";
+import { useSettings } from "@/features/settings/api";
 import { OUTBOX } from "./schemas";
 
 const RELEVANT = new Set<string>([
   OUTBOX.MOVEMENT,
   OUTBOX.EXCHANGE,
+  OUTBOX.PAY,
   "transaction.create",
 ]);
 
 /** The drawer for a branch as this device sees it: server snapshot plus anything still waiting to be sent. */
 export function useDrawer(branchId: string | null) {
   const { entries } = useOutbox();
+  const twoStep = useSettings()["payout.twoStep"];
   const query = useApiQuery({
     queryKey: dayKeys.custom("current", { branchId }),
     queryFn: ({ signal }) => daysApi.current(branchId as string, signal),
@@ -27,8 +30,8 @@ export function useDrawer(branchId: string | null) {
     const pending = entries.filter(
       (e) => e.status !== "failed" && RELEVANT.has(e.type),
     ) as unknown as Pending[];
-    return projectDrawer(query.data ?? null, pending, branchId ?? "");
-  }, [query.data, entries, branchId]);
+    return projectDrawer(query.data ?? null, pending, branchId ?? "", twoStep);
+  }, [query.data, entries, branchId, twoStep]);
   /** False while an answer is still on its way, so a screen does not act on an old snapshot. */
   const settled = !query.isFetching;
   return { view, state: query.data ?? null, query, settled };

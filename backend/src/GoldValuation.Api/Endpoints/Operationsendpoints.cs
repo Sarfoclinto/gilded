@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Operations;
 using Microsoft.AspNetCore.Mvc;
@@ -71,6 +72,14 @@ public static class OperationsEndpoints
             Created(await ops.CreateTransactionAsync(me, body, Key(http), ct)));
         api.MapGet("/transactions/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.GetTransactionAsync(me, id, ct)));
+        api.MapGet("/transactions/to-pay", async (Guid branchId, string? q, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ToPayAsync(me, branchId, q, ct)));
+        api.MapPost("/transactions/{id:guid}/pay", async (Guid id, PayTransactionCommand body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.PayTransactionAsync(me, id, body, ct)));
+        api.MapGet("/settings", async (ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.GetSettingsAsync(me, ct)));
+        api.MapPut("/settings", async (JsonObject body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.SetSettingsAsync(me, body, ct)));
         api.MapPost("/transactions/{id:guid}/payments/{paymentId:guid}/confirm", async (Guid id, Guid paymentId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.ResolvePaymentAsync(me, paymentId, true, null, ct)));
         api.MapPost("/transactions/{id:guid}/payments/{paymentId:guid}/fail", async (Guid id, Guid paymentId, [FromBody] ResolvePaymentCommand? body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

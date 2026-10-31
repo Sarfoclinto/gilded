@@ -13,6 +13,7 @@ import { useAuth } from "@/features/auth/store";
 import { useActiveDrawer } from "@/features/drawer/hooks";
 import { useCurrentPrice } from "@/features/prices/api";
 import { cedis, percent } from "@/features/calculator/format";
+import { useSettings } from "@/features/settings/api";
 import {
   PayoutPanel,
   type PayoutSelection,
@@ -68,6 +69,7 @@ export default function NewTransactionPage() {
   const online = useConnectivity((s) => s.online);
   const priceQuery = useCurrentPrice(branchId);
   const outbox = useOutbox();
+  const twoStep = useSettings()["payout.twoStep"];
   const { view: drawer, settled } = useActiveDrawer();
   // Block only when we KNOW there is no open day. If the drawer was never loaded (first launch offline), allow it; the server flags it.
   const dayBlocked =
@@ -252,16 +254,20 @@ export default function NewTransactionPage() {
       return;
     }
     if (cmd.customerId)
-      useCustomerDirectory.getState().remember({
-        id: cmd.customerId,
-        name: cmd.customerName,
-        phone: cmd.customerPhone,
-        atBranch: true,
-      });
+      useCustomerDirectory
+        .getState()
+        .remember({
+          id: cmd.customerId,
+          name: cmd.customerName,
+          phone: cmd.customerPhone,
+          atBranch: true,
+        });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
     toast.success(
       online
-        ? "Saved"
+        ? twoStep
+          ? "Saved. Ready to be paid out."
+          : "Saved"
         : "Saved on this device. It will sync when you are back online.",
     );
     void outbox.syncNow();
@@ -279,7 +285,8 @@ export default function NewTransactionPage() {
       </p>
       {payout && filled ? (
         <p className="tnum mt-1 text-sm text-white/70">
-          To pay now {cedis(Number(payout.payable))}
+          {twoStep ? "To be paid out" : "To pay now"}{" "}
+          {cedis(Number(payout.payable))}
         </p>
       ) : null}
       {customer.name.trim() ? (
@@ -302,7 +309,7 @@ export default function NewTransactionPage() {
         disabled={!canSave}
         loading={saving}
       >
-        Save transaction
+        {twoStep ? "Save and send to pay" : "Save transaction"}
       </Button>
       {!outbox.durable ? (
         <p className="mt-2 text-center text-xs text-muted-foreground">

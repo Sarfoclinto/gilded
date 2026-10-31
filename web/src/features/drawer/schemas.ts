@@ -193,6 +193,7 @@ export type ExchangeCommand = z.infer<typeof exchangeCommandSchema>;
 export const OUTBOX = {
   MOVEMENT: "drawer.movement",
   EXCHANGE: "drawer.exchange",
+  PAY: "transaction.pay",
 } as const;
 
 /** GET /days/{id}/activity: one day's own movements, apart from the running totals. */

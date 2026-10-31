@@ -79,6 +79,7 @@ export function Receipt({
   const g = goldTotals(t);
   const { date, time } = stamp(t.capturedAt);
   const cancelled = t.status === "void";
+  const unpaid = t.payout.stage === "to_pay" && !cancelled;
   const diff = Number(t.payout.difference);
   const wide = PAPER[settings.paper].widthMm === null;
   const live = t.payments.filter((p) => p.status !== "failed");
@@ -201,7 +202,7 @@ export function Receipt({
       </section>
       <div className="mt-2 rounded-sm border-2 border-neutral-900 px-2 py-1.5 text-center">
         <p className="text-[0.8em] font-bold uppercase tracking-[0.25em]">
-          Amount paid to you
+          {unpaid ? "Amount to be paid to you" : "Amount paid to you"}
         </p>
         <p
           className={`font-black tabular-nums ${wide ? "text-4xl" : "text-[26px]"} leading-tight`}
@@ -210,6 +211,12 @@ export function Receipt({
         </p>
       </div>
 
+      {unpaid ? (
+        <p className="mt-2 rounded-sm bg-neutral-100 px-2 py-1 text-center text-[0.9em] font-semibold text-neutral-800">
+          Not paid yet. Take this receipt to the paying desk (
+          {cedis(t.payout.cashDue)} in cash).
+        </p>
+      ) : null}
       {live.length > 0 ? (
         <>
           <Rule />

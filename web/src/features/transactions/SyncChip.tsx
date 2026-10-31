@@ -6,13 +6,16 @@ export function SyncChip({
   sync,
   flags,
   pendingMoney = 0,
+  toPay = false,
 }: {
   sync: TransactionView["sync"];
   flags: TransactionFlag[];
   pendingMoney?: number;
+  toPay?: boolean;
 }) {
   if (sync === "waiting") return <Chip tone="amber">Waiting to sync</Chip>;
   if (sync === "failed") return <Chip tone="red">Needs attention</Chip>;
+  if (toPay) return <Chip tone="amber">To pay</Chip>;
   if (pendingMoney > 0) return <Chip tone="amber">Money pending</Chip>;
   if (flags.length > 0) return <Chip tone="sky">Flagged</Chip>;
   return <Chip tone="green">Saved</Chip>;

@@ -299,6 +299,41 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
     }
 
     /// <summary>Mobile money waiting to be confirmed: what this branch must send (role "sending"), or is still owed for its purchases ("receiving").</summary>
+    /// <summary>
+    /// Pays out the cash of a purchase that was saved in two-step mode. The notes must add up to exactly what is due, so the amount can
+    /// never be changed here, only which notes make it up. The database refuses a second payment (first one wins).
+    /// </summary>
+    public async Task<DbResult> PayTransactionAsync(ICurrentContext me, Guid id, PayTransactionCommand c, CancellationToken ct)
+    {
+        me.Require(Permissions.DaysManage);
+        _ = InScope(me, await store.GetTransactionAsync(me, id, ct)) ?? throw AppException.NotFound("Transaction");
+        var lines = TransactionPlanner.ParseLines(c.Lines);
+        if (lines.Count == 0) throw AppException.Invalid("Enter the notes you are handing over.");
+        if (!string.IsNullOrWhiteSpace(c.CheckAmount) && !decimal.TryParse(c.CheckAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out _))
+            throw AppException.Invalid("Enter the amount as a number.");
+        var noteLines = new JsonObject();
+        foreach (var (denom, count) in lines.OrderByDescending(kv => kv.Key)) noteLines[denom.ToString(CultureInfo.InvariantCulture)] = count;
+        var payload = new JsonObject { ["id"] = id, ["lines"] = noteLines, ["capturedAt"] = c.CapturedAt ?? clock.UtcNow };
+        if (!string.IsNullOrWhiteSpace(c.CheckAmount)) payload["checkAmount"] = decimal.Parse(c.CheckAmount, NumberStyles.Number, CultureInfo.InvariantCulture);
+        return await store.PayTransactionAsync(me, payload.ToJsonString(), ct);
+    }
+
+    public Task<string> ToPayAsync(ICurrentContext me, Guid branchId, string? search, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsRead);
+        me.RequireBranch(branchId);
+        return store.ToPayAsync(me, branchId, string.IsNullOrWhiteSpace(search) ? null : search.Trim(), ct);
+    }
+
+    /// <summary>Everyone in the company reads the settings: the app needs them to know whether a purchase is paid at once or in two steps.</summary>
+    public Task<string> GetSettingsAsync(ICurrentContext me, CancellationToken ct) => store.GetSettingsAsync(me, ct);
+
+    public Task<string> SetSettingsAsync(ICurrentContext me, JsonObject changes, CancellationToken ct)
+    {
+        me.Require(Permissions.SettingsManage);
+        return store.SetSettingsAsync(me, changes.ToJsonString(), ct);
+    }
+
     public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid branchId, string? role, CancellationToken ct)
     {
         role ??= "sending";

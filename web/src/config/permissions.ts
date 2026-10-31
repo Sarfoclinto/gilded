@@ -26,6 +26,7 @@ export const PERMISSIONS = {
   DISCREPANCIES_REVIEW: "discrepancies:review",
   IMPORTS_MANAGE: "imports:manage",
   AUDIT_READ: "audit:read",
+  SETTINGS_MANAGE: "settings:manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

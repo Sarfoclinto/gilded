@@ -62,6 +62,17 @@ export const payoutSchema = z.object({
   lines: z.record(z.string(), z.number()),
   difference: z.string(),
   totalNotes: z.number(),
+  /** paid: the cash has left the drawer. to_pay: saved, and the cash is still to be handed over (two-step payout). */
+  stage: z.enum(["paid", "to_pay"]).default("paid"),
+  cashDue: z.string().default("0"),
+  /** The notes the recorder suggested, while the cash is still to be paid. */
+  suggestedLines: z.record(z.string(), z.number()).nullable().optional(),
+  paidBy: z
+    .object({ id: z.string(), displayName: z.string() })
+    .nullable()
+    .optional(),
+  paidAt: z.string().nullable().optional(),
+  checkMatched: z.boolean().nullable().optional(),
 });
 
 /** What the device sends. Also what the offline outbox stores, so it must survive JSON round trips. */
@@ -86,6 +97,17 @@ export const createTransactionSchema = z.object({
   priceAsOf: z.string(),
 });
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
+
+/** Pay out the cash of a purchase waiting to be paid. Only the notes can differ from the suggestion: the total is fixed. */
+export const payTransactionSchema = z.object({
+  transactionId: z.string(),
+  branchId: z.string(),
+  lines: noteLinesSchema,
+  capturedAt: z.string(),
+  /** The amount worked out from the weights by the person paying (when the company asks for that check). */
+  checkAmount: z.string().nullable().optional(),
+});
+export type PayTransaction = z.infer<typeof payTransactionSchema>;
 
 export const flagSchema = z.string();
 export type TransactionFlag = string;

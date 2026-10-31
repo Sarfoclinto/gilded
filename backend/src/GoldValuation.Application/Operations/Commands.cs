@@ -32,6 +32,9 @@ public sealed record MovementCommand(
 public sealed record ExchangeCommand(
     Guid Id, Guid DayId, Guid BranchId, Guid? TransactionId, Dictionary<string, int>? Gave, Dictionary<string, int>? Took, string? Note, DateTimeOffset CapturedAt);
 
+/// <summary>Pay out the cash of a purchase saved in two-step mode. Only the notes are chosen here; the amount is fixed by the purchase.</summary>
+public sealed record PayTransactionCommand(Dictionary<string, int>? Lines, DateTimeOffset? CapturedAt, string? CheckAmount);
+
 public sealed record CustomerRef(Guid? Id, string? Name, string? Phone);
 
 public sealed record CollateralInput(string? TopWeight, string? Description);

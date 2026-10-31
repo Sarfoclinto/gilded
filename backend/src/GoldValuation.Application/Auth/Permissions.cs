@@ -46,6 +46,9 @@ public static class Permissions
     /// <summary>Read the audit trail: who did what, when and where. Directors only.</summary>
     public const string AuditRead = "audit:read";
 
+    /// <summary>Change the company's settings: two-step payout, receipts, the office allowance. Directors only.</summary>
+    public const string SettingsManage = "settings:manage";
+
     /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
     public static IReadOnlySet<string> All { get; } = typeof(Permissions)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
@@ -61,7 +64,7 @@ public static class Permissions
         [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview];
 
     private static readonly string[] Director =
-        [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead];
+        [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage];
 
     /// <summary>The three roles every new company starts with. A company can add its own later.</summary>
     public static IReadOnlyDictionary<string, (string Name, string[] Permissions)> DefaultRoles { get; } =

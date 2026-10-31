@@ -103,6 +103,19 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = me.BranchIds.ToArray() },
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = (object?)replacementsJson ?? DBNull.Value }))!;
 
+    public async Task<DbResult> PayTransactionAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
+        Result(await Scalar(me, "select gold.pay_transaction($1)", ct, Json(payloadJson)));
+
+    public async Task<string> ToPayAsync(ICurrentContext me, Guid branchId, string? search, CancellationToken ct) =>
+        (await Scalar(me, "select gold.to_pay_json($1, $2)", ct, Uuid(branchId),
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)search ?? DBNull.Value }))!;
+
+    public async Task<string> GetSettingsAsync(ICurrentContext me, CancellationToken ct) =>
+        (await Scalar(me, "select gold.settings_json()", ct))!;
+
+    public async Task<string> SetSettingsAsync(ICurrentContext me, string settingsJson, CancellationToken ct) =>
+        (await Scalar(me, "select gold.set_settings($1)", ct, Json(settingsJson)))!;
+
     public async Task<string> PendingPaymentsAsync(ICurrentContext me, Guid branchId, string role, CancellationToken ct) =>
         (await Scalar(me, "select gold.pending_payments_json($1, $2)", ct, Uuid(branchId),
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = role }))!;

@@ -29,3 +29,17 @@ export const day = (iso: string) =>
     month: "short",
     year: "numeric",
   });
+
+/** "just now", "5 min ago", "2 h ago", then the time of day. For a list that people watch fill up. */
+export function recently(iso: string, now: Date = new Date()): string {
+  const mins = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 360) return `${Math.floor(mins / 60)} h ago`;
+  return new Date(iso).toLocaleString("en-GH", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

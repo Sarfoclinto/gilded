@@ -36,6 +36,12 @@ public interface IOperationsStore
     Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<string> ResolvePaymentAsync(ICurrentContext me, Guid paymentId, string outcome, string? replacementsJson, CancellationToken ct);
 
+    Task<DbResult> PayTransactionAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
+    /// <summary>Purchases of a branch waiting to be paid out, newest first; the search matches number, name or phone.</summary>
+    Task<string> ToPayAsync(ICurrentContext me, Guid branchId, string? search, CancellationToken ct);
+    Task<string> GetSettingsAsync(ICurrentContext me, CancellationToken ct);
+    Task<string> SetSettingsAsync(ICurrentContext me, string settingsJson, CancellationToken ct);
+
     Task<string> PendingPaymentsAsync(ICurrentContext me, Guid branchId, string role, CancellationToken ct);
     Task<string> SearchCustomersAsync(ICurrentContext me, string? query, Guid? branchId, int limit, CancellationToken ct);
 

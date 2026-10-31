@@ -88,6 +88,15 @@ export const appMenu: AppMenuItem[] = [
             mobileTab: true,
           },
           {
+            key: paths.transactions.toPay.href,
+            label: link(
+              paths.transactions.toPay.href,
+              paths.transactions.toPay.label,
+            ),
+            icon: <HandCoinsIcon className={icon} />,
+            permission: PERMISSIONS.DAYS_MANAGE,
+          },
+          {
             key: paths.transactions.create.href,
             label: link(
               paths.transactions.create.href,

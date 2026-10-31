@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { request } from "@/shared/api/client";
 import { createKeys } from "@/shared/api/queryKeys";
-import { transactionSchema, type CreateTransaction } from "./schemas";
+import {
+  transactionSchema,
+  type CreateTransaction,
+  type PayTransaction,
+} from "./schemas";
 
 export const transactionKeys = createKeys("transactions");
 
@@ -38,6 +42,31 @@ export const transactionsApi = {
       transactionSchema,
     ),
   /** The transaction id doubles as the Idempotency-Key, so a retried send can never create a second one. */
+  /** Purchases of a branch whose cash is still to be paid out, newest first. `q` matches number, name or phone. */
+  toPay: (branchId: string, q: string, signal?: AbortSignal) =>
+    request(
+      {
+        method: "get",
+        url: "/transactions/to-pay",
+        params: { branchId, ...(q.trim() ? { q: q.trim() } : {}) },
+        signal,
+      },
+      z.array(transactionSchema),
+    ),
+  /** Hands over the cash. The server accepts the first payment only; the same payment sent twice is one payment. */
+  pay: (cmd: PayTransaction) =>
+    request(
+      {
+        method: "post",
+        url: `/transactions/${cmd.transactionId}/pay`,
+        data: {
+          lines: cmd.lines,
+          capturedAt: cmd.capturedAt,
+          checkAmount: cmd.checkAmount ?? null,
+        },
+      },
+      transactionSchema,
+    ),
   create: (cmd: CreateTransaction) =>
     request(
       {

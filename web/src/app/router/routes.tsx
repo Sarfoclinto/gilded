@@ -25,6 +25,7 @@ const TransactionsPage = lazy(
 const NewTransactionPage = lazy(
   () => import("@/features/transactions/pages/NewTransactionPage"),
 );
+const ToPayPage = lazy(() => import("@/features/transactions/pages/ToPayPage"));
 const TransactionDetailPage = lazy(
   () => import("@/features/transactions/pages/TransactionDetailPage"),
 );
@@ -107,6 +108,11 @@ export const appRoutes: AppRoute[] = [
     path: paths.transactions.create.href,
     element: <NewTransactionPage />,
     access: { permission: PERMISSIONS.TRANSACTIONS_CREATE },
+  },
+  {
+    path: paths.transactions.toPay.href,
+    element: <ToPayPage />,
+    access: { permission: PERMISSIONS.DAYS_MANAGE },
   },
   {
     path: paths.transactions.detail.href,
