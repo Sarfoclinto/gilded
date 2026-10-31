@@ -30,6 +30,12 @@ const TransactionDetailPage = lazy(
   () => import("@/features/transactions/pages/TransactionDetailPage"),
 );
 const ReceiptPage = lazy(() => import("@/features/receipt/ReceiptPage"));
+const CompanySettingsPage = lazy(
+  () => import("@/features/settings/pages/CompanySettingsPage"),
+);
+const MySettingsPage = lazy(
+  () => import("@/features/settings/pages/MySettingsPage"),
+);
 const DrawerPage = lazy(() => import("@/features/drawer/pages/DrawerPage"));
 const OpenDayPage = lazy(() => import("@/features/drawer/pages/OpenDayPage"));
 const CloseDayPage = lazy(() => import("@/features/drawer/pages/CloseDayPage"));
@@ -232,6 +238,12 @@ export const appRoutes: AppRoute[] = [
     element: <ImportPage />,
     access: { permission: PERMISSIONS.IMPORTS_MANAGE },
   },
+  {
+    path: paths.settings.company.href,
+    element: <CompanySettingsPage />,
+    access: { permission: PERMISSIONS.SETTINGS_MANAGE },
+  },
+  { path: paths.settings.me.href, element: <MySettingsPage /> },
   { path: paths.changePassword.href, element: <ChangePasswordPage /> },
   {
     path: paths.priceFeed.href,

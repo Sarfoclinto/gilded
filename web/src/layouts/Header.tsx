@@ -1,12 +1,16 @@
 import { Fragment, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  BuildingIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   KeyRoundIcon,
   LogOutIcon,
+  SettingsIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
+import { PERMISSIONS } from "@/config/permissions";
+import { useHasPermission } from "@/features/auth/useHasPermission";
 import { useLogout } from "@/features/auth/hooks";
 import { useAuth } from "@/features/auth/store";
 import {
@@ -41,6 +45,7 @@ const initials = (name?: string) =>
 export function Header() {
   const user = useAuth((s) => s.user);
   const logout = useLogout();
+  const canCompanySettings = useHasPermission(PERMISSIONS.SETTINGS_MANAGE);
   const { waiting } = useOutbox();
   const desktop = useIsDesktop();
   const { pathname } = useLocation();
@@ -119,6 +124,18 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to={paths.settings.me.href}>
+                <SettingsIcon className="size-4" /> My settings
+              </Link>
+            </DropdownMenuItem>
+            {canCompanySettings ? (
+              <DropdownMenuItem asChild>
+                <Link to={paths.settings.company.href}>
+                  <BuildingIcon className="size-4" /> Company settings
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem asChild>
               <Link to={paths.changePassword.href}>
                 <KeyRoundIcon className="size-4" /> Change my password

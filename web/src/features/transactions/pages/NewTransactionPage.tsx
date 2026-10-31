@@ -15,6 +15,10 @@ import { useCurrentPrice } from "@/features/prices/api";
 import { cedis, percent } from "@/features/calculator/format";
 import { useSettings } from "@/features/settings/api";
 import {
+  opensReceipt,
+  usePersonalSettings,
+} from "@/features/settings/personal";
+import {
   PayoutPanel,
   type PayoutSelection,
 } from "@/features/calculator/PayoutPanel";
@@ -69,7 +73,9 @@ export default function NewTransactionPage() {
   const online = useConnectivity((s) => s.online);
   const priceQuery = useCurrentPrice(branchId);
   const outbox = useOutbox();
-  const twoStep = useSettings()["payout.twoStep"];
+  const companySettings = useSettings();
+  const twoStep = companySettings["payout.twoStep"];
+  const openReceipt = usePersonalSettings((s) => s.openReceipt);
   const { view: drawer, settled } = useActiveDrawer();
   // Block only when we KNOW there is no open day. If the drawer was never loaded (first launch offline), allow it; the server flags it.
   const dayBlocked =
@@ -271,7 +277,13 @@ export default function NewTransactionPage() {
         : "Saved on this device. It will sync when you are back online.",
     );
     void outbox.syncNow();
-    navigate(paths.transactions.detail.to(cmd.id), { replace: true });
+    // With a receipt printer the receipt opens straight away, ready to print; otherwise the purchase page, which has a Receipt button.
+    navigate(
+      opensReceipt(openReceipt, companySettings["receipt.printer"])
+        ? paths.transactions.receipt.to(cmd.id, "?print=1")
+        : paths.transactions.detail.to(cmd.id),
+      { replace: true },
+    );
   }
 
   const filled = complete && total > 0;

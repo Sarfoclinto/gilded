@@ -5,7 +5,8 @@ import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { toast } from "@/shared/ui/toast";
 import { NoteCountInput } from "./NoteCountInput";
 import { lineTotal } from "@gold/core";
-import { allowanceDue, ALLOWANCE_PER_PERSON } from "./allowance";
+import { useSettings } from "@/features/settings/api";
+import { allowanceDue } from "./allowance";
 import { movementCommandSchema, OUTBOX } from "./schemas";
 
 /** Cash in (top-up from the safe or head office) or cash out (withdrawal). Queued like everything else, so it works offline. */
@@ -21,6 +22,7 @@ export function MovementModal({
   branchId: string;
 }) {
   const outbox = useOutbox();
+  const rate = useSettings()["allowance.perPerson"];
   const [kind, setKind] = useState<"topup" | "withdrawal" | "allowance">(
     "topup",
   );
@@ -46,9 +48,9 @@ export function MovementModal({
       return toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
     if (Object.keys(lines).length === 0)
       return toast.error("Enter at least one note count.");
-    if (kind === "allowance" && lineTotal(lines) !== allowanceDue(n))
+    if (kind === "allowance" && lineTotal(lines) !== allowanceDue(n, rate))
       return toast.error(
-        `The notes must add up to GHS ${allowanceDue(n).toLocaleString("en-GH")} (${n} × ${ALLOWANCE_PER_PERSON}).`,
+        `The notes must add up to GHS ${allowanceDue(n, rate).toLocaleString("en-GH")} (${n} × ${rate}).`,
       );
     setBusy(true);
     await outbox.enqueue(cmd.id, OUTBOX.MOVEMENT, parsed.data);
@@ -102,8 +104,8 @@ export function MovementModal({
             />
             <p className="tnum text-xs text-muted-foreground">
               {Number(people) > 0
-                ? `Pay GHS ${allowanceDue(Number(people)).toLocaleString("en-GH")} (${people} × ${ALLOWANCE_PER_PERSON}). Choose the notes you take from the drawer.`
-                : `GHS ${ALLOWANCE_PER_PERSON} for each person, taken from the drawer.`}
+                ? `Pay GHS ${allowanceDue(Number(people), rate).toLocaleString("en-GH")} (${people} × ${rate}). Choose the notes you take from the drawer.`
+                : `GHS ${rate} for each person, taken from the drawer.`}
             </p>
           </div>
         ) : null}

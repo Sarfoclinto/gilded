@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { DEFAULT_SETTINGS, useSettings } from "@/features/settings/api";
+import { usePersonalSettings } from "@/features/settings/personal";
 
 export type PaperSize = "80" | "58" | "a4";
 
@@ -25,28 +25,36 @@ export interface ReceiptSettings {
   footer: string;
 }
 
-interface ReceiptSettingsState extends ReceiptSettings {
-  update: (patch: Partial<ReceiptSettings>) => void;
+/** Used until the company has written its own. */
+export const FALLBACK_NAME = "Gold Buyers";
+
+/** What the receipt shows: the company's details and paper, with this desk's own choices on top. */
+export function useReceiptSettings(): ReceiptSettings {
+  const company = useSettings();
+  const mine = usePersonalSettings();
+  return buildReceiptSettings(company, mine);
 }
 
-export const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
-  paper: "80",
-  showQr: true,
-  showWeights: true,
-  businessName: "Gilded Gold Buyers",
-  tagline: "Gold purchase receipt",
-  address: "",
-  phone: "",
-  footer: "Keep this receipt. Thank you for trading with us.",
-};
-
-/**
- * Kept on this device until the company settings page exists; then these become company-wide values set by an admin
- * and this store only remembers the paper size of the printer at this desk.
- */
-export const useReceiptSettings = create<ReceiptSettingsState>()(
-  persist(
-    (set) => ({ ...DEFAULT_RECEIPT_SETTINGS, update: (patch) => set(patch) }),
-    { name: "gold.receipt.v1", partialize: ({ update: _u, ...rest }) => rest },
-  ),
-);
+export function buildReceiptSettings(
+  company: typeof DEFAULT_SETTINGS,
+  mine: Pick<
+    ReturnType<typeof usePersonalSettings.getState>,
+    "receiptPaper" | "showQr" | "showWeights"
+  >,
+): ReceiptSettings {
+  return {
+    paper:
+      mine.receiptPaper === "company"
+        ? company["receipt.paper"]
+        : mine.receiptPaper,
+    showQr: mine.showQr,
+    showWeights: mine.showWeights,
+    businessName: company["receipt.businessName"].trim() || FALLBACK_NAME,
+    tagline: company["receipt.tagline"].trim() || "Gold purchase receipt",
+    address: company["receipt.address"].trim(),
+    phone: company["receipt.phone"].trim(),
+    footer:
+      company["receipt.footer"].trim() ||
+      "Keep this receipt. Thank you for trading with us.",
+  };
+}

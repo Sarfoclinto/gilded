@@ -70,6 +70,12 @@ const paths = {
   },
   audit: { href: "/setup/audit", label: "Audit trail" },
   imports: { href: "/setup/import", label: "Bring in data" },
+  settings: {
+    /** The company's settings, for whoever manages the company. */
+    company: { href: "/settings/company", label: "Company settings" },
+    /** Each person's own settings. */
+    me: { href: "/settings/me", label: "My settings" },
+  },
   changePassword: { href: "/change-password", label: "Choose a new password" },
   payments: { href: "/payments", label: "Mobile money" },
   debts: { href: "/debts", label: "Debts and loans" },

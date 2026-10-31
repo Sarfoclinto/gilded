@@ -22,6 +22,7 @@ import {
   WalletIcon,
   ShieldCheckIcon,
   KeyRoundIcon,
+  SettingsIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -252,6 +253,13 @@ export const appMenu: AppMenuItem[] = [
         title: paths.people.branches.label,
         icon: <BuildingIcon className={icon} />,
         permission: PERMISSIONS.BRANCHES_MANAGE,
+      },
+      {
+        key: paths.settings.company.href,
+        label: link(paths.settings.company.href, paths.settings.company.label),
+        title: paths.settings.company.label,
+        icon: <SettingsIcon className={icon} />,
+        permission: PERMISSIONS.SETTINGS_MANAGE,
       },
       {
         key: paths.audit.href,

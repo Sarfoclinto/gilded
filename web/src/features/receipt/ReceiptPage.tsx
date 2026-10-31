@@ -7,6 +7,7 @@ import { useBranchNames } from "@/features/branches/api";
 import { useTransactionView } from "@/features/transactions/hooks";
 import { Button } from "@/shared/ui/Button";
 import { Receipt } from "./Receipt";
+import { usePersonalSettings } from "@/features/settings/personal";
 import { PAPER, useReceiptSettings, type PaperSize } from "./settings";
 
 /**
@@ -19,6 +20,7 @@ export default function ReceiptPage() {
   const [params] = useSearchParams();
   const { view: t, isLoading } = useTransactionView(id);
   const settings = useReceiptSettings();
+  const mine = usePersonalSettings();
   const branchNames = useBranchNames();
   const user = useAuth((s) => s.user);
   const bare = params.get("bare") === "1";
@@ -73,7 +75,7 @@ export default function ReceiptPage() {
                 className="rounded-md border border-neutral-400 bg-white px-2 py-1 text-sm"
                 value={paper}
                 onChange={(e) =>
-                  settings.update({ paper: e.target.value as PaperSize })
+                  mine.update({ receiptPaper: e.target.value as PaperSize })
                 }
               >
                 {(Object.keys(PAPER) as PaperSize[]).map((k) => (
@@ -87,7 +89,7 @@ export default function ReceiptPage() {
               <input
                 type="checkbox"
                 checked={settings.showQr}
-                onChange={(e) => settings.update({ showQr: e.target.checked })}
+                onChange={(e) => mine.update({ showQr: e.target.checked })}
               />{" "}
               Code
             </label>
