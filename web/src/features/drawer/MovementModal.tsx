@@ -1,49 +1,115 @@
-import { useState } from 'react';
-import { Input, Modal, Segmented } from 'antd';
-import type { Lines } from '@gold/core';
-import { useOutbox } from '@/shared/offline/OutboxProvider';
-import { toast } from '@/shared/ui/toast';
-import { NoteCountInput } from './NoteCountInput';
-import { movementCommandSchema, OUTBOX } from './schemas';
+import { useState } from "react";
+import { Input, Modal, Segmented } from "antd";
+import type { Lines } from "@gold/core";
+import { useOutbox } from "@/shared/offline/OutboxProvider";
+import { toast } from "@/shared/ui/toast";
+import { NoteCountInput } from "./NoteCountInput";
+import { lineTotal } from "@gold/core";
+import { allowanceDue, ALLOWANCE_PER_PERSON } from "./allowance";
+import { movementCommandSchema, OUTBOX } from "./schemas";
 
 /** Cash in (top-up from the safe or head office) or cash out (withdrawal). Queued like everything else, so it works offline. */
-export function MovementModal({ open, onClose, dayId, branchId }: { open: boolean; onClose: () => void; dayId: string; branchId: string }) {
+export function MovementModal({
+  open,
+  onClose,
+  dayId,
+  branchId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  dayId: string;
+  branchId: string;
+}) {
   const outbox = useOutbox();
-  const [kind, setKind] = useState<'topup' | 'withdrawal'>('topup');
+  const [kind, setKind] = useState<"topup" | "withdrawal" | "allowance">(
+    "topup",
+  );
+  const [people, setPeople] = useState("");
   const [lines, setLines] = useState<Lines>({});
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    const cmd = { id: crypto.randomUUID(), dayId, branchId, kind, lines, note, capturedAt: new Date().toISOString() };
+    const n = Number(people);
+    const cmd = {
+      id: crypto.randomUUID(),
+      dayId,
+      branchId,
+      kind,
+      lines,
+      note: kind === "allowance" ? "" : note,
+      ...(kind === "allowance" ? { people: n } : {}),
+      capturedAt: new Date().toISOString(),
+    };
     const parsed = movementCommandSchema.safeParse(cmd);
-    if (!parsed.success) return toast.error(parsed.error.issues[0]?.message ?? 'Check the form.');
-    if (Object.keys(lines).length === 0) return toast.error('Enter at least one note count.');
+    if (!parsed.success)
+      return toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+    if (Object.keys(lines).length === 0)
+      return toast.error("Enter at least one note count.");
+    if (kind === "allowance" && lineTotal(lines) !== allowanceDue(n))
+      return toast.error(
+        `The notes must add up to GHS ${allowanceDue(n).toLocaleString("en-GH")} (${n} × ${ALLOWANCE_PER_PERSON}).`,
+      );
     setBusy(true);
     await outbox.enqueue(cmd.id, OUTBOX.MOVEMENT, parsed.data);
     void outbox.syncNow();
-    toast.success(kind === 'topup' ? 'Top-up recorded' : 'Withdrawal recorded');
+    toast.success(
+      kind === "topup"
+        ? "Top-up recorded"
+        : kind === "allowance"
+          ? "Allowance recorded"
+          : "Withdrawal recorded",
+    );
+    setPeople("");
     setLines({});
-    setNote('');
+    setNote("");
     setBusy(false);
     onClose();
   };
 
   return (
-    <Modal title="Cash in or out" open={open} onCancel={onClose} onOk={() => void submit()} okText="Record" confirmLoading={busy} destroyOnHidden>
+    <Modal
+      title="Cash in or out"
+      open={open}
+      onCancel={onClose}
+      onOk={() => void submit()}
+      okText="Record"
+      confirmLoading={busy}
+      destroyOnHidden
+    >
       <div className="space-y-4">
         <Segmented
           block
           value={kind}
-          onChange={(v) => setKind(v as 'topup' | 'withdrawal')}
+          onChange={(v) => setKind(v as "topup" | "withdrawal" | "allowance")}
           options={[
-            { label: 'Top-up (cash in)', value: 'topup' },
-            { label: 'Withdrawal (cash out)', value: 'withdrawal' },
+            { label: "Top-up (cash in)", value: "topup" },
+            { label: "Withdrawal (cash out)", value: "withdrawal" },
+            { label: "Office allowance", value: "allowance" },
           ]}
         />
         <NoteCountInput value={lines} onChange={setLines} />
+        {kind === "allowance" ? (
+          <div className="space-y-1">
+            <Input
+              size="large"
+              inputMode="numeric"
+              placeholder="How many people are in the office today?"
+              value={people}
+              onChange={(e) =>
+                setPeople(e.target.value.replace(/\D/g, "").slice(0, 3))
+              }
+            />
+            <p className="tnum text-xs text-muted-foreground">
+              {Number(people) > 0
+                ? `Pay GHS ${allowanceDue(Number(people)).toLocaleString("en-GH")} (${people} × ${ALLOWANCE_PER_PERSON}). Choose the notes you take from the drawer.`
+                : `GHS ${ALLOWANCE_PER_PERSON} for each person, taken from the drawer.`}
+            </p>
+          </div>
+        ) : null}
         <Input
           size="large"
+          className={kind === "allowance" ? "hidden" : undefined}
           placeholder="What is this for? e.g. restock from safe"
           maxLength={200}
           value={note}

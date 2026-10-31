@@ -26,7 +26,7 @@ public sealed record OpenDayCommand(
     Guid Id, Guid BranchId, string? BusinessDate, Dictionary<string, int>? Lines, string? Source, DateTimeOffset CapturedAt, string? Explanation, bool? AfterClose = null);
 
 public sealed record MovementCommand(
-    Guid Id, Guid DayId, Guid BranchId, string? Kind, Dictionary<string, int>? Lines, string? Note, DateTimeOffset CapturedAt);
+    Guid Id, Guid DayId, Guid BranchId, string? Kind, Dictionary<string, int>? Lines, string? Note, DateTimeOffset CapturedAt, int? People = null);
 
 public sealed record CustomerRef(Guid? Id, string? Name, string? Phone);
 

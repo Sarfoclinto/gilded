@@ -168,6 +168,12 @@ export const appMenu: AppMenuItem[] = [
         icon: <HistoryIcon className={icon} />,
         permission: PERMISSIONS.DAYS_READ,
       },
+      {
+        key: paths.drawer.account.href,
+        label: link(paths.drawer.account.href, paths.drawer.account.label),
+        icon: <ScrollTextIcon className={icon} />,
+        permission: PERMISSIONS.DAYS_READ,
+      },
     ],
   },
   {

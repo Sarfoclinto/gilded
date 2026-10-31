@@ -33,5 +33,6 @@ public interface IPeopleStore
 
     /// <summary>Cash by branch for the cash lookup. `scope` is the branches the caller may see; `branchId` narrows it to one.</summary>
     Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string filtersJson, CancellationToken ct);
+    Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct);
     Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct);
 }

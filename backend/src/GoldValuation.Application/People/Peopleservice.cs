@@ -188,6 +188,19 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
         return store.CashOverviewAsync(me, me.BranchIds.ToArray(), branchId, ct);
     }
 
+    /// <summary>
+    /// The daily account (the sheet the tellers hand to the manager): one entry per branch the caller may see, or just the one asked for.
+    /// A branch the caller cannot see is refused; the date must be yyyy-MM-dd.
+    /// </summary>
+    public Task<string> DailyAccountsAsync(ICurrentContext me, Guid? branchId, string? date, CancellationToken ct)
+    {
+        me.Require(Permissions.DaysRead);
+        if (branchId is { } b) me.RequireBranch(b);
+        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d))
+            throw AppException.Invalid("Enter the date as yyyy-MM-dd.", new Dictionary<string, string[]> { ["date"] = ["Enter the date as yyyy-MM-dd."] });
+        return store.DailyAccountsAsync(me, me.BranchIds.ToArray(), branchId, d, ct);
+    }
+
     private static readonly string[] AuditFilters = ["q", "category", "action", "actorId", "branchId", "from", "to", "minAmount", "sort", "page", "size"];
 
     /// <summary>

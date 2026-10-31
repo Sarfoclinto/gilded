@@ -129,6 +129,17 @@ public class PeopleServiceTests
     }
 
     [Fact]
+    public async Task DailyAccounts_need_days_read_a_visible_branch_and_a_real_date()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _svc.DailyAccountsAsync(new Ctx([]), null, "2026-10-30", default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.DailyAccountsAsync(new Ctx([Permissions.DaysRead]), Guid.NewGuid(), "2026-10-30", default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.DailyAccountsAsync(new Ctx([Permissions.DaysRead]), null, "30/10/2026", default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.DailyAccountsAsync(new Ctx([Permissions.DaysRead]), null, null, default));
+        await _svc.DailyAccountsAsync(new Ctx([Permissions.DaysRead]), null, "2026-10-30", default);
+        await _svc.DailyAccountsAsync(new Ctx([Permissions.DaysRead]), Tarkwa, "2026-10-30", default);
+    }
+
+    [Fact]
     public async Task Audit_trail_needs_its_permission_passes_only_known_filters_and_limits_the_scope()
     {
         var q = new Dictionary<string, string?> { ["q"] = " float ", ["sort"] = "oldest", ["evil"] = "x", ["page"] = "2" };
@@ -229,6 +240,7 @@ public class PeopleServiceTests
         public string? LastAudit; public IReadOnlyCollection<Guid>? LastAuditScope = [];
         public Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string f, CancellationToken ct) { LastAudit = f; LastAuditScope = scope; return Task.FromResult("{}"); }
         public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
         public Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
     }
 }

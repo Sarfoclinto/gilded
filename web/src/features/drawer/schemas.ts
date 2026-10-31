@@ -73,7 +73,7 @@ export type Day = z.infer<typeof daySchema>;
 export const movementSchema = z.object({
   id: z.string(),
   dayId: z.string(),
-  kind: z.enum(["topup", "withdrawal"]),
+  kind: z.enum(["topup", "withdrawal", "allowance"]),
   lines: linesSchema,
   note: z.string(),
   capturedAt: z.string(),
@@ -144,15 +144,34 @@ export interface CloseDayInput {
 }
 
 /** Cash in or out of the drawer. Safe to queue: it never needs an answer to continue. */
-export const movementCommandSchema = z.object({
-  id: z.string(),
-  dayId: z.string(),
-  branchId: z.string(),
-  kind: z.enum(["topup", "withdrawal"]),
-  lines: countSchema,
-  note: z.string().trim().min(1, "Say what this is for").max(200),
-  capturedAt: z.string(),
-});
+export const movementCommandSchema = z
+  .object({
+    id: z.string(),
+    dayId: z.string(),
+    branchId: z.string(),
+    kind: z.enum(["topup", "withdrawal", "allowance"]),
+    lines: countSchema,
+    note: z.string().trim().max(200),
+    /** Office allowance only: how many people it is paid for. */
+    people: z.number().int().min(1).max(200).optional(),
+    capturedAt: z.string(),
+  })
+  .superRefine((c, ctx) => {
+    if (c.kind === "allowance") {
+      if (!c.people)
+        ctx.addIssue({
+          code: "custom",
+          path: ["people"],
+          message: "Say how many people the allowance is for",
+        });
+    } else if (c.note.length < 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["note"],
+        message: "Say what this is for",
+      });
+    }
+  });
 export type MovementCommand = z.infer<typeof movementCommandSchema>;
 
 export const OUTBOX = {

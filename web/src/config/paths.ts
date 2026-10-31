@@ -26,6 +26,7 @@ const paths = {
     open: { href: "/drawer/open", label: "Open the day" },
     close: { href: "/drawer/close", label: "Close the day" },
     history: { href: "/drawer/history", label: "Day history" },
+    account: { href: "/drawer/account", label: "Daily account" },
   },
   prices: { href: "/prices", label: "Prices" },
   priceFeed: { href: "/prices/feed", label: "Automatic price" },

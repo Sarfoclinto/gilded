@@ -60,6 +60,8 @@ public static class PeopleEndpoints
             Data(await svc.BranchOverviewAsync(me, id, ct)));
         api.MapGet("/cash/overview", async (Guid? branchId, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Data(await svc.CashOverviewAsync(me, branchId, ct)));
+        api.MapGet("/accounts/daily", async (Guid? branchId, string? date, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Data(await svc.DailyAccountsAsync(me, branchId, date, ct)));
         api.MapGet("/audit", async (HttpContext http, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Data(await svc.AuditSearchAsync(me, http.Request.Query.ToDictionary(q => q.Key, q => (string?)q.Value.ToString()), ct)));
         api.MapPatch("/branches/{id:guid}", async (Guid id, JsonObject body, ICurrentContext me, PeopleService svc, CancellationToken ct) =>

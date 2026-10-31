@@ -34,6 +34,9 @@ const CloseDayPage = lazy(() => import("@/features/drawer/pages/CloseDayPage"));
 const DayHistoryPage = lazy(
   () => import("@/features/drawer/pages/DayHistoryPage"),
 );
+const DailyAccountPage = lazy(
+  () => import("@/features/accounts/pages/DailyAccountPage"),
+);
 const ChangePasswordPage = lazy(
   () => import("@/features/auth/pages/ChangePasswordPage"),
 );
@@ -130,6 +133,12 @@ export const appRoutes: AppRoute[] = [
     element: <DayHistoryPage />,
     access: { permission: PERMISSIONS.DAYS_READ },
     nav: { label: paths.drawer.history.label },
+  },
+  {
+    path: paths.drawer.account.href,
+    element: <DailyAccountPage />,
+    access: { permission: PERMISSIONS.DAYS_READ },
+    nav: { label: paths.drawer.account.label },
   },
   {
     path: paths.payments.href,

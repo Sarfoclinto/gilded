@@ -70,6 +70,12 @@ public sealed class PostgresPeopleStore(NpgsqlDataSource dataSource, ILogger<Pos
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = scope is null ? DBNull.Value : (object)scope.ToArray() },
             Json(filtersJson)))!;
 
+    public async Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct) =>
+        (await Scalar(me, "select gold.daily_accounts_json($1, $2, $3)", ct,
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = scope.ToArray() },
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)branchId ?? DBNull.Value },
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Date, Value = date }))!;
+
     public async Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct) =>
         (await Scalar(me, "select gold.branches_cash_json($1, $2)", ct,
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = scope.ToArray() },
