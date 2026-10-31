@@ -219,10 +219,12 @@ export default function TransactionDetailPage() {
               Change notes
             </Button>
           ) : null}
-          <Button variant="secondary" onClick={() => window.print()}>
-            <PrinterIcon className="mr-1.5 size-4" aria-hidden />
-            Print
-          </Button>
+          <Link to={paths.transactions.receipt.to(t.id)}>
+            <Button variant="secondary">
+              <PrinterIcon className="mr-1.5 size-4" aria-hidden />
+              Receipt
+            </Button>
+          </Link>
         </div>
       </div>
 

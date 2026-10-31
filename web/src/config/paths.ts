@@ -15,6 +15,12 @@ const paths = {
         `/transactions/new?collateral=${encodeURIComponent(collateralId)}`,
       label: "Refine and buy",
     },
+    receipt: {
+      href: "/transactions/:id/receipt",
+      to: (id: string, query = "") =>
+        `/transactions/${encodeURIComponent(id)}/receipt${query}`,
+      label: "Receipt",
+    },
     detail: {
       href: "/transactions/:id",
       to: (id: string) => `/transactions/${encodeURIComponent(id)}`,

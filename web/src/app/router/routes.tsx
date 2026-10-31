@@ -28,6 +28,7 @@ const NewTransactionPage = lazy(
 const TransactionDetailPage = lazy(
   () => import("@/features/transactions/pages/TransactionDetailPage"),
 );
+const ReceiptPage = lazy(() => import("@/features/receipt/ReceiptPage"));
 const DrawerPage = lazy(() => import("@/features/drawer/pages/DrawerPage"));
 const OpenDayPage = lazy(() => import("@/features/drawer/pages/OpenDayPage"));
 const CloseDayPage = lazy(() => import("@/features/drawer/pages/CloseDayPage"));
@@ -237,6 +238,13 @@ export const appRoutes: AppRoute[] = [
     access: { permission: PERMISSIONS.TRANSACTIONS_READ },
   },
 ];
+
+/** Outside the app layout on purpose (no menu, no header). */
+export const receiptRoute: AppRoute = {
+  path: paths.transactions.receipt.href,
+  element: <ReceiptPage />,
+  access: { permission: PERMISSIONS.TRANSACTIONS_READ },
+};
 
 export const guarded = (r: AppRoute) =>
   r.access ? (

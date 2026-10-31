@@ -144,3 +144,35 @@
     print-color-adjust: exact;
   }
 }
+
+/* The receipt: a torn paper edge on screen, and nothing but the paper when printed. */
+.receipt-paper:not(.receipt-a4) {
+  --edge: 6px;
+  -webkit-mask: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
+    50% / 8px 100%;
+  mask: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
+    50% / 8px 100%;
+  padding-bottom: calc(6mm + var(--edge));
+}
+@media print {
+  .receipt-screen {
+    display: block !important;
+  }
+  .receipt-paper {
+    box-shadow: none !important;
+  }
+  .receipt-paper:not(.receipt-a4) {
+    -webkit-mask: none;
+    mask: none;
+  }
+}
