@@ -28,6 +28,10 @@ public sealed record OpenDayCommand(
 public sealed record MovementCommand(
     Guid Id, Guid DayId, Guid BranchId, string? Kind, Dictionary<string, int>? Lines, string? Note, DateTimeOffset CapturedAt, int? People = null);
 
+/// <summary>The customer gives notes back and is handed other notes of the same total value (e.g. one 200 for two 100s).</summary>
+public sealed record ExchangeCommand(
+    Guid Id, Guid DayId, Guid BranchId, Guid? TransactionId, Dictionary<string, int>? Gave, Dictionary<string, int>? Took, string? Note, DateTimeOffset CapturedAt);
+
 public sealed record CustomerRef(Guid? Id, string? Name, string? Phone);
 
 public sealed record CollateralInput(string? TopWeight, string? Description);

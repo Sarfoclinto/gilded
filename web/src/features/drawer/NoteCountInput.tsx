@@ -15,12 +15,15 @@ export function NoteCountInput({
   onChange,
   disabled,
   expected,
+  hideTotalCheck,
 }: {
   value: Lines;
   onChange: (next: Lines) => void;
   disabled?: boolean;
   /** When given (closing), each row also shows what the drawer should hold. */
   expected?: Lines;
+  /** Hide the optional "total you were given" box (the screen already checks the total another way). */
+  hideTotalCheck?: boolean;
 }) {
   const [typed, setTyped] = useState("");
   const check = checkTotal(typed, lineTotal(value));
@@ -33,38 +36,42 @@ export function NoteCountInput({
   };
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-dashed border-border p-3">
-        <label className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span>
-            <span className="font-medium">Total you were given or expect</span>
-            <span className="block text-xs text-muted-foreground">
-              Optional. Only a check, it is not saved.
+      {hideTotalCheck ? null : (
+        <div className="rounded-xl border border-dashed border-border p-3">
+          <label className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span>
+              <span className="font-medium">
+                Total you were given or expect
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Optional. Only a check, it is not saved.
+              </span>
             </span>
-          </span>
-          <input
-            inputMode="decimal"
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            disabled={disabled}
-            placeholder="GHS"
-            aria-label="Total you were given or expect, optional"
-            className="tnum min-h-11 w-36 rounded-lg border border-border bg-card px-3 text-right outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-          />
-        </label>
-        {check.kind === "match" ? (
-          <p className="mt-1 text-xs text-emerald-700">
-            Matches the notes you counted.
-          </p>
-        ) : null}
-        {check.kind === "differs" ? (
-          <p className="mt-1 text-xs text-amber-700">
-            The notes add up to {cedis(lineTotal(value))}, which is{" "}
-            {cedis(Math.abs(check.difference))}{" "}
-            {check.difference < 0 ? "less" : "more"} than you typed. Count
-            again, or carry on if the notes are right.
-          </p>
-        ) : null}
-      </div>
+            <input
+              inputMode="decimal"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              disabled={disabled}
+              placeholder="GHS"
+              aria-label="Total you were given or expect, optional"
+              className="tnum min-h-11 w-36 rounded-lg border border-border bg-card px-3 text-right outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            />
+          </label>
+          {check.kind === "match" ? (
+            <p className="mt-1 text-xs text-emerald-700">
+              Matches the notes you counted.
+            </p>
+          ) : null}
+          {check.kind === "differs" ? (
+            <p className="mt-1 text-xs text-amber-700">
+              The notes add up to {cedis(lineTotal(value))}, which is{" "}
+              {cedis(Math.abs(check.difference))}{" "}
+              {check.difference < 0 ? "less" : "more"} than you typed. Count
+              again, or carry on if the notes are right.
+            </p>
+          ) : null}
+        </div>
+      )}
 
       <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
         {DENOMINATIONS.map((d) => {

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
+  ArrowLeftRightIcon,
   CheckIcon,
   CopyIcon,
   PrinterIcon,
@@ -9,7 +10,10 @@ import {
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
+import { useAuth } from "@/features/auth/store";
 import { useHasPermission } from "@/features/auth/useHasPermission";
+import { useActiveDrawer } from "@/features/drawer/hooks";
+import { ExchangeModal } from "@/features/drawer/ExchangeModal";
 import { useBranchNames } from "@/features/branches/api";
 import { cedis, percent } from "@/features/calculator/format";
 import { StackBar } from "@/features/dashboard/charts";
@@ -80,6 +84,10 @@ export default function TransactionDetailPage() {
   const branchNames = useBranchNames();
   const [target, setTarget] = useState<ResolveTarget | null>(null);
   const [copied, setCopied] = useState(false);
+  const [exchanging, setExchanging] = useState(false);
+  const canManageDay = useHasPermission(PERMISSIONS.DAYS_MANAGE);
+  const { view: drawer } = useActiveDrawer();
+  const activeBranch = useAuth((st) => st.activeBranchId);
 
   if (isLoading)
     return <p className="p-4 text-sm text-muted-foreground">Loading…</p>;
@@ -200,6 +208,17 @@ export default function TransactionDetailPage() {
             <CopyIcon className="mr-1.5 size-4" aria-hidden />
             Copy as text
           </Button>
+          {canManageDay &&
+          drawer.status === "open" &&
+          drawer.dayId &&
+          t.branchId === activeBranch &&
+          !cancelled &&
+          t.sync !== "waiting" ? (
+            <Button variant="secondary" onClick={() => setExchanging(true)}>
+              <ArrowLeftRightIcon className="mr-1.5 size-4" aria-hidden />
+              Change notes
+            </Button>
+          ) : null}
           <Button variant="secondary" onClick={() => window.print()}>
             <PrinterIcon className="mr-1.5 size-4" aria-hidden />
             Print
@@ -514,6 +533,16 @@ export default function TransactionDetailPage() {
           </Section>
         </div>
       </div>
+      {drawer.dayId && activeBranch ? (
+        <ExchangeModal
+          open={exchanging}
+          onClose={() => setExchanging(false)}
+          dayId={drawer.dayId}
+          branchId={activeBranch}
+          transactionId={t.id}
+          reference={t.reference ?? undefined}
+        />
+      ) : null}
     </div>
   );
 }

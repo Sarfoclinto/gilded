@@ -8,6 +8,7 @@ import {
   dayStateSchema,
   movementSchema,
   type CloseDayInput,
+  type ExchangeCommand,
   type MovementCommand,
   type OpenDayInput,
 } from "./schemas";
@@ -64,6 +65,16 @@ export const daysApi = {
         headers: { "Idempotency-Key": cmd.id },
       },
       daySchema,
+    ),
+  exchange: (cmd: ExchangeCommand) =>
+    request(
+      {
+        method: "post",
+        url: `/days/${cmd.dayId}/exchanges`,
+        data: cmd,
+        headers: { "Idempotency-Key": cmd.id },
+      },
+      movementSchema,
     ),
   movement: (cmd: MovementCommand) =>
     request(

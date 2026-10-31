@@ -45,6 +45,7 @@ export function drawerFlow(
   let inLines: Lines = {};
   let outLines: Lines = {};
   for (const m of movements) {
+    if (m.kind === "exchange") continue; // notes changed for the same value: nothing came in or went out
     if (m.kind === "topup") inLines = addLines(inLines, m.lines);
     else outLines = addLines(outLines, m.lines);
   }

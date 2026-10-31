@@ -73,11 +73,14 @@ export type Day = z.infer<typeof daySchema>;
 export const movementSchema = z.object({
   id: z.string(),
   dayId: z.string(),
-  kind: z.enum(["topup", "withdrawal", "allowance"]),
+  kind: z.enum(["topup", "withdrawal", "allowance", "exchange"]),
   lines: linesSchema,
   note: z.string(),
   capturedAt: z.string(),
   createdBy: personSchema,
+  transactionId: z.string().nullable().optional(),
+  /** Only for kind 'exchange': the notes the customer gave back and the notes handed out. */
+  exchange: z.object({ gave: linesSchema, took: linesSchema }).optional(),
 });
 export type Movement = z.infer<typeof movementSchema>;
 
@@ -174,8 +177,22 @@ export const movementCommandSchema = z
   });
 export type MovementCommand = z.infer<typeof movementCommandSchema>;
 
+/** Notes changed for a customer who was already paid. Safe to queue, like any drawer movement. */
+export const exchangeCommandSchema = z.object({
+  id: z.string(),
+  dayId: z.string(),
+  branchId: z.string(),
+  transactionId: z.string().optional(),
+  gave: countSchema,
+  took: countSchema,
+  note: z.string().trim().max(200).optional(),
+  capturedAt: z.string(),
+});
+export type ExchangeCommand = z.infer<typeof exchangeCommandSchema>;
+
 export const OUTBOX = {
   MOVEMENT: "drawer.movement",
+  EXCHANGE: "drawer.exchange",
 } as const;
 
 /** GET /days/{id}/activity: one day's own movements, apart from the running totals. */

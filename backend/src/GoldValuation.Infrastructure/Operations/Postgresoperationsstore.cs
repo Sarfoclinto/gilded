@@ -55,6 +55,9 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
     public async Task<DbResult> RecordMovementAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
         Result(await Scalar(me, "select gold.record_movement($1)", ct, Json(payloadJson)));
 
+    public async Task<DbResult> RecordExchangeAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
+        Result(await Scalar(me, "select gold.record_exchange($1)", ct, Json(payloadJson)));
+
     public Task<string?> GetDayAsync(ICurrentContext me, Guid dayId, CancellationToken ct) =>
         Scalar(me, "select gold.day_json($1)", ct, Uuid(dayId));
 

@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert } from "antd";
-import { ArrowDownIcon, ArrowUpIcon, HistoryIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowLeftRightIcon,
+  ArrowUpIcon,
+  HistoryIcon,
+} from "lucide-react";
 import { DENOMINATIONS, lineTotal, noteCount } from "@gold/core";
 import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
@@ -15,10 +20,11 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { Chip } from "@/shared/ui/Chip";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { drawerFlow } from "../daymodel";
+import { drawerFlow } from "../dayModel";
 import { dayFlagText, linesText, signoffText } from "../format";
 import { useActiveDrawer, useClosingPreview } from "../hooks";
 import { MovementModal } from "../MovementModal";
+import { ExchangeModal } from "../ExchangeModal";
 
 const longDate = (d: string) =>
   new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", {
@@ -57,6 +63,7 @@ export default function DrawerPage() {
   const branchId = useAuth((s) => s.activeBranchId);
   const { view, state, query } = useActiveDrawer();
   const [moving, setMoving] = useState(false);
+  const [exchanging, setExchanging] = useState(false);
   const day = state?.day ?? null;
   const canManage = useHasPermission(PERMISSIONS.DAYS_MANAGE);
   const books = useClosingPreview(
@@ -211,6 +218,13 @@ export default function DrawerPage() {
                 >
                   Cash in / out
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setExchanging(true)}
+                  className="min-h-11 rounded-lg border border-white/30 px-4 text-sm font-semibold hover:bg-white/10"
+                >
+                  Change notes
+                </button>
                 <Link to={paths.drawer.close.href} className="block">
                   <button
                     type="button"
@@ -302,9 +316,14 @@ export default function DrawerPage() {
                   >
                     <div className="flex min-w-0 items-start gap-3">
                       <span
-                        className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${m.kind === "topup" ? "bg-emerald-500/15 text-emerald-700" : "bg-red-500/15 text-red-700"}`}
+                        className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${m.kind === "exchange" ? "bg-sky-500/15 text-sky-700" : m.kind === "topup" ? "bg-emerald-500/15 text-emerald-700" : "bg-red-500/15 text-red-700"}`}
                       >
-                        {m.kind === "topup" ? (
+                        {m.kind === "exchange" ? (
+                          <ArrowLeftRightIcon
+                            className="size-4"
+                            aria-label="Changed"
+                          />
+                        ) : m.kind === "topup" ? (
                           <ArrowDownIcon className="size-4" aria-label="In" />
                         ) : (
                           <ArrowUpIcon className="size-4" aria-label="Out" />
@@ -314,16 +333,24 @@ export default function DrawerPage() {
                         <div className="font-medium">{m.note}</div>
                         <div className="text-xs text-muted-foreground">
                           {m.createdBy.displayName} · {when(m.capturedAt)} ·{" "}
-                          {linesText(m.lines)}
+                          {m.exchange
+                            ? `${linesText(m.exchange.gave)} back, ${linesText(m.exchange.took)} out`
+                            : linesText(m.lines)}
                         </div>
                       </div>
                     </div>
-                    <strong
-                      className={`tnum whitespace-nowrap ${m.kind === "topup" ? "text-emerald-700" : "text-red-700"}`}
-                    >
-                      {m.kind === "topup" ? "+" : "−"}
-                      {cedis(lineTotal(m.lines))}
-                    </strong>
+                    {m.kind === "exchange" && m.exchange ? (
+                      <strong className="tnum whitespace-nowrap text-sky-700">
+                        {cedis(lineTotal(m.exchange.took))}
+                      </strong>
+                    ) : (
+                      <strong
+                        className={`tnum whitespace-nowrap ${m.kind === "topup" ? "text-emerald-700" : "text-red-700"}`}
+                      >
+                        {m.kind === "topup" ? "+" : "−"}
+                        {cedis(lineTotal(m.lines))}
+                      </strong>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -338,6 +365,14 @@ export default function DrawerPage() {
             <MovementModal
               open={moving}
               onClose={() => setMoving(false)}
+              dayId={view.dayId}
+              branchId={branchId}
+            />
+          ) : null}
+          {view.dayId && branchId ? (
+            <ExchangeModal
+              open={exchanging}
+              onClose={() => setExchanging(false)}
               dayId={view.dayId}
               branchId={branchId}
             />

@@ -1,7 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { transactionKeys, transactionsApi } from "@/features/transactions/api";
 import { dayKeys, daysApi } from "@/features/drawer/api";
-import { OUTBOX, type MovementCommand } from "@/features/drawer/schemas";
+import {
+  OUTBOX,
+  type ExchangeCommand,
+  type MovementCommand,
+} from "@/features/drawer/schemas";
 import { debtKeys, collateralKeys } from "@/features/debts/api";
 import { paymentKeys } from "@/features/payments/api";
 import type { CreateTransaction } from "@/features/transactions/schemas";
@@ -16,6 +20,8 @@ export const outboxHandlers: Record<string, Handler> = {
     transactionsApi.create(payload)) as Handler,
   [OUTBOX.MOVEMENT]: ((payload: MovementCommand) =>
     daysApi.movement(payload)) as Handler,
+  [OUTBOX.EXCHANGE]: ((payload: ExchangeCommand) =>
+    daysApi.exchange(payload)) as Handler,
 };
 
 /** After the server confirms a command, refresh what the screens show. */
@@ -30,7 +36,7 @@ export const makeOnSynced = (qc: QueryClient) => (entry: OutboxEntry) => {
       paymentKeys.all,
     ])
       void qc.invalidateQueries({ queryKey: key });
-  } else if (entry.type === OUTBOX.MOVEMENT) {
+  } else if (entry.type === OUTBOX.MOVEMENT || entry.type === OUTBOX.EXCHANGE) {
     void qc.invalidateQueries({ queryKey: dayKeys.all });
   }
 };

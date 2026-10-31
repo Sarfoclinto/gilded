@@ -33,6 +33,25 @@ public class OperationsServiceTests
         Assert.Contains("\"method\":\"cash\"", _store.LastPayload);
     }
 
+    [Fact]
+    public async Task Changing_notes_must_balance_use_different_notes_and_stay_in_the_callers_branch()
+    {
+        ExchangeCommand Ex(Dictionary<string, int>? gave, Dictionary<string, int>? took, Guid? branch = null) =>
+            new(Guid.NewGuid(), Guid.Parse("00000000-0000-0000-0000-0000000000d1"), branch ?? Tarkwa, null, gave, took, null, DateTimeOffset.UtcNow);
+        var day = Guid.Parse("00000000-0000-0000-0000-0000000000d1");
+        var ok = Ex(new() { ["200"] = 1 }, new() { ["100"] = 2 });
+        await _ops.RecordExchangeAsync(Teller(), day, ok, ok.Id.ToString(), default);
+        var unequal = Ex(new() { ["200"] = 1 }, new() { ["100"] = 1 });
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, unequal, unequal.Id.ToString(), default));
+        var same = Ex(new() { ["100"] = 2 }, new() { ["100"] = 1, ["50"] = 2 });
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, same, same.Id.ToString(), default));
+        var empty = Ex(new() { ["200"] = 1 }, null);
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, empty, empty.Id.ToString(), default));
+        var other = Ex(new() { ["200"] = 1 }, new() { ["100"] = 2 }, Guid.NewGuid());
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, other, other.Id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, ok, Guid.NewGuid().ToString(), default));
+    }
+
     private static TransactionSearch Search(Guid? branch = null, string? sort = null, string? from = null, string? q = null, int? limit = null) =>
         new(branch, null, q, from, null, null, null, null, null, sort, limit, null);
 
@@ -268,6 +287,7 @@ public class OperationsServiceTests
         public Task<string> DayStateAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult("{}");
         public Task<DbResult> OpenDayAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<DbResult> RecordMovementAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
+        public Task<DbResult> RecordExchangeAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public string? StoredDay;
         public string? LastSignoff;
         public Task<string> DayActivityAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");

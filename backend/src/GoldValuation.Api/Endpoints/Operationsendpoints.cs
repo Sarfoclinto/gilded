@@ -57,6 +57,9 @@ public static class OperationsEndpoints
         api.MapPost("/days/{id:guid}/movements", async (Guid id, MovementCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Created(await ops.RecordMovementAsync(me, id, body, Key(http), ct)));
 
+        api.MapPost("/days/{id:guid}/exchanges", async (Guid id, ExchangeCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Created(await ops.RecordExchangeAsync(me, id, body, Key(http), ct)));
+
         // ---- purchases ----
         api.MapGet("/transactions", async (Guid branchId, int? limit, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.ListTransactionsAsync(me, branchId, limit, ct)));

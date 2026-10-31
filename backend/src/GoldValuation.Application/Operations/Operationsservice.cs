@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Auth;
+using GoldValuation.Domain.Accounting;
 
 namespace GoldValuation.Application.Operations;
 
@@ -72,6 +73,24 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         if (c.DayId != dayId) throw AppException.Invalid("The day in the address and in the body differ.");
         TransactionPlanner.ParseLines(c.Lines);
         return store.RecordMovementAsync(me, Serialize(c), ct);
+    }
+
+    /// <summary>
+    /// Notes changed after a customer was paid. The two sides must be worth exactly the same and use different notes; the database checks it too.
+    /// </summary>
+    public Task<DbResult> RecordExchangeAsync(ICurrentContext me, Guid dayId, ExchangeCommand c, string? key, CancellationToken ct)
+    {
+        me.Require(Permissions.DaysManage);
+        me.RequireBranch(c.BranchId);
+        KeyMatches(key, c.Id);
+        if (c.DayId != dayId) throw AppException.Invalid("The day in the address and in the body differ.");
+        var gave = TransactionPlanner.ParseLines(c.Gave);
+        var took = TransactionPlanner.ParseLines(c.Took);
+        if (gave.Count == 0 || took.Count == 0) throw AppException.Invalid("Enter the notes given back and the notes handed out.");
+        if (NoteLines.Value(gave) != NoteLines.Value(took))
+            throw AppException.Invalid("The notes given back and the notes handed out must be worth the same.");
+        if (gave.Keys.Intersect(took.Keys).Any()) throw AppException.Invalid("Hand out different notes from the ones given back.");
+        return store.RecordExchangeAsync(me, Serialize(c), ct);
     }
 
     public async Task<string> GetDayAsync(ICurrentContext me, Guid id, CancellationToken ct)

@@ -6,7 +6,11 @@ import { dayKeys, daysApi } from "./api";
 import { projectDrawer, type Pending } from "./projection";
 import { OUTBOX } from "./schemas";
 
-const RELEVANT = new Set<string>([OUTBOX.MOVEMENT, "transaction.create"]);
+const RELEVANT = new Set<string>([
+  OUTBOX.MOVEMENT,
+  OUTBOX.EXCHANGE,
+  "transaction.create",
+]);
 
 /** The drawer for a branch as this device sees it: server snapshot plus anything still waiting to be sent. */
 export function useDrawer(branchId: string | null) {

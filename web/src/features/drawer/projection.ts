@@ -6,7 +6,7 @@ import {
   type NoteLimits,
 } from "@gold/core";
 import type { CreateTransaction } from "@/features/transactions/schemas";
-import type { DayState, MovementCommand } from "./schemas";
+import type { DayState, ExchangeCommand, MovementCommand } from "./schemas";
 
 /**
  * What the drawer looks like on THIS device right now: the last answer from the server plus everything
@@ -17,6 +17,7 @@ import type { DayState, MovementCommand } from "./schemas";
  */
 export type Pending =
   | { id: string; type: "drawer.movement"; payload: MovementCommand }
+  | { id: string; type: "drawer.exchange"; payload: ExchangeCommand }
   | {
       id: string;
       type: "transaction.create";
@@ -72,6 +73,14 @@ export function projectDrawer(
           p.payload.kind === "topup"
             ? addLines(balance, p.payload.lines)
             : subtractLines(balance, p.payload.lines);
+        break;
+      }
+      case "drawer.exchange": {
+        if (status !== "open" || p.payload.dayId !== dayId || !balance) break;
+        balance = subtractLines(
+          addLines(balance, p.payload.gave),
+          p.payload.took,
+        );
         break;
       }
       case "transaction.create": {
