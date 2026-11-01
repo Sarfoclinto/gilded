@@ -20,6 +20,7 @@ public interface IOperationsStore
     Task<string> DayStateAsync(ICurrentContext me, Guid branchId, CancellationToken ct);
     Task<DbResult> OpenDayAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<DbResult> RecordMovementAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
+    Task<string> ListExchangesAsync(ICurrentContext me, Guid branchId, int limit, CancellationToken ct);
     Task<DbResult> RecordExchangeAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string?> GetDayAsync(ICurrentContext me, Guid dayId, CancellationToken ct);
     Task<string> ListDaysAsync(ICurrentContext me, Guid branchId, DateOnly? fromDate, DateOnly? toDate, string? signoff, int limit, CancellationToken ct);

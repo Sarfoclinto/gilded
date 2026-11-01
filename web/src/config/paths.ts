@@ -35,6 +35,7 @@ const paths = {
     close: { href: "/drawer/close", label: "Close the day" },
     history: { href: "/drawer/history", label: "Day history" },
     account: { href: "/drawer/account", label: "Daily account" },
+    exchange: { href: "/drawer/exchange", label: "Change notes" },
   },
   prices: { href: "/prices", label: "Prices" },
   priceFeed: { href: "/prices/feed", label: "Automatic price" },

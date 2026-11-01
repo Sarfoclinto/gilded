@@ -10,6 +10,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { dayKeys, daysApi } from "../api";
 import { linesText } from "../format";
+import { useSettings } from "@/features/settings/api";
 import { useActiveDrawer } from "../hooks";
 import { NoteCountInput } from "../NoteCountInput";
 import { localDate } from "../projection";
@@ -31,6 +32,9 @@ export default function OpenDayPage() {
   const { view, state } = useActiveDrawer();
   const [lines, setLines] = useState<Lines>({});
   const [explanation, setExplanation] = useState("");
+  // Blind count: the books are not shown; a mismatch is revealed (without the amount) when the button is pressed.
+  const blind = useSettings()["count.blind"];
+  const [revealed, setRevealed] = useState(false);
   // One id per form: pressing the button twice, or retrying after a lost answer, can only open one day.
   const [commandId] = useState(() => crypto.randomUUID());
   const today = localDate();
@@ -53,7 +57,7 @@ export default function OpenDayPage() {
   const hasCount = Object.keys(lines).length > 0;
   const differs = books !== null && hasCount && !same(lines, books);
   const diffAmount = books ? lineTotal(lines) - lineTotal(books) : 0;
-  const needsReason = differs;
+  const needsReason = differs && (!blind || revealed);
   const canSave = afterClose
     ? !!branchId && !open.isPending && explanation.trim().length >= 5
     : !!branchId &&
@@ -64,6 +68,10 @@ export default function OpenDayPage() {
 
   function submit() {
     if (!canSave || !branchId) return;
+    if (blind && !afterClose && differs && !revealed) {
+      setRevealed(true);
+      return;
+    }
     if (afterClose) {
       open.mutate({
         id: commandId,
@@ -133,7 +141,7 @@ export default function OpenDayPage() {
           showIcon
           title="This is the first day for this branch. What you count now becomes the starting balance."
         />
-      ) : books ? (
+      ) : books && !blind ? (
         <Card className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 text-sm">
             <div className="text-xs uppercase text-muted-foreground">
@@ -166,24 +174,26 @@ export default function OpenDayPage() {
           value={lines}
           onChange={setLines}
           disabled={!!blocked}
-          expected={books ?? undefined}
+          expected={blind ? undefined : (books ?? undefined)}
         />
       )}
 
-      {differs && !afterClose ? (
+      {differs && !afterClose && (!blind || revealed) ? (
         <Card className="space-y-3 border-amber-500/60">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-medium">
-              {diffAmount === 0
-                ? "Same value, different notes"
-                : diffAmount < 0
-                  ? "Your count is short by"
-                  : "Your count is over by"}
+              {blind
+                ? "Your count does not match the books"
+                : diffAmount === 0
+                  ? "Same value, different notes"
+                  : diffAmount < 0
+                    ? "Your count is short by"
+                    : "Your count is over by"}
             </span>
             <strong
               className={`tnum text-xl ${diffAmount < 0 ? "text-red-600" : ""}`}
             >
-              {diffAmount === 0 ? "" : cedis(Math.abs(diffAmount))}
+              {blind || diffAmount === 0 ? "" : cedis(Math.abs(diffAmount))}
             </strong>
           </div>
           <Input.TextArea

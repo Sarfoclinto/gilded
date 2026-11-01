@@ -23,6 +23,7 @@ import {
   ShieldCheckIcon,
   KeyRoundIcon,
   SettingsIcon,
+  ArrowLeftRightIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -177,6 +178,12 @@ export const appMenu: AppMenuItem[] = [
         label: link(paths.drawer.history.href, paths.drawer.history.label),
         icon: <HistoryIcon className={icon} />,
         permission: PERMISSIONS.DAYS_READ,
+      },
+      {
+        key: paths.drawer.exchange.href,
+        label: link(paths.drawer.exchange.href, paths.drawer.exchange.label),
+        icon: <ArrowLeftRightIcon className={icon} />,
+        permission: PERMISSIONS.NOTES_EXCHANGE,
       },
       {
         key: paths.drawer.account.href,

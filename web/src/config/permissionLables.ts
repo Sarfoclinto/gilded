@@ -23,6 +23,8 @@ export const permissionLabels: Record<Permission, string> = {
   "transfers:create": "Prepare, send and pay for transfers (sending end)",
   "discrepancies:review":
     "Work the inbox of differences (take, note, resolve, reopen)",
+  "notes:exchange":
+    "Change notes for the branch itself: smaller notes for change, bigger notes to hand out fewer",
   "settings:manage":
     "Change company settings: two-step payout, receipts, the office allowance",
   "audit:read": "Read the audit trail: who did what, when and where",

@@ -110,7 +110,7 @@ describe("role helpers", () => {
     const m = matrix([role("a", ["days:read"]), role("b", [])]);
     const cash = m.find((g) => g.title === "Cash and days")!;
     expect(cash.rows[0]!.has).toEqual([true, false]);
-    expect(m.flatMap((g) => g.rows)).toHaveLength(24);
+    expect(m.flatMap((g) => g.rows)).toHaveLength(25);
   });
   it("names keys like the server and spots unknown permissions", () => {
     expect(roleKeyFromName(" Shift Lead! ")).toBe("shift-lead");

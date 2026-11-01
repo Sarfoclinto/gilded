@@ -21,6 +21,7 @@ import {
 } from "../closing";
 import { FigureBadge } from "../FigureBadge";
 import { linesText } from "../format";
+import { useSettings } from "@/features/settings/api";
 import { useActiveDrawer, useClosingPreview, useDayActivity } from "../hooks";
 import { DayActivityPanel } from "../DayActivityPanel";
 import { NoteCountInput } from "../NoteCountInput";
@@ -51,6 +52,10 @@ export default function CloseDayPage() {
   const [why, setWhy] = useState<Partial<Record<Figure, string>>>({});
   const [confirmed, setConfirmed] = useState(false);
   const [commandId] = useState(() => crypto.randomUUID());
+  // Blind count: the books are not shown. A mismatch is revealed (without amounts) when the button is pressed, then needs a recount or a reason.
+  const blind = useSettings()["count.blind"];
+  const [revealed, setRevealed] = useState(false);
+  const showBooks = !blind;
 
   const close = useApiMutation({
     mutationFn: daysApi.close,
@@ -67,7 +72,11 @@ export default function CloseDayPage() {
     () => (preview ? checkFigures(preview, declared) : []),
     [preview, cash, text],
   ); // eslint-disable-line react-hooks/exhaustive-deps
-  const problems = preview ? closingProblems(checks, why, confirmed) : [];
+  const allProblems = preview ? closingProblems(checks, why, confirmed) : [];
+  const problems =
+    blind && !revealed
+      ? allProblems.filter((p) => !p.endsWith("write why it differs."))
+      : allProblems;
   const progress = closingProgress(
     checks,
     Object.keys(cash).length > 0 ||
@@ -91,6 +100,10 @@ export default function CloseDayPage() {
 
   function submit() {
     if (!preview || !branchId || !dayId || problems.length) return;
+    if (blind && !revealed && checks.some((x) => x.needsReason && !x.invalid)) {
+      setRevealed(true);
+      return;
+    }
     const explanations: Partial<Record<Figure, string>> = {};
     for (const c of checks)
       if (c.needsReason) explanations[c.figure] = (why[c.figure] ?? "").trim();
@@ -122,11 +135,13 @@ export default function CloseDayPage() {
             <label className="font-medium" htmlFor={`fig-${f}`}>
               {figureLabel[f]}
             </label>
-            <div className="tnum text-xs text-muted-foreground">
-              Books: {preview ? unitText(f, c?.expected ?? "0") : "…"}
-            </div>
+            {showBooks ? (
+              <div className="tnum text-xs text-muted-foreground">
+                Books: {preview ? unitText(f, c?.expected ?? "0") : "…"}
+              </div>
+            ) : null}
           </div>
-          {c ? (
+          {c && showBooks ? (
             <FigureBadge state={figureState(c, text[key].trim() !== "")} />
           ) : null}
         </div>
@@ -151,12 +166,15 @@ export default function CloseDayPage() {
     const c = checks.find((x) => x.figure === f);
     if (!c || c.invalid || !c.needsReason) return null;
     if (f === "cash" && Object.keys(cash).length === 0) return null;
+    if (blind && !revealed) return null;
     return (
       <div className="space-y-1">
         <p className="tnum text-sm font-medium text-amber-700 dark:text-amber-300">
-          {c.valueDiffers
-            ? `${c.difference > 0 ? "Over" : "Short"} by ${unitText(f, String(Math.abs(c.difference)))}`
-            : "Same value, different notes"}
+          {blind
+            ? "This does not match the books. Count again, or say why."
+            : c.valueDiffers
+              ? `${c.difference > 0 ? "Over" : "Short"} by ${unitText(f, String(Math.abs(c.difference)))}`
+              : "Same value, different notes"}
         </p>
         <Input.TextArea
           rows={2}
@@ -252,14 +270,16 @@ export default function CloseDayPage() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h2 className="font-medium">{figureLabel.cash}</h2>
-                <div className="tnum text-xs text-muted-foreground">
-                  Books: {cedis(Number(preview.expected.cash.value))} ·{" "}
-                  {linesText(preview.expected.cash.lines)}
-                </div>
+                {showBooks ? (
+                  <div className="tnum text-xs text-muted-foreground">
+                    Books: {cedis(Number(preview.expected.cash.value))} ·{" "}
+                    {linesText(preview.expected.cash.lines)}
+                  </div>
+                ) : null}
               </div>
               {(() => {
                 const c = checks.find((x) => x.figure === "cash");
-                return c ? (
+                return c && showBooks ? (
                   <FigureBadge
                     state={figureState(c, Object.keys(cash).length > 0)}
                   />
@@ -269,7 +289,7 @@ export default function CloseDayPage() {
             <NoteCountInput
               value={cash}
               onChange={setCash}
-              expected={preview.expected.cash.lines}
+              expected={showBooks ? preview.expected.cash.lines : undefined}
             />
             {explainBox("cash")}
             {Object.keys(cash).length === 0 ? (
@@ -336,17 +356,23 @@ export default function CloseDayPage() {
               <span className="text-muted-foreground">
                 {progress.entered} of {progress.total} figures entered
               </span>
-              <span
-                className={
-                  progress.differ
-                    ? "font-semibold text-amber-700"
-                    : "text-muted-foreground"
-                }
-              >
-                {progress.differ
-                  ? `${progress.differ} differ from the books`
-                  : "None differ so far"}
-              </span>
+              {showBooks ? (
+                <span
+                  className={
+                    progress.differ
+                      ? "font-semibold text-amber-700"
+                      : "text-muted-foreground"
+                  }
+                >
+                  {progress.differ
+                    ? `${progress.differ} differ from the books`
+                    : "None differ so far"}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Counted without the books
+                </span>
+              )}
             </div>
             <div
               className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted"

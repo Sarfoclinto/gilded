@@ -55,6 +55,9 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
     public async Task<DbResult> RecordMovementAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
         Result(await Scalar(me, "select gold.record_movement($1)", ct, Json(payloadJson)));
 
+    public async Task<string> ListExchangesAsync(ICurrentContext me, Guid branchId, int limit, CancellationToken ct) =>
+        (await Scalar(me, "select gold.exchanges_json($1, $2)", ct, Uuid(branchId), new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, Value = limit }))!;
+
     public async Task<DbResult> RecordExchangeAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
         Result(await Scalar(me, "select gold.record_exchange($1)", ct, Json(payloadJson)));
 

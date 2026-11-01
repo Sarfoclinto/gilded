@@ -42,6 +42,9 @@ const CloseDayPage = lazy(() => import("@/features/drawer/pages/CloseDayPage"));
 const DayHistoryPage = lazy(
   () => import("@/features/drawer/pages/DayHistoryPage"),
 );
+const NoteExchangePage = lazy(
+  () => import("@/features/drawer/pages/NoteExchangePage"),
+);
 const DailyAccountPage = lazy(
   () => import("@/features/accounts/pages/DailyAccountPage"),
 );
@@ -146,6 +149,11 @@ export const appRoutes: AppRoute[] = [
     element: <DayHistoryPage />,
     access: { permission: PERMISSIONS.DAYS_READ },
     nav: { label: paths.drawer.history.label },
+  },
+  {
+    path: paths.drawer.exchange.href,
+    element: <NoteExchangePage />,
+    access: { permission: PERMISSIONS.NOTES_EXCHANGE },
   },
   {
     path: paths.drawer.account.href,

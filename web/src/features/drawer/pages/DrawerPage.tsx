@@ -24,7 +24,6 @@ import { drawerFlow } from "../dayModel";
 import { dayFlagText, linesText, signoffText } from "../format";
 import { useActiveDrawer, useClosingPreview } from "../hooks";
 import { MovementModal } from "../MovementModal";
-import { ExchangeModal } from "../ExchangeModal";
 
 const longDate = (d: string) =>
   new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", {
@@ -63,9 +62,9 @@ export default function DrawerPage() {
   const branchId = useAuth((s) => s.activeBranchId);
   const { view, state, query } = useActiveDrawer();
   const [moving, setMoving] = useState(false);
-  const [exchanging, setExchanging] = useState(false);
   const day = state?.day ?? null;
   const canManage = useHasPermission(PERMISSIONS.DAYS_MANAGE);
+  const canExchange = useHasPermission(PERMISSIONS.NOTES_EXCHANGE);
   const books = useClosingPreview(
     canManage && view.status === "open" ? view.dayId : null,
   ).data;
@@ -218,13 +217,16 @@ export default function DrawerPage() {
                 >
                   Cash in / out
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setExchanging(true)}
-                  className="min-h-11 rounded-lg border border-white/30 px-4 text-sm font-semibold hover:bg-white/10"
-                >
-                  Change notes
-                </button>
+                {canExchange ? (
+                  <Link
+                    to={paths.drawer.exchange.href}
+                    className="flex min-h-11 items-center justify-center rounded-lg border border-white/30 px-4 text-sm font-semibold hover:bg-white/10"
+                  >
+                    Change notes
+                  </Link>
+                ) : (
+                  <span />
+                )}
                 <Link to={paths.drawer.close.href} className="block">
                   <button
                     type="button"
@@ -365,14 +367,6 @@ export default function DrawerPage() {
             <MovementModal
               open={moving}
               onClose={() => setMoving(false)}
-              dayId={view.dayId}
-              branchId={branchId}
-            />
-          ) : null}
-          {view.dayId && branchId ? (
-            <ExchangeModal
-              open={exchanging}
-              onClose={() => setExchanging(false)}
               dayId={view.dayId}
               branchId={branchId}
             />

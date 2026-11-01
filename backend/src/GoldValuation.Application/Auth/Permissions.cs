@@ -48,6 +48,8 @@ public static class Permissions
 
     /// <summary>Change the company's settings: two-step payout, receipts, the office allowance. Directors only.</summary>
     public const string SettingsManage = "settings:manage";
+    /// <summary>Change notes for the branch itself (smaller notes for change, bigger notes to hand out fewer), without a purchase.</summary>
+    public const string NotesExchange = "notes:exchange";
 
     /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
     public static IReadOnlySet<string> All { get; } = typeof(Permissions)
@@ -61,7 +63,7 @@ public static class Permissions
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage];

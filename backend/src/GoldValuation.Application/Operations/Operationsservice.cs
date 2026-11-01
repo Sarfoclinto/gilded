@@ -80,7 +80,8 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
     /// </summary>
     public Task<DbResult> RecordExchangeAsync(ICurrentContext me, Guid dayId, ExchangeCommand c, string? key, CancellationToken ct)
     {
-        me.Require(Permissions.DaysManage);
+        // Changing a customer's notes after a purchase is part of running the counter; changing notes for the branch itself has its own permission.
+        me.Require(c.TransactionId is null ? Permissions.NotesExchange : Permissions.DaysManage);
         me.RequireBranch(c.BranchId);
         KeyMatches(key, c.Id);
         if (c.DayId != dayId) throw AppException.Invalid("The day in the address and in the body differ.");
@@ -91,6 +92,14 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
             throw AppException.Invalid("The notes given back and the notes handed out must be worth the same.");
         if (gave.Keys.Intersect(took.Keys).Any()) throw AppException.Invalid("Hand out different notes from the ones given back.");
         return store.RecordExchangeAsync(me, Serialize(c), ct);
+    }
+
+    /// <summary>The branch's recent note exchanges (those made without a purchase), newest first.</summary>
+    public Task<string> ListExchangesAsync(ICurrentContext me, Guid branchId, int? limit, CancellationToken ct)
+    {
+        me.Require(Permissions.NotesExchange);
+        me.RequireBranch(branchId);
+        return store.ListExchangesAsync(me, branchId, Math.Clamp(limit ?? 20, 1, 100), ct);
     }
 
     public async Task<string> GetDayAsync(ICurrentContext me, Guid id, CancellationToken ct)

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/features/auth/store";
 import { useApiQuery } from "@/shared/api/hooks";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
-import { dayKeys, daysApi } from "./api";
+import { dayKeys, daysApi, exchangeKeys } from "./api";
 import { projectDrawer, type Pending } from "./projection";
 import { useSettings } from "@/features/settings/api";
 import { OUTBOX } from "./schemas";
@@ -76,6 +76,17 @@ export function useClosingPreview(dayId: string | null) {
     queryKey: dayKeys.custom("preview", { dayId }),
     queryFn: ({ signal }) => daysApi.preview(dayId as string, signal),
     enabled: !!dayId,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+}
+
+/** The branch's own recent note exchanges (needs a connection). */
+export function useBranchExchanges(branchId: string | null) {
+  return useApiQuery({
+    queryKey: exchangeKeys.custom("list", { branchId }),
+    queryFn: ({ signal }) => daysApi.exchanges(branchId as string, signal),
+    enabled: !!branchId,
     staleTime: 0,
     refetchOnMount: "always",
   });

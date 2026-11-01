@@ -16,6 +16,7 @@ public class OperationsServiceTests
     public OperationsServiceTests() => _ops = new OperationsService(_store, new FixedClock());
 
     private static Ctx Teller() => new([Permissions.TransactionsRead, Permissions.TransactionsCreate, Permissions.DaysRead, Permissions.DaysManage, Permissions.DebtsRead, Permissions.DebtsManage], [Tarkwa]);
+    private static Ctx Swapper() => new([.. Teller().Permissions, Permissions.NotesExchange], [Tarkwa]);
     private static Ctx Manager() => new([.. Teller().Permissions, Permissions.KumasiSetValue, Permissions.PaymentsConfirm], [Tarkwa, Kumasi]);
 
     private static CreateTransactionCommand Purchase(Guid id, Guid branch) => new(id, branch, "Kwesi", null, null,
@@ -57,16 +58,21 @@ public class OperationsServiceTests
             new(Guid.NewGuid(), Guid.Parse("00000000-0000-0000-0000-0000000000d1"), branch ?? Tarkwa, null, gave, took, null, DateTimeOffset.UtcNow);
         var day = Guid.Parse("00000000-0000-0000-0000-0000000000d1");
         var ok = Ex(new() { ["200"] = 1 }, new() { ["100"] = 2 });
-        await _ops.RecordExchangeAsync(Teller(), day, ok, ok.Id.ToString(), default);
+        await _ops.RecordExchangeAsync(Swapper(), day, ok, ok.Id.ToString(), default);
         var unequal = Ex(new() { ["200"] = 1 }, new() { ["100"] = 1 });
-        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, unequal, unequal.Id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Swapper(), day, unequal, unequal.Id.ToString(), default));
         var same = Ex(new() { ["100"] = 2 }, new() { ["100"] = 1, ["50"] = 2 });
-        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, same, same.Id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Swapper(), day, same, same.Id.ToString(), default));
         var empty = Ex(new() { ["200"] = 1 }, null);
-        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, empty, empty.Id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Swapper(), day, empty, empty.Id.ToString(), default));
         var other = Ex(new() { ["200"] = 1 }, new() { ["100"] = 2 }, Guid.NewGuid());
-        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, other, other.Id.ToString(), default));
-        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, ok, Guid.NewGuid().ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Swapper(), day, other, other.Id.ToString(), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Swapper(), day, ok, Guid.NewGuid().ToString(), default));
+    
+        // Without the permission a branch cannot swap its own notes, but the counter can still change a customer's notes for a purchase.
+        await Assert.ThrowsAsync<AppException>(() => _ops.RecordExchangeAsync(Teller(), day, ok, ok.Id.ToString(), default));
+        var forPurchase = new ExchangeCommand(Guid.NewGuid(), day, Tarkwa, Guid.NewGuid(), new() { ["200"] = 1 }, new() { ["100"] = 2 }, null, DateTimeOffset.UtcNow);
+        await _ops.RecordExchangeAsync(Teller(), day, forPurchase, forPurchase.Id.ToString(), default);
     }
 
     [Fact]
@@ -329,6 +335,7 @@ public class OperationsServiceTests
         public Task<string> DayStateAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult("{}");
         public Task<DbResult> OpenDayAsync(ICurrentContext me, string p, CancellationToken ct) { LastPayload = p; return Task.FromResult(new DbResult(false, "{}")); }
         public Task<DbResult> RecordMovementAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
+        public Task<string> ListExchangesAsync(ICurrentContext me, Guid branchId, int limit, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> RecordExchangeAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public string? LastPay;
         public Task<DbResult> PayTransactionAsync(ICurrentContext me, string p, CancellationToken ct) { LastPay = p; return Task.FromResult(new DbResult(false, "{}")); }

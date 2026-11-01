@@ -136,6 +136,12 @@ export const SECTIONS: Section[] = [
     blurb: "Rules for money that moves in and out of the drawer.",
     fields: [
       {
+        key: "count.blind",
+        kind: "toggle",
+        label: "Count the drawer without seeing the books",
+        help: "When opening and closing, the screen does not show what the books say the drawer should hold. If the count does not match, the teller is told only then (without the amount) and must recount or write why. The drawer page still shows the running balance, because paying out needs it.",
+      },
+      {
         key: "allowance.perPerson",
         kind: "number",
         label: "Office allowance per person",

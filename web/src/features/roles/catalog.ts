@@ -23,7 +23,7 @@ export const GROUPS: {
   {
     key: "cash",
     title: "Cash and days",
-    permissions: [P.DAYS_READ, P.DAYS_MANAGE, P.DAYS_SIGNOFF],
+    permissions: [P.DAYS_READ, P.DAYS_MANAGE, P.DAYS_SIGNOFF, P.NOTES_EXCHANGE],
   },
   {
     key: "money",
@@ -83,6 +83,7 @@ export const RISK: Partial<Record<Permission, Risk>> = {
 export const NEEDS: Partial<Record<Permission, Permission>> = {
   [P.TRANSACTIONS_CREATE]: P.TRANSACTIONS_READ,
   [P.DAYS_MANAGE]: P.DAYS_READ,
+  [P.NOTES_EXCHANGE]: P.DAYS_READ,
   [P.DAYS_SIGNOFF]: P.DAYS_READ,
   [P.DEBTS_MANAGE]: P.DEBTS_READ,
   [P.CUSTOMERS_MANAGE]: P.CUSTOMERS_READ,
