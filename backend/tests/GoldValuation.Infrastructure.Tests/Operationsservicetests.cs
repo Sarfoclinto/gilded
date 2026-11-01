@@ -34,6 +34,17 @@ public class OperationsServiceTests
     }
 
     [Fact]
+    public async Task A_purchase_carries_its_town_and_a_new_town_needs_a_sensible_name()
+    {
+        var id = Guid.NewGuid();
+        await _ops.CreateTransactionAsync(Teller(), Purchase(id, Tarkwa) with { OriginTown = new TownRef(null, "  Obuasi ") }, id.ToString(), default);
+        Assert.Contains("\"originTown\":{\"id\":null,\"name\":\"Obuasi\"}", _store.LastPayload);
+        await Assert.ThrowsAsync<AppException>(() => _ops.CreateTownAsync(Teller(), new TownRef(null, "x"), default));
+        await _ops.CreateTownAsync(Teller(), new TownRef(null, " Dunkwa "), default);
+        Assert.Contains("\"name\":\"Dunkwa\"", _store.LastTown);
+    }
+
+    [Fact]
     public async Task Changing_notes_must_balance_use_different_notes_and_stay_in_the_callers_branch()
     {
         ExchangeCommand Ex(Dictionary<string, int>? gave, Dictionary<string, int>? took, Guid? branch = null) =>
@@ -337,6 +348,9 @@ public class OperationsServiceTests
         public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredTransaction);
         public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid id, string o, string? r, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid b, string role, CancellationToken ct) => Task.FromResult("[]");
+        public Task<string> ListTownsAsync(ICurrentContext me, string? q, CancellationToken ct) => Task.FromResult("[]");
+        public Task<string> CreateTownAsync(ICurrentContext me, string p, CancellationToken ct) { LastTown = p; return Task.FromResult("{}"); }
+        public string? LastTown;
         public Task<string> SearchCustomersAsync(ICurrentContext me, string? q, Guid? branchId, int limit, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> IssueLoanAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<DbResult> RepayDebtAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));

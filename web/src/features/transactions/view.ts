@@ -46,6 +46,8 @@ export interface TransactionView {
   payments: Payment[];
   customerId: string | null;
   representative: { name: string; phone: string | null } | null;
+  /** Where the gold came from, when the teller said. */
+  originTown?: string | null;
   capturedAt: string;
   /** saved, paid or void. A waiting entry is saved. */
   status: string;
@@ -72,6 +74,7 @@ export const fromServer = (t: Transaction): TransactionView => ({
   representative: t.representative?.name
     ? { name: t.representative.name, phone: t.representative.phone ?? null }
     : null,
+  originTown: t.originTown?.name ?? null,
   payments: t.payments,
   items: t.items.map((i) => ({
     id: i.id,
@@ -181,6 +184,7 @@ export const fromOutbox = (
     representative: c.representative?.name
       ? { name: c.representative.name, phone: c.representative.phone ?? null }
       : null,
+    originTown: c.originTown?.name ?? null,
     payments: localPayments(c).filter((p) => !(twoStep && p.method === "cash")),
     items,
     calculatedAmount: String(total),

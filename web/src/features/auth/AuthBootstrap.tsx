@@ -1,5 +1,6 @@
 import { useEffect, useRef, type PropsWithChildren } from "react";
 import { clearCustomerDirectory } from "@/features/customers/directory";
+import { clearTowns } from "@/features/towns/towns";
 import { useQueryClient } from "@tanstack/react-query";
 import { session } from "@/shared/api/session";
 import { isApiError } from "@/shared/api/errors";
@@ -23,6 +24,7 @@ export function AuthBootstrap({ children }: PropsWithChildren) {
       useAuth.getState().clear();
       qc.clear();
       clearCustomerDirectory();
+      clearTowns();
     });
     return () => session.setOnSessionLost(null);
   }, [qc]);

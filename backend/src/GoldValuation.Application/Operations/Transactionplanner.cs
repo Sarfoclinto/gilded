@@ -30,6 +30,8 @@ public static class TransactionPlanner
         if (c.Representative is not null && !string.IsNullOrWhiteSpace(c.Representative.Phone) && string.IsNullOrWhiteSpace(c.Representative.Name))
             Bad("representative.name", "Enter the name of the person bringing the gold.");
         else if (c.Representative?.Name is { } rn && rn.Trim().Length > 120) Bad("representative.name", "That name is too long.");
+        if (c.OriginTown is { } town && !string.IsNullOrWhiteSpace(town.Name) && (town.Name.Trim().Length < 2 || town.Name.Trim().Length > 80))
+            Bad("originTown.name", "A town name is 2 to 80 letters.");
         if (c.Items is null || c.Items.Count is < 1 or > 20) Bad("items", "Add 1 to 20 items.");
         if (c.Payout is null) Bad("payout", "The payout is missing.");
         if (fields.Count > 0) throw AppException.Invalid("Check the highlighted fields.", fields);
@@ -145,6 +147,8 @@ public static class TransactionPlanner
         };
         if (!string.IsNullOrWhiteSpace(c.Representative?.Name))
             plan["representative"] = new JsonObject { ["name"] = c.Representative.Name.Trim(), ["phone"] = c.Representative.Phone?.Trim() };
+        if (c.OriginTown is { } ot && (!string.IsNullOrWhiteSpace(ot.Name) || ot.Id is not null))
+            plan["originTown"] = new JsonObject { ["id"] = ot.Id, ["name"] = ot.Name?.Trim() };
         return plan;
     }
 

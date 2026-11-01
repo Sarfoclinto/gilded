@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { clearCustomerDirectory } from "@/features/customers/directory";
+import { clearTowns } from "@/features/towns/towns";
 import { useApiMutation } from "@/shared/api/hooks";
 import { authApi } from "./api";
 import { useAuth } from "./store";
@@ -30,6 +31,7 @@ export function useLogout() {
       clear();
       qc.clear();
       clearCustomerDirectory();
+      clearTowns();
     },
   });
 }

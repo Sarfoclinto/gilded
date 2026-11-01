@@ -354,6 +354,21 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return store.SearchCustomersAsync(me, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), branchId, Math.Clamp(limit ?? 25, 1, 1000), ct);
     }
 
+    /// <summary>The company's towns, most used first. The app keeps this list on the device so the picker works offline.</summary>
+    public Task<string> TownsAsync(ICurrentContext me, string? query, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsRead);
+        return store.ListTownsAsync(me, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), ct);
+    }
+
+    public Task<string> CreateTownAsync(ICurrentContext me, TownRef town, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsCreate);
+        if (string.IsNullOrWhiteSpace(town.Name) || town.Name.Trim().Length is < 2 or > 80)
+            throw AppException.Invalid("A town name is 2 to 80 letters.", new Dictionary<string, string[]> { ["name"] = ["Write the town name."] });
+        return store.CreateTownAsync(me, new JsonObject { ["id"] = town.Id, ["name"] = town.Name.Trim() }.ToJsonString(), ct);
+    }
+
     // ---------------------------------------------------------------- debts, loans, security
     public Task<DbResult> IssueLoanAsync(ICurrentContext me, LoanCommand c, string? key, CancellationToken ct)
     {

@@ -550,6 +550,9 @@ export default function TransactionDetailPage() {
                   )
                 }
               />
+              {t.originTown ? (
+                <Fact label="Gold from" value={t.originTown} />
+              ) : null}
               {t.payoutPolicy ? (
                 <Fact
                   label="Rounding"

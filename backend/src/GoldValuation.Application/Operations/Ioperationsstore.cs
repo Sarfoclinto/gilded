@@ -43,6 +43,8 @@ public interface IOperationsStore
     Task<string> SetSettingsAsync(ICurrentContext me, string settingsJson, CancellationToken ct);
 
     Task<string> PendingPaymentsAsync(ICurrentContext me, Guid branchId, string role, CancellationToken ct);
+    Task<string> ListTownsAsync(ICurrentContext me, string? query, CancellationToken ct);
+    Task<string> CreateTownAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> SearchCustomersAsync(ICurrentContext me, string? query, Guid? branchId, int limit, CancellationToken ct);
 
     Task<DbResult> IssueLoanAsync(ICurrentContext me, string payloadJson, CancellationToken ct);

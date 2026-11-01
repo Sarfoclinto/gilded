@@ -38,6 +38,7 @@ import {
   type RepresentativeValue,
 } from "../CustomerPicker";
 import { useCustomerDirectory } from "@/features/customers/directory";
+import { TownPicker, type TownValue } from "@/features/towns/TownPicker";
 import { createTransactionSchema } from "../schemas";
 import { SplitEditor } from "../SplitEditor";
 import {
@@ -89,6 +90,7 @@ export default function NewTransactionPage() {
     phone: "",
   });
   const [rep, setRep] = useState<RepresentativeValue | null>(null);
+  const [town, setTown] = useState<TownValue | null>(null);
   // A new customer gets its id here, on the device, so it works offline and the representative can be tied to it.
   const newCustomerId = useRef(crypto.randomUUID());
   const [parts, setParts] = useState<SplitDraft[]>([]);
@@ -235,6 +237,7 @@ export default function NewTransactionPage() {
         rep && rep.name.trim()
           ? { name: rep.name.trim(), phone: rep.phone.trim() || null }
           : null,
+      originTown: town ? { id: town.id, name: town.name } : null,
       items: items.map((i) => ({
         id: i.id,
         label: i.label.trim() || null,
@@ -437,6 +440,9 @@ export default function NewTransactionPage() {
               representative={rep}
               onRepresentative={setRep}
             />
+            <div className="mt-3">
+              <TownPicker value={town} onChange={setTown} />
+            </div>
           </Card>
 
           <Step

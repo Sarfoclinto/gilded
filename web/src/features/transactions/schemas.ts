@@ -89,6 +89,10 @@ export const createTransactionSchema = z.object({
     })
     .nullable()
     .optional(),
+  originTown: z
+    .object({ id: z.string().nullable().optional(), name: z.string() })
+    .nullable()
+    .optional(),
   collateralId: z.string().nullable().optional(),
   items: z.array(itemInputSchema).min(1).max(20),
   clientAmount: z.string(),
@@ -134,6 +138,10 @@ export const transactionSchema = z.object({
       name: z.string().nullable().optional(),
       phone: z.string().nullable().optional(),
     })
+    .nullable()
+    .optional(),
+  originTown: z
+    .object({ id: z.string().nullable().optional(), name: z.string() })
     .nullable()
     .optional(),
   customerName: z.string(),
