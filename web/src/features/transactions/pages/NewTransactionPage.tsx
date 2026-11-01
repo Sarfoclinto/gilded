@@ -61,16 +61,66 @@ interface DraftItem {
   price: string;
   priceTouched: boolean;
 }
+/** The description field is hidden for now; every piece is written down as this. */
+export const DEFAULT_ITEM_LABEL = "lump";
 const newItem = (price = ""): DraftItem => ({
   id: crypto.randomUUID(),
-  label: "",
+  label: DEFAULT_ITEM_LABEL,
   top: "",
   down: "",
   price,
   priceTouched: false,
 });
 
+interface JustSaved {
+  id: string;
+  customer: string;
+  amount: number;
+}
+
+/**
+ * The page keeps the form in one inner component so "stay and start a new one" is a clean reset: a new key gives a new form, a new
+ * transaction id and an empty customer. What was just saved is shown on a line above the fresh form.
+ */
 export default function NewTransactionPage() {
+  const [round, setRound] = useState(0);
+  const [saved, setSaved] = useState<JustSaved | null>(null);
+  return (
+    <>
+      {saved ? (
+        <div
+          role="status"
+          className="mx-auto mt-4 flex max-w-5xl flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm"
+        >
+          <span>
+            Saved {cedis(saved.amount)} for <strong>{saved.customer}</strong>.
+            Ready for the next one.
+          </span>
+          <Link
+            className="font-medium underline"
+            to={paths.transactions.detail.to(saved.id)}
+          >
+            View it
+          </Link>
+        </div>
+      ) : null}
+      <NewTransactionForm
+        key={round}
+        onSavedStay={(s) => {
+          setSaved(s);
+          setRound((r) => r + 1);
+          window.scrollTo({ top: 0 });
+        }}
+      />
+    </>
+  );
+}
+
+function NewTransactionForm({
+  onSavedStay,
+}: {
+  onSavedStay: (s: JustSaved) => void;
+}) {
   const navigate = useNavigate();
   const branchId = useAuth((s) => s.activeBranchId);
   const online = useConnectivity((s) => s.online);
@@ -79,6 +129,7 @@ export default function NewTransactionPage() {
   const companySettings = useSettings();
   const twoStep = companySettings["payout.twoStep"];
   const openReceipt = usePersonalSettings((s) => s.openReceipt);
+  const afterSave = usePersonalSettings((s) => s.afterSave);
   const { view: drawer, settled } = useActiveDrawer();
   // Block only when we KNOW there is no open day. If the drawer was never loaded (first launch offline), allow it; the server flags it.
   const dayBlocked =
@@ -283,7 +334,16 @@ export default function NewTransactionPage() {
         : "Saved on this device. It will sync when you are back online.",
     );
     void outbox.syncNow();
-    // With a receipt printer the receipt opens straight away, ready to print; otherwise the purchase page, which has a Receipt button.
+    // With a receipt printer the receipt opens straight away, ready to print. Otherwise, if this person chose to keep going, a fresh form
+    // (never for held gold, which belongs to one customer); otherwise the purchase page, which has a Receipt button.
+    if (
+      !opensReceipt(openReceipt, companySettings["receipt.printer"]) &&
+      afterSave === "new" &&
+      !security
+    ) {
+      onSavedStay({ id: cmd.id, customer: cmd.customerName, amount: total });
+      return;
+    }
     navigate(
       opensReceipt(openReceipt, companySettings["receipt.printer"])
         ? paths.transactions.receipt.to(cmd.id, "?print=1")
@@ -488,12 +548,6 @@ export default function NewTransactionPage() {
                     </button>
                   ) : null}
                 </div>
-                <TextField
-                  label="Description (optional)"
-                  placeholder="e.g. ring, nuggets"
-                  value={it.label}
-                  onChange={(e) => patch(it.id, { label: e.target.value })}
-                />
                 <div className="grid grid-cols-2 gap-3">
                   <TextField
                     label="Top (g)"

@@ -46,6 +46,12 @@ export const SECTIONS: Section[] = [
           "Switch on two-step payout? Do it when no purchase is waiting to be sent from anyone's device, so nothing is saved one way and paid the other.",
       },
       {
+        key: "customers.autoCreate",
+        kind: "toggle",
+        label: "Save new customers automatically",
+        help: "When a purchase has a customer name and phone we do not know yet, the customer is added to your customers. Off: the purchase keeps the name and phone, but nobody is added; a customer already known is still recognised.",
+      },
+      {
         key: "payout.sameUserMayPay",
         kind: "toggle",
         label: "The person who saved a purchase may also pay it",

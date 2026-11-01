@@ -102,7 +102,7 @@ export default function MySettingsPage() {
           />
         </Row>
         <Row
-          title="After saving a purchase"
+          title="Open the receipt after saving"
           help={`Open the receipt ready to print. The company ${company["receipt.printer"] ? "uses" : "does not use"} a receipt printer.`}
         >
           <Segmented
@@ -136,6 +136,44 @@ export default function MySettingsPage() {
             checked={mine.showQr}
             onChange={(v) => mine.update({ showQr: v })}
             aria-label="Show the QR code on the receipt"
+          />
+        </Row>
+      </Card>
+
+      <Card>
+        <h2 className="text-base font-semibold">New purchases</h2>
+        <Row
+          title="After saving a purchase"
+          help="Open the purchase, or stay on a fresh New transaction page to enter the next one straight away. A receipt that opens automatically comes first."
+        >
+          <Segmented
+            value={mine.afterSave}
+            onChange={(v) =>
+              mine.update({ afterSave: v as PersonalSettings["afterSave"] })
+            }
+            options={[
+              { value: "detail", label: "Open the purchase" },
+              { value: "new", label: "Stay and start a new one" },
+            ]}
+            aria-label="After saving a purchase"
+          />
+        </Row>
+        <Row
+          title="Notes to pay with"
+          help="How the cash is made up when you start a purchase. You can still change it on each purchase."
+        >
+          <Segmented
+            value={mine.noteStrategy}
+            onChange={(v) =>
+              mine.update({
+                noteStrategy: v as PersonalSettings["noteStrategy"],
+              })
+            }
+            options={[
+              { value: "prefer-100s", label: "Prefer 100s" },
+              { value: "fewest-notes", label: "Fewest notes" },
+            ]}
+            aria-label="Notes to pay with"
           />
         </Row>
       </Card>

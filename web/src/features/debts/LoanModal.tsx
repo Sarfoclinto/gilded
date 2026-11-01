@@ -31,9 +31,11 @@ function Form({ onClose }: { onClose: () => void }) {
 
   const principal = lineTotal(lines);
   const weightOk = !security || Number(topWeight) > 0;
+  const known = !!customer.id || customer.phone.replace(/\D/g, "").length >= 6; // the borrower must be someone we can find again
   const ok =
     !!branchId &&
     customer.name.trim().length > 0 &&
+    known &&
     principal > 0 &&
     weightOk &&
     !issue.isPending;
@@ -70,7 +72,11 @@ function Form({ onClose }: { onClose: () => void }) {
     <div className="space-y-4">
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">1 · Who is the loan for?</h3>
-        <CustomerPicker value={customer} onChange={setCustomer} />
+        <CustomerPicker
+          value={customer}
+          onChange={setCustomer}
+          branchId={branchId ?? null}
+        />
       </section>
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">

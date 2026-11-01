@@ -14,6 +14,10 @@ export interface PersonalSettings {
   showQr: boolean;
   /** Top, down and density on the receipt, as on the sticky note. */
   showWeights: boolean;
+  /** After saving a purchase: open it (as before), or stay on a fresh New transaction page to keep going. */
+  afterSave: "detail" | "new";
+  /** The note mix the payout starts with on each new purchase. */
+  noteStrategy: "prefer-100s" | "fewest-notes";
 }
 
 interface State extends PersonalSettings {
@@ -25,6 +29,8 @@ export const DEFAULT_PERSONAL: PersonalSettings = {
   openReceipt: "company",
   showQr: true,
   showWeights: true,
+  afterSave: "detail",
+  noteStrategy: "prefer-100s",
 };
 
 export const usePersonalSettings = create<State>()(

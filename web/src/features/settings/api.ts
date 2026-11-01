@@ -15,6 +15,8 @@ export const settingsSchema = z.object({
   "payout.blindCheck": z.boolean().default(false),
   /** Open and close counts are made without showing what the books say; a mismatch is shown only after pressing the button, and without the amounts. */
   "count.blind": z.boolean().default(false),
+  /** A purchase with a new customer name and phone saves that customer. Off: the purchase keeps the name and phone but no customer record is made. */
+  "customers.autoCreate": z.boolean().default(true),
   "allowance.perPerson": z.number().default(100),
   "receipt.printer": z.boolean().default(false),
   "receipt.paper": z.enum(["80", "58", "a4"]).default("80"),
