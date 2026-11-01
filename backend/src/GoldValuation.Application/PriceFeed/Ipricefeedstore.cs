@@ -14,6 +14,11 @@ public interface IPriceFeedStore
     Task<string?> StateAsync(Guid tenantId, CancellationToken ct);
     /// <summary>Records what a look found, acting as the director the automatic price is recorded under.</summary>
     Task<string> RecordAsync(Guid tenantId, Guid actor, string resultJson, CancellationToken ct);
+    /// <summary>
+    /// After a check window has ended with nothing recorded in it (no price, no failure, nothing held), records that and tells the
+    /// people who approve prices, once per window. Safe to call every cycle.
+    /// </summary>
+    Task CheckMissedAsync(Guid tenantId, Guid actor, DateTimeOffset now, CancellationToken ct);
 }
 
 public interface IGoldbodClient

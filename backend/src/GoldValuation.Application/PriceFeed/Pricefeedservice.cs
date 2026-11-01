@@ -28,9 +28,7 @@ public sealed class PriceFeedService(IPriceFeedStore store, IGoldbodClient clien
             ["enabled"] = (bool?)body["enabled"] ?? false,
             ["windows"] = new JsonArray(windows.Select(w => (JsonNode)new JsonObject
             {
-                ["start"] = (string?)w?["start"],
-                ["end"] = (string?)w?["end"],
-                ["everyMinutes"] = (int?)w?["everyMinutes"],
+                ["start"] = (string?)w?["start"], ["end"] = (string?)w?["end"], ["everyMinutes"] = (int?)w?["everyMinutes"],
             }).ToArray()),
             ["weekdays"] = new JsonArray((body["weekdays"] as JsonArray ?? []).Select(d => (JsonNode)JsonValue.Create((int)d!)!).ToArray()),
             ["timezone"] = (string?)body["timezone"],
@@ -72,7 +70,13 @@ public sealed class PriceFeedService(IPriceFeedStore store, IGoldbodClient clien
     public async Task<bool> RunIfDueAsync(Guid tenantId, CancellationToken ct)
     {
         var state = await StateOrNull(tenantId, ct);
-        if (state is null || !FeedSchedule.IsDue(state, clock.UtcNow)) return false;
+        if (state is null) return false;
+        if (!FeedSchedule.IsDue(state, clock.UtcNow))
+        {
+            // Not time to look. If a window has just ended without any price, say so (once).
+            if (state.Enabled && state.Actor is { } who) await store.CheckMissedAsync(tenantId, who, clock.UtcNow, ct);
+            return false;
+        }
         await LookAsync(tenantId, state.Actor!.Value, state, ct);
         return true;
     }
@@ -91,15 +95,8 @@ public sealed class PriceFeedService(IPriceFeedStore store, IGoldbodClient clien
                 var d = FeedDecider.Decide(parsed, state);
                 result = new JsonObject
                 {
-                    ["kind"] = d.Kind,
-                    ["message"] = d.Message,
-                    ["basePrice"] = parsed.GhsPerPound,
-                    ["publishedAt"] = (parsed.PublishedAt ?? clock.UtcNow).ToString("o", CultureInfo.InvariantCulture),
-                    ["usdPerOunce"] = parsed.UsdPerOunce,
-                    ["rate"] = parsed.Rate,
-                    ["discountPct"] = parsed.DiscountPct,
-                    ["computed"] = d.Computed is { } c ? decimal.Round(c, 2) : null,
-                    ["excerpt"] = parsed.Excerpt,
+                    ["kind"] = d.Kind, ["message"] = d.Message, ["basePrice"] = parsed.GhsPerPound, ["publishedAt"] = (parsed.PublishedAt ?? clock.UtcNow).ToString("o", CultureInfo.InvariantCulture),
+                    ["usdPerOunce"] = parsed.UsdPerOunce, ["rate"] = parsed.Rate, ["discountPct"] = parsed.DiscountPct, ["computed"] = d.Computed is { } c ? decimal.Round(c, 2) : null, ["excerpt"] = parsed.Excerpt,
                 }.ToJsonString();
             }
         }
@@ -116,16 +113,11 @@ public sealed class PriceFeedService(IPriceFeedStore store, IGoldbodClient clien
     private static string Reply(bool found, string message, ParsedPrice? p, decimal? expected, string? excerpt) =>
         new JsonObject
         {
-            ["found"] = found,
-            ["message"] = message,
+            ["found"] = found, ["message"] = message,
             ["price"] = p is null ? null : new JsonObject
             {
-                ["ghsPerPound"] = p.GhsPerPound,
-                ["usdPerOunce"] = p.UsdPerOunce,
-                ["rate"] = p.Rate,
-                ["discountPct"] = p.DiscountPct,
-                ["publishedAt"] = p.PublishedAt?.ToString("o", CultureInfo.InvariantCulture),
-                ["expected"] = expected is { } e ? decimal.Round(e, 2) : null,
+                ["ghsPerPound"] = p.GhsPerPound, ["usdPerOunce"] = p.UsdPerOunce, ["rate"] = p.Rate, ["discountPct"] = p.DiscountPct,
+                ["publishedAt"] = p.PublishedAt?.ToString("o", CultureInfo.InvariantCulture), ["expected"] = expected is { } e ? decimal.Round(e, 2) : null,
             },
             ["excerpt"] = excerpt,
         }.ToJsonString();

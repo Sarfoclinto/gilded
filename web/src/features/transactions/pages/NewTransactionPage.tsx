@@ -39,6 +39,7 @@ import {
 } from "../CustomerPicker";
 import { useCustomerDirectory } from "@/features/customers/directory";
 import { TownPicker, type TownValue } from "@/features/towns/TownPicker";
+import { priceAge } from "@/features/prices/model";
 import { ExpectationHint } from "@/features/towns/ExpectationHint";
 import { createTransactionSchema } from "../schemas";
 import { SplitEditor } from "../SplitEditor";
@@ -208,6 +209,7 @@ export default function NewTransactionPage() {
     ),
   });
   const needsPrice = priceQuery.notSet;
+  const age = priceAge(priceQuery.data?.asOf);
 
   const phoneOk = customer.phone.replace(/\D/g, "").length >= 6;
   const repOk =
@@ -264,12 +266,14 @@ export default function NewTransactionPage() {
       return;
     }
     if (cmd.customerId)
-      useCustomerDirectory.getState().remember({
-        id: cmd.customerId,
-        name: cmd.customerName,
-        phone: cmd.customerPhone,
-        atBranch: true,
-      });
+      useCustomerDirectory
+        .getState()
+        .remember({
+          id: cmd.customerId,
+          name: cmd.customerName,
+          phone: cmd.customerPhone,
+          atBranch: true,
+        });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
     toast.success(
       online
@@ -455,6 +459,16 @@ export default function NewTransactionPage() {
             title="Gold"
             hint="Weigh each piece, or group pieces of the same quality"
           />
+          {age?.stale ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            >
+              <span className="font-medium">The price was set {age.text}.</span>{" "}
+              Check with a manager that it is still today’s price before you
+              pay. The purchase will be marked as made on an old price.
+            </div>
+          ) : null}
           {items.map((it, idx) => {
             const r = results[idx]!;
             const err = (f: "top" | "down" | "price") =>

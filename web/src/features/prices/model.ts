@@ -50,3 +50,29 @@ export const updatedText = (days: number) =>
     : days === 1
       ? "Updated yesterday"
       : `Updated ${days} days ago`;
+
+/** The server flags a purchase made on a price older than this (PRICE_STALE), so the teller is warned at the same point. */
+export const STALE_AFTER_HOURS = 12;
+
+/** Is the price old enough to question, and how to say when it was set. Null when the time is unusable. */
+export function priceAge(
+  asOf: string | null | undefined,
+  now: Date = new Date(),
+): { stale: boolean; text: string } | null {
+  const at = asOf ? new Date(asOf) : null;
+  if (!at || Number.isNaN(at.getTime())) return null;
+  const hours = Math.max(0, (now.getTime() - at.getTime()) / 3_600_000);
+  const days = staleDays(asOf as string, now);
+  const clock = at.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const text =
+    days === 0
+      ? `today at ${clock}`
+      : days === 1
+        ? `yesterday at ${clock}`
+        : `${days} days ago`;
+  return { stale: hours > STALE_AFTER_HOURS, text };
+}

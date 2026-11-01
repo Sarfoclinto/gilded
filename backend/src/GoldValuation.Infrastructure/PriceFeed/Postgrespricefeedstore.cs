@@ -35,6 +35,9 @@ public sealed class PostgresPriceFeedStore(NpgsqlDataSource dataSource, ILogger<
     public async Task<string> RecordAsync(Guid tenantId, Guid actor, string resultJson, CancellationToken ct) =>
         (await Scalar(tenantId, actor, "select gold.feed_record($1)", ct, Json(resultJson)))!;
 
+    public async Task CheckMissedAsync(Guid tenantId, Guid actor, DateTimeOffset now, CancellationToken ct) =>
+        await Scalar(tenantId, actor, "select gold.feed_missed_check($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.TimestampTz, Value = now.UtcDateTime });
+
     private async Task<string?> Scalar(Guid tenantId, Guid? userId, string sql, CancellationToken ct, params NpgsqlParameter[] args)
     {
         try

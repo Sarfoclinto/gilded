@@ -361,6 +361,8 @@ export default function PriceFeedPage() {
                         ? "Accepted"
                         : "Dismissed"}
                   </Tag>
+                ) : e.kind === "missed" ? (
+                  <Tag color="orange">No new price</Tag>
                 ) : (
                   <Tag color="red">Could not read</Tag>
                 ),

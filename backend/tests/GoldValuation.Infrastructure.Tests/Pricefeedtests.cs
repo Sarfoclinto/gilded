@@ -129,6 +129,8 @@ public class PriceFeedTests
         public Task<string> DecideAsync(ICurrentContext me, Guid eventId, bool accept, CancellationToken ct) => Task.FromResult("{}");
         public Task<IReadOnlyList<Guid>> EnabledCompaniesAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<Guid>>([Tenant]);
         public Task<string?> StateAsync(Guid tenantId, CancellationToken ct) => Task.FromResult(state is null ? null : (string?)StateJson(state));
+        public int MissedChecks;
+        public Task CheckMissedAsync(Guid tenantId, Guid actor, DateTimeOffset now, CancellationToken ct) { MissedChecks++; return Task.CompletedTask; }
         public Task<string> RecordAsync(Guid tenantId, Guid actor, string resultJson, CancellationToken ct) { Recorded = resultJson; return Task.FromResult("{}"); }
     }
 
@@ -137,15 +139,8 @@ public class PriceFeedTests
         ["enabled"] = s.Enabled,
         ["windows"] = new JsonArray(s.Windows.Select(w => (JsonNode)new JsonObject { ["start"] = w.Start.ToString("HH:mm"), ["end"] = w.End.ToString("HH:mm"), ["everyMinutes"] = w.EveryMinutes }).ToArray()),
         ["weekdays"] = new JsonArray(s.Weekdays.Select(d => (JsonNode)JsonValue.Create(d)!).ToArray()),
-        ["timezone"] = s.TimeZone,
-        ["maxJumpPct"] = s.MaxJumpPct,
-        ["actor"] = s.Actor,
-        ["latestBase"] = s.LatestBase,
-        ["poundGrams"] = "7.75",
-        ["referenceKarat"] = "23",
-        ["lastCheckedAt"] = s.LastCheckedAt?.ToString("o"),
-        ["lastCapturedAt"] = s.LastCapturedAt?.ToString("o"),
-        ["latestFeedPublishedAt"] = s.LatestFeedPublishedAt?.ToString("o"),
+        ["timezone"] = s.TimeZone, ["maxJumpPct"] = s.MaxJumpPct, ["actor"] = s.Actor, ["latestBase"] = s.LatestBase, ["poundGrams"] = "7.75", ["referenceKarat"] = "23",
+        ["lastCheckedAt"] = s.LastCheckedAt?.ToString("o"), ["lastCapturedAt"] = s.LastCapturedAt?.ToString("o"), ["latestFeedPublishedAt"] = s.LatestFeedPublishedAt?.ToString("o"),
     }.ToJsonString();
 
     private sealed class FakeClient(string? html) : IGoldbodClient
@@ -179,6 +174,18 @@ public class PriceFeedTests
         var sent = JsonNode.Parse(store.Recorded!)!;
         Assert.Equal("applied", (string?)sent["kind"]);
         Assert.Equal(11194m, (decimal)sent["basePrice"]!);
+    }
+
+    [Fact]
+    public async Task Between_windows_the_worker_asks_whether_a_window_ended_without_a_price()
+    {
+        var store = new FakeStore(State());
+        var client = new FakeClient(Page);
+        await Svc(store, client, At("12:00")).RunIfDueAsync(Tenant, default);
+        Assert.Equal(1, store.MissedChecks);
+        Assert.Equal(0, client.Calls);
+        await Svc(store, client, At("15:05")).RunIfDueAsync(Tenant, default);
+        Assert.Equal(1, store.MissedChecks);
     }
 
     [Fact]

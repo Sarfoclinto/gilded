@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   effectiveWith,
+  priceAge,
   pendingBranches,
   priceChange,
   staleDays,
@@ -49,5 +50,24 @@ describe("prices model", () => {
     expect(updatedText(0)).toBe("Updated today");
     expect(updatedText(1)).toBe("Updated yesterday");
     expect(updatedText(3)).toBe("Updated 3 days ago");
+  });
+});
+
+describe("priceAge", () => {
+  const now = new Date("2026-11-02T10:00:00");
+  it("is fine for a price set a few hours ago", () => {
+    const a = priceAge("2026-11-02T07:00:00", now);
+    expect(a?.stale).toBe(false);
+    expect(a?.text).toMatch(/^today at/);
+  });
+  it("questions a price older than 12 hours", () => {
+    const a = priceAge("2026-11-01T15:00:00", now);
+    expect(a?.stale).toBe(true);
+    expect(a?.text).toMatch(/^yesterday at/);
+    expect(priceAge("2026-10-28T09:00:00", now)?.text).toBe("5 days ago");
+  });
+  it("has nothing to say about an unusable time", () => {
+    expect(priceAge(null, now)).toBeNull();
+    expect(priceAge("nonsense", now)).toBeNull();
   });
 });

@@ -15,7 +15,7 @@ export type FeedWindow = z.infer<typeof windowSchema>;
 const eventSchema = z.object({
   id: z.string(),
   at: z.string(),
-  kind: z.enum(["applied", "held", "failed"]),
+  kind: z.enum(["applied", "held", "failed", "missed"]),
   state: z.enum(["done", "pending", "accepted", "dismissed"]),
   message: z.string(),
   basePrice: z.string().nullable().optional(),
