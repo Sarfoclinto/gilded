@@ -35,6 +35,8 @@ public static class TransfersEndpoints
             Data(await svc.ReceiveAsync(me, id, body, ct)));
         api.MapPost("/transfers/{id:guid}/cancel", async (Guid id, JsonObject body, ICurrentContext me, TransfersService svc, CancellationToken ct) =>
             Data(await svc.CancelAsync(me, id, (string?)body["reason"], ct)));
+        api.MapPost("/transfers/{id:guid}/recall", async (Guid id, JsonObject body, ICurrentContext me, TransfersService svc, CancellationToken ct) =>
+            Data(await svc.RecallAsync(me, id, (string?)body["reason"], ct)));
         api.MapPost("/transfers/{id:guid}/notes", async (Guid id, JsonObject body, ICurrentContext me, TransfersService svc, CancellationToken ct) =>
             Data(await svc.AddNoteAsync(me, id, (string?)body["text"], ct)));
         return api;

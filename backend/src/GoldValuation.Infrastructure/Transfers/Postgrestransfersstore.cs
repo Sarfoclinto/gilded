@@ -42,6 +42,9 @@ public sealed class PostgresTransfersStore(NpgsqlDataSource dataSource, ILogger<
     public async Task<string> CancelAsync(ICurrentContext me, Guid id, string reason, CancellationToken ct) =>
         (await Scalar(me, "select gold.cancel_transfer($1, $2, $3)", ct, Uuid(id), Text(reason), Scope(me)))!;
 
+    public async Task<string> RecallAsync(ICurrentContext me, Guid id, string reason, CancellationToken ct) =>
+        (await Scalar(me, "select gold.recall_transfer($1, $2, $3)", ct, Uuid(id), Text(reason), Scope(me)))!;
+
     public async Task<string> AddNoteAsync(ICurrentContext me, Guid id, string text, CancellationToken ct) =>
         (await Scalar(me, "select gold.transfer_note($1, $2, $3)", ct, Uuid(id), Text(text), Scope(me)))!;
 

@@ -84,6 +84,15 @@ public class TransfersServiceTests
     }
 
     [Fact]
+    public async Task A_recall_needs_a_reason()
+    {
+        var id = Guid.NewGuid();
+        await Assert.ThrowsAsync<AppException>(() => _svc.RecallAsync(Sender(), id, "no", default));
+        await _svc.RecallAsync(Sender(), id, "  Carrier never arrived ", default);
+        Assert.Equal("Carrier never arrived", _store.LastReason);
+    }
+
+    [Fact]
     public async Task A_transfer_is_visible_only_to_people_at_one_of_its_ends()
     {
         var id = Guid.NewGuid();
@@ -128,6 +137,7 @@ public class TransfersServiceTests
         public Task<string> ReleaseAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
         public Task<string> RecordPaymentAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
         public Task<string> ReceiveAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
+        public Task<string> RecallAsync(ICurrentContext me, Guid id, string reason, CancellationToken ct) { LastReason = reason; return Task.FromResult("{}"); }
         public Task<string> CancelAsync(ICurrentContext me, Guid id, string reason, CancellationToken ct) { LastReason = reason; return Task.FromResult("{}"); }
         public Task<string> AddNoteAsync(ICurrentContext me, Guid id, string text, CancellationToken ct) => Task.FromResult("{}");
     }

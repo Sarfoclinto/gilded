@@ -21,6 +21,7 @@ import { ReleaseModal } from "../ReleaseModal";
 import {
   useAddTransferNote,
   useCancelTransfer,
+  useRecallTransfer,
   useEditTransfer,
   useTransfer,
 } from "../api";
@@ -41,6 +42,7 @@ type Dialog =
   | "pay"
   | "receive"
   | "cancel"
+  | "recall"
   | "note"
   | null;
 
@@ -49,7 +51,7 @@ function eventText(
   data: Record<string, unknown> | undefined,
 ): string {
   const d = data ?? {};
-  if (type === "note_added" || type === "cancelled")
+  if (type === "note_added" || type === "cancelled" || type === "recalled")
     return String(d.text ?? d.reason ?? "");
   if (type === "payment_recorded")
     return `${String(d.direction ?? "").replace(/_/g, " ")} · ${cedis(Number(d.amount ?? 0))} · ${String(d.method ?? "")}`;
@@ -119,6 +121,7 @@ export default function TransferDetailPage() {
   const canReceive = useHasPermission(PERMISSIONS.TRANSFERS_RECEIVE);
   const [dialog, setDialog] = useState<Dialog>(null);
   const cancel = useCancelTransfer();
+  const recall = useRecallTransfer();
   const note = useAddTransferNote();
   const edit = useEditTransfer();
   const close = () => setDialog(null);
@@ -251,6 +254,11 @@ export default function TransferDetailPage() {
               Change collector
             </Button>
           ) : null}
+          {t.status === "released" && atOrigin && canSend ? (
+            <Button variant="ghost" onClick={() => setDialog("recall")}>
+              Recall it
+            </Button>
+          ) : null}
           {(t.status === "released" ||
             t.status === "received" ||
             t.status === "received_with_discrepancy") &&
@@ -284,7 +292,11 @@ export default function TransferDetailPage() {
         <Alert
           type="info"
           showIcon
-          title={`Cancelled: ${t.cancellation.reason}`}
+          title={
+            t.cancellation.reason.startsWith("Recalled:")
+              ? t.cancellation.reason
+              : `Cancelled: ${t.cancellation.reason}`
+          }
         />
       ) : null}
 
@@ -549,6 +561,19 @@ export default function TransferDetailPage() {
         onClose={close}
         onSubmit={(reason) =>
           cancel.mutate({ id: target.id, reason }, { onSuccess: close })
+        }
+      />
+      <TextDialog
+        open={dialog === "recall"}
+        title="Recall this transfer"
+        minLength={5}
+        label="Why is it being recalled? (the receiving branch is told not to accept it)"
+        busy={recall.isPending}
+        cta="Recall and put it back in our books"
+        {...(recall.error ? { error: errorMessage(recall.error) } : {})}
+        onClose={close}
+        onSubmit={(reason) =>
+          recall.mutate({ id: target.id, reason }, { onSuccess: close })
         }
       />
       <TextDialog

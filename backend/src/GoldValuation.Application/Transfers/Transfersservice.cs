@@ -102,6 +102,14 @@ public sealed class TransfersService(ITransfersStore store)
         return store.CancelAsync(me, id, reason.Trim(), ct);
     }
 
+    public Task<string> RecallAsync(ICurrentContext me, Guid id, string? reason, CancellationToken ct)
+    {
+        me.Require(Permissions.TransfersCreate);
+        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < 5)
+            throw AppException.Invalid("Write the reason (at least a few words).", new Dictionary<string, string[]> { ["reason"] = ["Write the reason."] });
+        return store.RecallAsync(me, id, reason.Trim(), ct);
+    }
+
     public Task<string> AddNoteAsync(ICurrentContext me, Guid id, string? text, CancellationToken ct)
     {
         me.Require(Permissions.TransfersRead);

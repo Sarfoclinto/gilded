@@ -49,6 +49,7 @@ export const eventLabel: Record<string, string> = {
   note_added: "Note",
   cancelled: "Cancelled",
   attachment_added: "File added",
+  recalled: "Recalled",
 };
 
 export const outcomeLabel: Record<string, string> = {

@@ -16,5 +16,6 @@ public interface ITransfersStore
     Task<string> RecordPaymentAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct);
     Task<string> ReceiveAsync(ICurrentContext me, Guid id, string payloadJson, CancellationToken ct);
     Task<string> CancelAsync(ICurrentContext me, Guid id, string reason, CancellationToken ct);
+    Task<string> RecallAsync(ICurrentContext me, Guid id, string reason, CancellationToken ct);
     Task<string> AddNoteAsync(ICurrentContext me, Guid id, string text, CancellationToken ct);
 }
