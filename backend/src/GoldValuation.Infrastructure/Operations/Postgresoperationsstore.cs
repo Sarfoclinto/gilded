@@ -120,6 +120,11 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
         (await Scalar(me, "select gold.pending_payments_json($1, $2)", ct, Uuid(branchId),
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = role }))!;
 
+    public async Task<string> ExpectationsAsync(ICurrentContext me, Guid? townId, Guid? customerId, CancellationToken ct) =>
+        (await Scalar(me, "select gold.expect_json($1, $2)", ct,
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)townId ?? DBNull.Value },
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)customerId ?? DBNull.Value }))!;
+
     public async Task<string> ListTownsAsync(ICurrentContext me, string? query, CancellationToken ct) =>
         (await Scalar(me, "select gold.towns_json($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)query ?? DBNull.Value }))!;
 

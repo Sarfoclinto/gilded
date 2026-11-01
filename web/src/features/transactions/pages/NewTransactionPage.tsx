@@ -39,6 +39,7 @@ import {
 } from "../CustomerPicker";
 import { useCustomerDirectory } from "@/features/customers/directory";
 import { TownPicker, type TownValue } from "@/features/towns/TownPicker";
+import { ExpectationHint } from "@/features/towns/ExpectationHint";
 import { createTransactionSchema } from "../schemas";
 import { SplitEditor } from "../SplitEditor";
 import {
@@ -263,14 +264,12 @@ export default function NewTransactionPage() {
       return;
     }
     if (cmd.customerId)
-      useCustomerDirectory
-        .getState()
-        .remember({
-          id: cmd.customerId,
-          name: cmd.customerName,
-          phone: cmd.customerPhone,
-          atBranch: true,
-        });
+      useCustomerDirectory.getState().remember({
+        id: cmd.customerId,
+        name: cmd.customerName,
+        phone: cmd.customerPhone,
+        atBranch: true,
+      });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
     toast.success(
       online
@@ -443,6 +442,12 @@ export default function NewTransactionPage() {
             <div className="mt-3">
               <TownPicker value={town} onChange={setTown} />
             </div>
+            <ExpectationHint
+              townId={town?.id ?? null}
+              townName={town?.name ?? null}
+              customerId={customer.id}
+              customerName={customer.name.trim() || null}
+            />
           </Card>
 
           <Step

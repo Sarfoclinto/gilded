@@ -45,6 +45,12 @@ public class OperationsServiceTests
     }
 
     [Fact]
+    public async Task Expectations_are_read_with_the_same_right_as_transactions()
+    {
+        Assert.Equal("{}", await _ops.ExpectationsAsync(Teller(), Guid.NewGuid(), null, default));
+    }
+
+    [Fact]
     public async Task Changing_notes_must_balance_use_different_notes_and_stay_in_the_callers_branch()
     {
         ExchangeCommand Ex(Dictionary<string, int>? gave, Dictionary<string, int>? took, Guid? branch = null) =>
@@ -348,6 +354,7 @@ public class OperationsServiceTests
         public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredTransaction);
         public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid id, string o, string? r, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid b, string role, CancellationToken ct) => Task.FromResult("[]");
+        public Task<string> ExpectationsAsync(ICurrentContext me, Guid? t, Guid? c, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> ListTownsAsync(ICurrentContext me, string? q, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> CreateTownAsync(ICurrentContext me, string p, CancellationToken ct) { LastTown = p; return Task.FromResult("{}"); }
         public string? LastTown;

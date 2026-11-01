@@ -89,6 +89,8 @@ public static class OperationsEndpoints
         api.MapGet("/customers", async (string? q, Guid? branchId, int? limit, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.SearchCustomersAsync(me, q, branchId, limit, ct)));
 
+        api.MapGet("/expectations", async (Guid? townId, Guid? customerId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.ExpectationsAsync(me, townId, customerId, ct)));
         api.MapGet("/towns", async (string? q, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.TownsAsync(me, q, ct)));
         api.MapPost("/towns", async (TownRef body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

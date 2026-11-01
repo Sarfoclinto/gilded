@@ -361,6 +361,13 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return store.ListTownsAsync(me, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), ct);
     }
 
+    /// <summary>What carat to expect, from what this company has bought from that town and from that customer. Statistics only.</summary>
+    public Task<string> ExpectationsAsync(ICurrentContext me, Guid? townId, Guid? customerId, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsRead);
+        return store.ExpectationsAsync(me, townId, customerId, ct);
+    }
+
     public Task<string> CreateTownAsync(ICurrentContext me, TownRef town, CancellationToken ct)
     {
         me.Require(Permissions.TransactionsCreate);
