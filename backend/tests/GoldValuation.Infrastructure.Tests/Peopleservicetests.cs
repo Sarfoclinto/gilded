@@ -193,6 +193,8 @@ public class PeopleServiceTests
         Assert.Contains(Permissions.UsersManage, roles["director"].Permissions);
         Assert.Contains(Permissions.NotesExchange, roles["manager"].Permissions);
         Assert.DoesNotContain(Permissions.NotesExchange, roles["teller"].Permissions);
+        Assert.Contains(Permissions.GuideManage, roles["director"].Permissions);
+        Assert.DoesNotContain(Permissions.GuideManage, roles["manager"].Permissions);
     }
 
     private sealed class FakeHasher : IPasswordHasher

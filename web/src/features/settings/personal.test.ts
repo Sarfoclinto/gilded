@@ -16,5 +16,6 @@ describe("personal defaults for new purchases", () => {
   it("start as before: open the purchase after saving, prefer 100s", () => {
     expect(DEFAULT_PERSONAL.afterSave).toBe("detail");
     expect(DEFAULT_PERSONAL.noteStrategy).toBe("prefer-100s");
+    expect(DEFAULT_PERSONAL.notifySound).toBe(true);
   });
 });

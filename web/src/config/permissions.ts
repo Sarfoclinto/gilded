@@ -28,6 +28,7 @@ export const PERMISSIONS = {
   AUDIT_READ: "audit:read",
   SETTINGS_MANAGE: "settings:manage",
   NOTES_EXCHANGE: "notes:exchange",
+  GUIDE_MANAGE: "guide:manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

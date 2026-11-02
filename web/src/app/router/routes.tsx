@@ -42,6 +42,16 @@ const CloseDayPage = lazy(() => import("@/features/drawer/pages/CloseDayPage"));
 const DayHistoryPage = lazy(
   () => import("@/features/drawer/pages/DayHistoryPage"),
 );
+const GuidePage = lazy(() => import("@/features/guide/pages/GuidePage"));
+const GuideArticlePage = lazy(
+  () => import("@/features/guide/pages/GuideArticlePage"),
+);
+const GuideManagePage = lazy(
+  () => import("@/features/guide/pages/GuideManagePage"),
+);
+const GuideEditorPage = lazy(
+  () => import("@/features/guide/pages/GuideEditorPage"),
+);
 const NoteExchangePage = lazy(
   () => import("@/features/drawer/pages/NoteExchangePage"),
 );
@@ -252,6 +262,18 @@ export const appRoutes: AppRoute[] = [
     access: { permission: PERMISSIONS.SETTINGS_MANAGE },
   },
   { path: paths.settings.me.href, element: <MySettingsPage /> },
+  { path: paths.guide.home.href, element: <GuidePage /> },
+  {
+    path: paths.guide.manage.href,
+    element: <GuideManagePage />,
+    access: { permission: PERMISSIONS.GUIDE_MANAGE },
+  },
+  {
+    path: paths.guide.edit.href,
+    element: <GuideEditorPage />,
+    access: { permission: PERMISSIONS.GUIDE_MANAGE },
+  },
+  { path: paths.guide.article.href, element: <GuideArticlePage /> },
   { path: paths.changePassword.href, element: <ChangePasswordPage /> },
   {
     path: paths.priceFeed.href,

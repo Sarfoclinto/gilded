@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gold Valuation API
-  version: 0.16.0
+  version: 0.31.0
   description: |
     Contract for the ASP.NET Core API. The web app's zod schemas and the dev mock follow this file.
     Implemented so far: authentication, current user, branches, prices, purchases (with split payments), the opening of a day
@@ -24,6 +24,8 @@ x-live-updates: |
   looking at changed; `notification` { id, kind, title, link } for one person; `resync` after the server reconnected to its database.
   The connection is closed when the access token expires; clients reconnect with a fresh one.
 tags:
+  - name: Settings
+  - name: Guide
   - name: Auth
   - name: Me
   - name: Branches
@@ -228,6 +230,147 @@ paths:
         '200': { description: The price now in force, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/CurrentPrice' } } } } } }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+  /branches/{id}/overview:
+    get:
+      tags: [Branches]
+      summary: One branch for the administrator
+      description: |
+        Active workers with their role, a snapshot of what the branch holds by the books (cash total, gold weights and value, debts owed to it, amounts it owes,
+        unrefined gold held), today's purchases, the open day, what needs attention (sign-offs, open differences, transfers on the road, mobile money waiting or to send),
+        debts, the last six days with how they closed, and the five latest purchases. Needs `reports:read` and a branch the caller works in. Nothing that is still waiting on a device is included.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The overview, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /cash/overview:
+    get:
+      tags: [Branches]
+      summary: Cash by branch for the cash lookup
+      description: |
+        Each active branch the caller may see, with the cash total and the notes by denomination as the books hold them now, the state of its day,
+        and when its cash last moved. `asOf` is when the server read it. Cash recorded on a device that has not synced yet is not included.
+        Needs `days:read`. `branchId` narrows to one branch the caller may see.
+      parameters:
+        - { name: branchId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The cash, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /days/{id}/exchanges:
+    post:
+      tags: [Days]
+      summary: Change notes for a customer who was already paid
+      description: |
+        The customer gives notes back (`gave`) and is handed other notes (`took`) of exactly the same total value, using different denominations
+        on each side (e.g. one 200 for two 100s). Optionally linked to the purchase (`transactionId`). The amount paid does not change; the drawer's notes do.
+        Needs `days:manage` at the branch when it is linked to a purchase; without a purchase (a branch changing its own notes) it needs `notes:exchange`, and every exchange is written to the audit trail. Safe to send twice (`Idempotency-Key` is the command id). A command for a closed day goes into the day open now.
+        Refusals: `EXCHANGE_MISMATCH` (not worth the same), `EXCHANGE_SAME_NOTE`, `VALIDATION_FAILED`, `NOT_FOUND`, `TRANSACTION_VOID`, `DAY_CLOSED`.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      responses:
+        '201': { description: Recorded, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '422': { $ref: '#/components/responses/Error' }
+  /transactions/to-pay:
+    get:
+      tags: [Transactions]
+      summary: Purchases waiting to be paid out (two-step payout)
+      description: |
+        Newest first, for one branch. `q` matches the receipt number, the customer's name or phone. Each item is the full purchase; `payout.stage` is `to_pay`,
+        `payout.cashDue` is the cash still to hand over and `payout.suggestedLines` the notes the recorder suggested. Needs `transactions:read` at the branch.
+      parameters:
+        - { name: branchId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: The purchases, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }
+  /transactions/{id}/pay:
+    post:
+      tags: [Transactions]
+      summary: Pay out the cash of a purchase (two-step payout)
+      description: |
+        Body: `lines` (the notes handed over), optional `capturedAt` (when it happened, for payments made offline), optional `checkAmount` (the amount worked out from the
+        weights; required when the company's `payout.blindCheck` setting is on). The notes must add up to exactly `payout.cashDue`: only the notes can change, never the amount.
+        Needs `days:manage` at the branch and an open day. The first payment wins; the same payment sent again is a replay (200).
+        Refusals: `PAYOUT_MISMATCH`, `ALREADY_PAID` (names who paid and when), `SAME_PERSON` (when the company requires someone else to pay), `NO_OPEN_DAY`,
+        `CHECK_REQUIRED`, `CHECK_MISMATCH`, `TRANSACTION_VOID`, `NOT_FOUND`.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Paid, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /settings:
+    get:
+      tags: [Settings]
+      summary: The company's settings (every key, defaults filled in)
+      description: |
+        Keys: `payout.twoStep`, `payout.sameUserMayPay`, `payout.blindCheck`, `count.blind` (open and close counts are made without showing the books), `customers.autoCreate` (a purchase with a new name and phone adds the customer; default on), `allowance.perPerson`, `receipt.printer`, `receipt.paper`, `receipt.businessName`,
+        `receipt.tagline`, `receipt.address`, `receipt.phone`, `receipt.footer`. Any signed-in person may read them.
+      responses:
+        '200': { description: The settings, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+    put:
+      tags: [Settings]
+      summary: Change settings
+      description: Send only the keys to change. Needs `settings:manage`. Unknown keys and wrong types are refused (`VALIDATION_FAILED`). Written to the audit trail.
+      responses:
+        '200': { description: The settings after the change, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /accounts/daily:
+    get:
+      tags: [Days]
+      summary: The daily account (the closed day on one page)
+      description: |
+        For one date, each branch the caller may see: `status` is `closed`, `open` (a day exists but is not closed) or `none`. A closed branch has the debtors
+        (with the change since the previous closed day), cash as bundles (whole hundreds of notes) and loose notes, debts, goods (the days since goods were last
+        sent out, the amount brought forward, and the transfers sent earlier), what is owed to customers, the office allowance paid from the drawer, the closing
+        balance (cash + debts + goods - owed to customers) and its change since the previous closed day. When a day was opened again after closing, the last session is used.
+        Needs `days:read`. `branchId` narrows to one branch the caller may see. Read-only.
+      parameters:
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+        - { name: branchId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The accounts, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /audit:
+    get:
+      tags: [Audit]
+      summary: The audit trail
+      description: |
+        Who did what, when and where: purchases and voids, days opened, closed and signed off, drawer movements, transfers, difference cases, debts and held gold,
+        mobile payments, prices, and changes to users, customers and branches. It is read live from the original records, newest first by default.
+        Needs `audit:read` (directors). People who may see every branch see everything, including company-wide events; anyone else sees only their own branches.
+        Returns `{ asOf, total, page, size, items, categories, actors }`: `categories` counts every category for the current search (ignoring the category and action filters,
+        so the chips stay useful), `actors` the people behind the current search.
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string }, description: Words in the summary, the person, the branch or the details }
+        - { name: category, in: query, required: false, schema: { type: string, enum: [purchase, day, cash, transfer, case, debt, payment, price, people, customer, setup] } }
+        - { name: action, in: query, required: false, schema: { type: string }, description: 'An exact action, for example day.closed' }
+        - { name: actorId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: branchId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time }, description: Exclusive }
+        - { name: minAmount, in: query, required: false, schema: { type: number } }
+        - { name: sort, in: query, required: false, schema: { type: string, enum: [newest, oldest, amount], default: newest } }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        '200': { description: A page of events, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /dashboard:
+    get:
+      tags: [Transactions]
+      summary: Figures for the home screen
+      description: |
+        Today against yesterday, a daily series for the last `days` days (7 to 60, default 14), per-branch figures, payment mix, gold on hand, transfers on the road,
+        debts owed to us, cash differences at closing and the caller's own purchases. Only the branches the caller works in are counted; `branchId` narrows to one.
+        `tellers`, `topCustomers` and `cashDifferences` are left out unless the caller has `reports:read`. Needs `transactions:read`.
+      parameters:
+        - { name: branchId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: days, in: query, required: false, schema: { type: integer, minimum: 7, maximum: 60, default: 14 } }
+      responses:
+        '200': { description: The figures, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
   /transactions/search:
     get:
       tags: [Transactions]
@@ -693,9 +836,45 @@ paths:
     get:
       tags: [People]
       summary: Roles and what each allows
-      description: Needs `users:manage`.
+      description: Each role with its permissions, how many active people hold it (`activeMembers`) and who they are (`members`). Needs `users:manage`.
       responses:
         '200': { description: Roles, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object, properties: { key: { type: string }, name: { type: string }, isSystem: { type: boolean }, permissions: { type: array, items: { type: string } } } } } } } } } }
+    post:
+      tags: [People]
+      summary: Create a custom role
+      description: |
+        Body `{ id, name, description?, permissions: [...] }` (`id` is a new uuid and must equal `Idempotency-Key`). `permissions` are names the system knows, at least one.
+        The role key is made from the name. Needs `users:manage`. Errors: `ROLE_EXISTS` (409), `VALIDATION_FAILED` (422).
+      parameters:
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '200': { description: Already created (same id) }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /roles/{key}:
+    patch:
+      tags: [People]
+      summary: Rename a custom role or change what it allows
+      description: |
+        Body with any of `name`, `description`, `permissions`. The standard roles (director, manager, teller) cannot be changed (`SYSTEM_ROLE`, 409): copy one instead.
+        Changing `permissions` signs out everyone who holds the role, and is refused (`LAST_DIRECTOR`, 409) if nobody active would be left who can manage users.
+        Needs `users:manage`. Written to the audit trail with before and after.
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The role, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [People]
+      summary: Delete a custom role nobody holds
+      description: Refused while anyone (active or not) holds it (`ROLE_IN_USE`, 409) and for the standard roles (`SYSTEM_ROLE`, 409). Needs `users:manage`.
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Deleted }
+        '409': { $ref: '#/components/responses/Error' }
   /me/security:
     get:
       tags: [People]
@@ -718,9 +897,14 @@ paths:
     get:
       tags: [People]
       summary: Customers, paged
-      description: Needs `customers:read`. Each row has purchase count, last purchase and what the customer owes or is owed.
+      description: |
+        Needs `customers:read`. Each row has purchase count (cancelled purchases left out), lifetime paid, first and last purchase, and what the customer owes or is owed.
+        `filter`: all, owes_us, we_owe, active (bought in the last 30 days), inactive (nothing in 90 days, or never). `sort`: name, recent, purchases, paid, owes.
+        The response also has `summary` { customers, active, owesUs, weOwe } for the whole company, whatever the search and filter.
       parameters:
         - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: filter, schema: { type: string, enum: [all, owes_us, we_owe, active, inactive], default: all } }
+        - { in: query, name: sort, schema: { type: string, enum: [name, recent, purchases, paid, owes], default: name } }
         - { in: query, name: limit, schema: { type: integer, default: 25, maximum: 100 } }
         - { in: query, name: offset, schema: { type: integer, default: 0 } }
       responses:
@@ -1088,6 +1272,22 @@ paths:
         content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string } } } } }
       responses:
         '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
+  /transfers/{id}/recall:
+    post:
+      tags: [Transfers]
+      summary: Recall a released transfer that never arrived
+      description: |
+        Sending branch only, while the transfer is still `released`. The goods or notes that left are put back into the sending
+        branch's books (new ledger entries, nothing edited), the pieces go back on the shelf, the transfer is closed as `cancelled`
+        with the reason, and the receiving branch is told not to accept it. Needs an open day at the sending branch
+        (`DAY_NOT_OPEN`). A draft is cancelled instead (`TRANSFER_NOT_RELEASED`); a received or already closed transfer cannot be
+        recalled (`TRANSFER_NOT_IN_TRANSIT`).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string } } } } }
+      responses:
+        '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
   /transfers/{id}/notes:
     post:
       tags: [Transfers]
@@ -1098,6 +1298,146 @@ paths:
         content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string } } } } }
       responses:
         '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
+  /exchanges:
+    get:
+      tags: [Operations]
+      summary: Recent note exchanges at a branch
+      description: The branch's own exchanges (made without a purchase), newest first, each with the notes that came in, the notes that went out, the value and who made it. Needs `notes:exchange`.
+      parameters:
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: limit, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200': { description: Exchanges, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }
+  /guide:
+    get:
+      tags: [Guide]
+      summary: "The rules and guides (reader)"
+      description: "Published articles by category, without content, with whether this person has read each and how many they still have to read. Everyone signed in."
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/articles/{id}:
+    get:
+      tags: [Guide]
+      summary: "One article with its content"
+      description: "Blocks: heading, text, list (bullets, numbers, dos, donts), callout, image (data URL), flow, divider. `draft=true` previews a draft and needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/articles/{id}/read:
+    post:
+      tags: [Guide]
+      summary: "Say this article has been read"
+      description: "Records the current version as read by the caller. Everyone signed in."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin:
+    get:
+      tags: [Guide]
+      summary: "Everything, for the writer"
+      description: "All articles including drafts with how many have read each, the categories, and the reminder settings. Needs `guide:manage`."
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin/categories/{id}:
+    put:
+      tags: [Guide]
+      summary: "Create or rename a category"
+      description: "Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+    delete:
+      tags: [Guide]
+      summary: "Delete an empty category"
+      description: "409 NOT_EMPTY while it has articles. Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin/articles/{id}:
+    put:
+      tags: [Guide]
+      summary: "Create or save an article"
+      description: "Saved as a draft (or in place when published). Send `rev` from the last read: an older one is refused with 409 EDIT_CONFLICT. Saving tells nobody. Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+    delete:
+      tags: [Guide]
+      summary: "Delete an article"
+      description: "Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin/articles/{id}/publish:
+    post:
+      tags: [Guide]
+      summary: "Publish or republish"
+      description: "`notify` (default true) tells every active person; `material: true` on an already published article raises the version so everyone must read it again. Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin/articles/{id}/unpublish:
+    post:
+      tags: [Guide]
+      summary: "Hide an article (back to draft)"
+      description: "Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin/articles/{id}/readers:
+    get:
+      tags: [Guide]
+      summary: "Who has read the current version"
+      description: "Every active person, unread first. Needs `guide:manage`."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /guide/admin/reminders:
+    put:
+      tags: [Guide]
+      summary: "Set the reminders to read"
+      description: "`frequency` off|daily|weekly|monthly, `time` HH:MM in the company timezone, `weekday` 1–7 (weekly), `audience` unread|everyone. A worker sends the reminder notification once a day when due. Needs `guide:manage`."
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /expectations:
+    get:
+      tags: [Operations]
+      summary: What carat to expect
+      description: |
+        For a town and/or a customer: how many pieces this company has bought (cancelled purchases left out), the usual carat (median),
+        and the range most pieces fall in (10th to 90th percentile), in tellers' words ("22 high"). `enough` is false below 5 pieces, so
+        show only the count. Plain statistics, not a model. Needs `transactions:read`.
+      parameters:
+        - { in: query, name: townId, schema: { type: string, format: uuid } }
+        - { in: query, name: customerId, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Expectations, content: { application/json: { schema: { type: object, properties: { data: { type: object, properties: { town: { type: object, nullable: true }, customer: { type: object, nullable: true } } } } } } } }
+  /towns:
+    get:
+      tags: [Operations]
+      summary: The company's origin towns
+      description: Most used first. `q` narrows by name (case, spaces and punctuation ignored). Needs `transactions:read`. The app keeps the whole list on the device.
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+      responses:
+        '200': { description: Towns, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string }, uses: { type: integer } } } } } } } } }
+    post:
+      tags: [Operations]
+      summary: Add a town
+      description: Finds the town by name or adds it. An existing name returns the existing town, whatever `id` was sent. Needs `transactions:create`.
+      requestBody:
+        content: { application/json: { schema: { type: object, required: [name], properties: { id: { type: string, format: uuid }, name: { type: string } } } } }
+      responses:
+        '200': { description: The town, content: { application/json: { schema: { type: object, properties: { data: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string }, uses: { type: integer } } } } } } } }
   /debts:
     get:
       tags: [Customers and debts]
@@ -1227,7 +1567,9 @@ components:
         phone: { type: string, nullable: true }
         notes: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
-        purchases: { type: integer }
+        purchases: { type: integer, description: Cancelled purchases are not counted. }
+        lifetimePaid: { type: string }
+        firstPurchaseAt: { type: string, format: date-time, nullable: true }
         lastPurchaseAt: { type: string, format: date-time, nullable: true }
         owesUs: { type: string }
         weOwe: { type: string }
@@ -1606,6 +1948,7 @@ components:
         priceAsOf: { type: string, format: date-time, description: 'When the price used was published' }
         customerId: { type: string, format: uuid, nullable: true, description: 'An existing customer; otherwise one is found or created from name and phone' }
         collateralId: { type: string, format: uuid, nullable: true, description: 'Unrefined gold held as security that this purchase is the refined result of' }
+        originTown: { type: object, nullable: true, description: 'Where the gold comes from (optional). An existing name is matched ignoring case and spacing; a new name is added to the company list.', properties: { id: { type: string, format: uuid, nullable: true }, name: { type: string } } }
         representative:
           type: object
           nullable: true
@@ -1624,6 +1967,7 @@ components:
         reference: { type: string, example: TKW-20261022-0007 }
         customerName: { type: string }
         customerPhone: { type: string, nullable: true }
+        originTown: { type: object, nullable: true, properties: { id: { type: string, format: uuid }, name: { type: string } } }
         representative: { type: object, nullable: true, description: 'Who brought the gold when it was not the customer: name, phone', properties: { name: { type: string }, phone: { type: string, nullable: true } } }
         status: { type: string, enum: [saved, paid, void] }
         items:
@@ -1646,6 +1990,15 @@ components:
         flags:
           type: array
           items: { type: string, enum: [OFFLINE_ENTRY, CALC_MISMATCH, PRICE_STALE, NO_OPEN_DAY] }
+        priceAsOf: { type: string, format: date-time, description: When the price used was fixed. }
+        voidedAt: { type: string, format: date-time, nullable: true }
+        voidReason: { type: string, nullable: true }
+        voidedBy:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string, format: uuid }
+            displayName: { type: string }
     TransactionResponse:
       type: object
       required: [data]

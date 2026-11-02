@@ -69,6 +69,20 @@ const paths = {
       label: "Transfer",
     },
   },
+  guide: {
+    home: { href: "/guide", label: "Rules and guides" },
+    article: {
+      href: "/guide/:id",
+      to: (id: string) => `/guide/${encodeURIComponent(id)}`,
+      label: "Guide",
+    },
+    manage: { href: "/guide/manage", label: "Write the guide" },
+    edit: {
+      href: "/guide/manage/:id",
+      to: (id: string) => `/guide/manage/${encodeURIComponent(id)}`,
+      label: "Edit an article",
+    },
+  },
   audit: { href: "/setup/audit", label: "Audit trail" },
   imports: { href: "/setup/import", label: "Bring in data" },
   settings: {

@@ -2,6 +2,7 @@ import { useEffect, type PropsWithChildren } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/store";
 import { notificationKeys } from "@/features/notifications/api";
+import { ring } from "@/shared/sound/ring";
 import { toast } from "@/shared/ui/toast";
 import { startLive } from "./liveConnection";
 
@@ -46,6 +47,7 @@ export function LiveProvider({ children }: PropsWithChildren) {
       notification: (n) => {
         void qc.invalidateQueries({ queryKey: notificationKeys.all });
         toast.info(n.title);
+        ring();
       },
       resync: () => void qc.invalidateQueries(),
     });

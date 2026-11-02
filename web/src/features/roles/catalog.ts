@@ -58,6 +58,7 @@ export const GROUPS: {
       P.BRANCHES_MANAGE,
       P.IMPORTS_MANAGE,
       P.SETTINGS_MANAGE,
+      P.GUIDE_MANAGE,
     ],
   },
 ];
@@ -68,6 +69,7 @@ export const RISK: Partial<Record<Permission, Risk>> = {
   [P.BRANCHES_MANAGE]: "high",
   [P.IMPORTS_MANAGE]: "high",
   [P.SETTINGS_MANAGE]: "high",
+  [P.GUIDE_MANAGE]: "medium",
   [P.PRICES_APPROVE]: "high",
   [P.AUDIT_READ]: "medium",
   [P.DAYS_SIGNOFF]: "medium",

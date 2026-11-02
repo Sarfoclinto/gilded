@@ -15,6 +15,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<EventRelay>();
 builder.Services.AddHostedService<PriceFeedWorker>();
+builder.Services.AddHostedService<GuideReminderWorker>();
 
 var app = builder.Build();
 app.UseMiddleware<ErrorEnvelopeMiddleware>();
@@ -47,6 +48,7 @@ api.MapReview();
 api.MapImports();
 api.MapPriceFeed();
 api.MapNotifications();
+api.MapGuide();
 
 app.Run();
 

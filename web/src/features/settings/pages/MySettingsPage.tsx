@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/store";
 import { Can } from "@/features/auth/useHasPermission";
 import { useAllBranches } from "@/features/branches/api";
 import { PAPER, type PaperSize } from "@/features/receipt/settings";
+import { ring } from "@/shared/sound/ring";
 import { useUI } from "@/store/ui";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
@@ -175,6 +176,29 @@ export default function MySettingsPage() {
             ]}
             aria-label="Notes to pay with"
           />
+        </Row>
+      </Card>
+
+      <Card>
+        <h2 className="text-base font-semibold">Notifications</h2>
+        <Row
+          title="Ring when a notification arrives"
+          help="A short bell, so you notice a new notice even when you are looking at something else. Your device must not be on silent."
+        >
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => ring(true)}
+              className="min-h-9 rounded-lg border border-border px-3 text-sm hover:bg-muted"
+            >
+              Play it
+            </button>
+            <Switch
+              checked={mine.notifySound}
+              onChange={(v) => mine.update({ notifySound: v })}
+              aria-label="Ring when a notification arrives"
+            />
+          </div>
         </Row>
       </Card>
 

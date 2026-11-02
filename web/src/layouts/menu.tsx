@@ -24,6 +24,8 @@ import {
   KeyRoundIcon,
   SettingsIcon,
   ArrowLeftRightIcon,
+  BookOpenIcon,
+  PenLineIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -190,6 +192,26 @@ export const appMenu: AppMenuItem[] = [
         label: link(paths.drawer.account.href, paths.drawer.account.label),
         icon: <ScrollTextIcon className={icon} />,
         permission: PERMISSIONS.DAYS_READ,
+      },
+    ],
+  },
+  {
+    key: "group-guide",
+    type: "group",
+    label: "Guide",
+    children: [
+      {
+        key: paths.guide.home.href,
+        label: link(paths.guide.home.href, paths.guide.home.label),
+        title: paths.guide.home.label,
+        icon: <BookOpenIcon className={icon} />,
+      },
+      {
+        key: paths.guide.manage.href,
+        label: link(paths.guide.manage.href, paths.guide.manage.label),
+        title: paths.guide.manage.label,
+        icon: <PenLineIcon className={icon} />,
+        permission: PERMISSIONS.GUIDE_MANAGE,
       },
     ],
   },

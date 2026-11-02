@@ -48,6 +48,8 @@ public static class Permissions
 
     /// <summary>Change the company's settings: two-step payout, receipts, the office allowance. Directors only.</summary>
     public const string SettingsManage = "settings:manage";
+    /// <summary>Write and publish the business's rules and guides, and set the reminders to read them. Directors only. Everyone can read the Guide.</summary>
+    public const string GuideManage = "guide:manage";
     /// <summary>Change notes for the branch itself (smaller notes for change, bigger notes to hand out fewer), without a purchase.</summary>
     public const string NotesExchange = "notes:exchange";
 
@@ -66,7 +68,7 @@ public static class Permissions
         [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange];
 
     private static readonly string[] Director =
-        [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage];
+        [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage, GuideManage];
 
     /// <summary>The three roles every new company starts with. A company can add its own later.</summary>
     public static IReadOnlyDictionary<string, (string Name, string[] Permissions)> DefaultRoles { get; } =
