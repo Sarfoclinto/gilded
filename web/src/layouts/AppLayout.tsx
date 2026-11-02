@@ -12,6 +12,7 @@ import { LiveProvider } from "@/shared/live/LiveProvider";
 import { Header } from "./Header";
 import { useNewPurchaseShortcut } from "./NewPurchaseButton";
 import { ClockWarning } from "./ClockWarning";
+import { UpdateBanner } from "./UpdateBanner";
 import { WarmCache } from "./WarmCache";
 import { MobileTabBar } from "./MobileTabBar";
 import { DesktopSidebar, MenuDrawer } from "./Sidebar";
@@ -67,6 +68,7 @@ export default function AppLayout() {
         <WarmCache />
         {desktop ? <DesktopSidebar /> : <MenuDrawer />}
         <div className="flex min-w-0 flex-1 flex-col">
+          <UpdateBanner />
           <Header />
           {/* The page stays in the same place in the tree whether or not the calculators are open. If it moved (as it did when a Splitter
             wrapped it), React would rebuild the page and a half-filled form would lose everything typed. */}

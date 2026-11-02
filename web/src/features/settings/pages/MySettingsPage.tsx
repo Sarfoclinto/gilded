@@ -4,6 +4,7 @@ import { KeyRoundIcon } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
 import { useForgetDevice } from "@/features/auth/hooks";
+import { promptInstall, usePwa } from "@/shared/pwa/pwa";
 import { useAuth } from "@/features/auth/store";
 import { Can } from "@/features/auth/useHasPermission";
 import { useAllBranches } from "@/features/branches/api";
@@ -47,6 +48,7 @@ export default function MySettingsPage() {
   const user = useAuth((s) => s.user);
   const mine = usePersonalSettings();
   const forgetDevice = useForgetDevice();
+  const pwa = usePwa();
   const company = useSettings();
   const branches = useAllBranches().data ?? [];
   const collapsed = useUI((s) => s.menuCollapsed);
@@ -240,6 +242,40 @@ export default function MySettingsPage() {
 
       <Card>
         <h2 className="text-base font-semibold">This device</h2>
+        <Row
+          title="Install the app"
+          help={
+            pwa.installed
+              ? "Gilded is installed on this device and opens in its own window."
+              : pwa.installEvent
+                ? "Adds Gilded to this device like a normal app, and lets it open with no internet."
+                : "Your browser offers this from its menu (Install app / Add to home screen) when available."
+          }
+        >
+          {pwa.installed ? (
+            <span className="text-sm text-muted-foreground">Installed</span>
+          ) : (
+            <Button
+              variant="secondary"
+              disabled={!pwa.installEvent}
+              onClick={() => void promptInstall()}
+            >
+              Install
+            </Button>
+          )}
+        </Row>
+        <Row
+          title="Stored data protected"
+          help="Asks the browser not to delete this device's saved price, customers and unsent purchases when the disk is short."
+        >
+          <span className="text-sm text-muted-foreground">
+            {pwa.persisted === null
+              ? "Checking…"
+              : pwa.persisted
+                ? "Yes"
+                : "Not guaranteed"}
+          </span>
+        </Row>
         <Row
           title="Forget this device"
           help="Signs you out and removes the saved price, customers and offline sign-ins from this computer. Use it on a shared or handed-over computer. Purchases not yet sent stay and are sent when someone signs in with a connection."

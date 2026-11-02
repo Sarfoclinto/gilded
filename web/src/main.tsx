@@ -1,15 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-// import { env } from '@/shared/lib/env';
 import { AppProviders } from "@/app/providers/AppProviders";
 import App from "@/app/App";
+import { startPwa } from "@/shared/pwa/pwa";
+import { toast } from "@/shared/ui/toast";
 
-// async function start() {
-//   if (env.useMock) {
-//     const { installMock } = await import('@/mock/install');
-//     installMock();
-//   }
+void startPwa(() =>
+  toast.success(
+    "Gilded is stored on this device and will now open without a connection.",
+  ),
+);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProviders>
@@ -17,6 +19,3 @@ createRoot(document.getElementById("root")!).render(
     </AppProviders>
   </StrictMode>,
 );
-// }
-
-// void start();
