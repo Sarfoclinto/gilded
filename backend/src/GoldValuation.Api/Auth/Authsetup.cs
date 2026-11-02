@@ -78,6 +78,7 @@ public static class AuthSetup
             p.WithOrigins(origins)
                 .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
                 .WithHeaders("Content-Type", "Authorization", "Idempotency-Key", "X-Client-Time", "X-Client-Version", "X-Requested-With", "X-SignalR-User-Agent")
+                .WithExposedHeaders("Date")   // lets the web app compare the device clock with the server's
                 .AllowCredentials();
         }));
 

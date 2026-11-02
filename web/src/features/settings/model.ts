@@ -33,6 +33,21 @@ export interface Section {
 
 export const SECTIONS: Section[] = [
   {
+    key: "offline",
+    title: "Working offline",
+    blurb: "How long a computer or phone may work with no connection.",
+    fields: [
+      {
+        key: "offline.maxDays",
+        kind: "number",
+        label: "Days a device may work offline",
+        help: "After this many days with no contact with the server, a device can no longer sign people in offline and stops using its stored price and customers. Between 1 and 30. A device learns a new value the next time it connects.",
+        unit: "days",
+        max: 30,
+      },
+    ],
+  },
+  {
     key: "payout",
     title: "Paying customers",
     blurb: "How the cash gets from the drawer to the customer.",

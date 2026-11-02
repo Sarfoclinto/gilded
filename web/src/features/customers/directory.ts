@@ -2,7 +2,7 @@ import { z } from "zod";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { request } from "@/shared/api/client";
-import { OFFLINE_MAX_AGE_MS } from "@/shared/offline/policy";
+import { offlineMaxAgeMs } from "@/shared/offline/policy";
 import { customerSchema, type Customer } from "./api";
 
 /**
@@ -13,7 +13,6 @@ import { customerSchema, type Customer } from "./api";
  * separate from the query cache, which deliberately never holds customer data.
  */
 const KEY = "gold.customers.v1";
-const MAX_AGE_MS = OFFLINE_MAX_AGE_MS;
 
 interface DirectoryState {
   branchId: string | null;
@@ -110,6 +109,6 @@ export async function refreshDirectory(branchId: string): Promise<void> {
 export function localPeople(branchId: string | null): Customer[] {
   const s = useCustomerDirectory.getState();
   const fresh =
-    s.branchId === branchId && Date.now() - s.fetchedAt < MAX_AGE_MS;
+    s.branchId === branchId && Date.now() - s.fetchedAt < offlineMaxAgeMs();
   return [...s.pending, ...(fresh ? s.people : [])];
 }

@@ -8,6 +8,7 @@ import { env } from "@/shared/lib/env";
 import { ApiError } from "./errors";
 import { dataEnvelope, errorEnvelope } from "./envelope";
 import { session } from "./session";
+import { noteServerDate } from "@/shared/offline/clock";
 
 export const http = axios.create({
   baseURL: env.apiUrl,
@@ -60,7 +61,10 @@ async function refreshAccessToken(): Promise<string | null> {
 export { refreshAccessToken };
 
 http.interceptors.response.use(
-  (r) => r,
+  (r) => {
+    noteServerDate(r.headers?.date as string | undefined);
+    return r;
+  },
   async (error: AxiosError) => {
     const original = error.config as Retriable | undefined;
     if (

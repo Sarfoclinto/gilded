@@ -11,6 +11,7 @@ import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { LiveProvider } from "@/shared/live/LiveProvider";
 import { Header } from "./Header";
 import { useNewPurchaseShortcut } from "./NewPurchaseButton";
+import { ClockWarning } from "./ClockWarning";
 import { WarmCache } from "./WarmCache";
 import { MobileTabBar } from "./MobileTabBar";
 import { DesktopSidebar, MenuDrawer } from "./Sidebar";
@@ -55,6 +56,7 @@ export default function AppLayout() {
           <div className="p-6 text-sm text-muted-foreground">Loading…</div>
         }
       >
+        <ClockWarning />
         <Outlet />
       </Suspense>
     </main>

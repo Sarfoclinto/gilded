@@ -17,6 +17,8 @@ export const settingsSchema = z.object({
   "count.blind": z.boolean().default(false),
   /** A purchase with a new customer name and phone saves that customer. Off: the purchase keeps the name and phone but no customer record is made. */
   "customers.autoCreate": z.boolean().default(true),
+  /** Days a device may work and stay signed in with no contact with the server (1 to 30). */
+  "offline.maxDays": z.number().default(7),
   "allowance.perPerson": z.number().default(100),
   "receipt.printer": z.boolean().default(false),
   "receipt.paper": z.enum(["80", "58", "a4"]).default("80"),

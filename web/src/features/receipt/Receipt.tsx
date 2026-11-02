@@ -133,7 +133,11 @@ export function Receipt({
 
       <Rule />
       <section className="space-y-0.5">
-        <Row k="Receipt no." v={t.reference ?? "Pending"} bold />
+        <Row
+          k="Receipt no."
+          v={t.reference ?? `Pending · ${t.id.slice(0, 6).toUpperCase()}`}
+          bold
+        />
         <Row k="Date" v={`${date}, ${time}`} />
         <Row k="Customer" v={t.customerName} />
         {t.customerPhone ? <Row k="Phone" v={t.customerPhone} /> : null}
