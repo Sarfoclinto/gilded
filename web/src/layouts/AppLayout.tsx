@@ -1,6 +1,5 @@
-import { Suspense } from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Splitter } from "antd";
 import {
   PanelHeader,
   UtilityButton,
@@ -11,6 +10,7 @@ import { useUtilityPanel } from "@/features/utility/store";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { LiveProvider } from "@/shared/live/LiveProvider";
 import { Header } from "./Header";
+import { useNewPurchaseShortcut } from "./NewPurchaseButton";
 import { WarmCache } from "./WarmCache";
 import { MobileTabBar } from "./MobileTabBar";
 import { DesktopSidebar, MenuDrawer } from "./Sidebar";
@@ -22,8 +22,34 @@ import { DesktopSidebar, MenuDrawer } from "./Sidebar";
 export default function AppLayout() {
   const desktop = useIsDesktop();
   const { open, setOpen } = useUtilityPanel();
+  useNewPurchaseShortcut();
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(380);
+  const maxWidth = () =>
+    Math.max(300, Math.floor((rowRef.current?.clientWidth ?? 1000) / 2));
+  // Dragging the bar between the page and the calculators.
+  const startResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const row = rowRef.current;
+    if (!row) return;
+    const move = (ev: PointerEvent) => {
+      const right = row.getBoundingClientRect().right;
+      setWidth(
+        Math.min(
+          Math.max(300, right - ev.clientX),
+          Math.max(300, Math.floor(row.clientWidth / 2)),
+        ),
+      );
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }, []);
   const main = (
-    <main className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20">
+    <main className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-20">
       <Suspense
         fallback={
           <div className="p-6 text-sm text-muted-foreground">Loading…</div>
@@ -40,20 +66,36 @@ export default function AppLayout() {
         {desktop ? <DesktopSidebar /> : <MenuDrawer />}
         <div className="flex min-w-0 flex-1 flex-col">
           <Header />
-          {desktop && open ? (
-            // Desktop: the page and the calculators side by side; drag the bar to resize, or close the panel.
-            <Splitter className="min-h-0 flex-1">
-              <Splitter.Panel min={360}>{main}</Splitter.Panel>
-              <Splitter.Panel defaultSize={380} min={300} max="50%">
-                <div className="h-full overflow-y-auto border-l border-border bg-card">
+          {/* The page stays in the same place in the tree whether or not the calculators are open. If it moved (as it did when a Splitter
+            wrapped it), React would rebuild the page and a half-filled form would lose everything typed. */}
+          <div ref={rowRef} className="flex min-h-0 flex-1">
+            {main}
+            {desktop && open ? (
+              <>
+                <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Drag to resize the calculators"
+                  tabIndex={0}
+                  onPointerDown={startResize}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowLeft")
+                      setWidth((w) => Math.min(maxWidth(), w + 24));
+                    if (e.key === "ArrowRight")
+                      setWidth((w) => Math.max(300, w - 24));
+                  }}
+                  className="w-1.5 shrink-0 cursor-col-resize bg-border/60 hover:bg-primary/40 focus-visible:bg-primary/60"
+                />
+                <aside
+                  style={{ width }}
+                  className="h-full shrink-0 overflow-y-auto border-l border-border bg-card"
+                >
                   <PanelHeader onClose={() => setOpen(false)} />
                   <UtilityContent />
-                </div>
-              </Splitter.Panel>
-            </Splitter>
-          ) : (
-            main
-          )}
+                </aside>
+              </>
+            ) : null}
+          </div>
           {!desktop && <MobileTabBar />}
           <UtilityButton />
           {!desktop && <UtilitySheet />}

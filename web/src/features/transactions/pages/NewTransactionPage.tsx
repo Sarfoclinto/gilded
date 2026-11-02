@@ -43,6 +43,15 @@ import { priceAge } from "@/features/prices/model";
 import { ExpectationHint } from "@/features/towns/ExpectationHint";
 import { createTransactionSchema } from "../schemas";
 import { SplitEditor } from "../SplitEditor";
+import { FocusItems } from "../focus/FocusItems";
+import { LayoutSwitch } from "../focus/LayoutSwitch";
+import {
+  draftKey,
+  isMeaningful,
+  usableDraft,
+  useDraftStore,
+  type PurchaseDraft,
+} from "../draft";
 import {
   newSplit,
   nonCashTotal,
@@ -111,6 +120,10 @@ export default function NewTransactionPage() {
           setRound((r) => r + 1);
           window.scrollTo({ top: 0 });
         }}
+        onStartOver={() => {
+          setSaved(null);
+          setRound((r) => r + 1);
+        }}
       />
     </>
   );
@@ -118,8 +131,10 @@ export default function NewTransactionPage() {
 
 function NewTransactionForm({
   onSavedStay,
+  onStartOver,
 }: {
   onSavedStay: (s: JustSaved) => void;
+  onStartOver: () => void;
 }) {
   const navigate = useNavigate();
   const branchId = useAuth((s) => s.activeBranchId);
@@ -130,23 +145,42 @@ function NewTransactionForm({
   const twoStep = companySettings["payout.twoStep"];
   const openReceipt = usePersonalSettings((s) => s.openReceipt);
   const afterSave = usePersonalSettings((s) => s.afterSave);
+  const layout = usePersonalSettings((s) => s.purchaseLayout);
+  const setPersonal = usePersonalSettings((s) => s.update);
   const { view: drawer, settled } = useActiveDrawer();
   // Block only when we KNOW there is no open day. If the drawer was never loaded (first launch offline), allow it; the server flags it.
   const dayBlocked =
     settled && (drawer.status === "none" || drawer.status === "closed");
 
+  // A purchase started earlier and left: pick it up again (not for held gold, which has its own fixed customer).
+  const userId = useAuth((s) => s.user?.id);
+  const dKey = draftKey(userId, branchId);
+  const [searchOnce] = useSearchParams();
+  const restored = useRef<PurchaseDraft | null>(
+    dKey && !searchOnce.get("collateral")
+      ? usableDraft(useDraftStore.getState().drafts[dKey])
+      : null,
+  );
+  const draftDone = useRef(false);
+
   // One id per form session: tapping Save twice can only ever create one transaction.
-  const txId = useRef(crypto.randomUUID());
-  const [customer, setCustomer] = useState<CustomerValue>({
-    id: null,
-    name: "",
-    phone: "",
-  });
-  const [rep, setRep] = useState<RepresentativeValue | null>(null);
-  const [town, setTown] = useState<TownValue | null>(null);
+  const txId = useRef(restored.current?.txId ?? crypto.randomUUID());
+  const [customer, setCustomer] = useState<CustomerValue>(
+    restored.current?.customer ?? { id: null, name: "", phone: "" },
+  );
+  const [rep, setRep] = useState<RepresentativeValue | null>(
+    restored.current?.rep ?? null,
+  );
+  const [town, setTown] = useState<TownValue | null>(
+    restored.current?.town ?? null,
+  );
   // A new customer gets its id here, on the device, so it works offline and the representative can be tied to it.
-  const newCustomerId = useRef(crypto.randomUUID());
-  const [parts, setParts] = useState<SplitDraft[]>([]);
+  const newCustomerId = useRef(
+    restored.current?.newCustomerId ?? crypto.randomUUID(),
+  );
+  const [parts, setParts] = useState<SplitDraft[]>(
+    restored.current?.parts ?? [],
+  );
 
   // Arriving from "Refine and buy" on held gold: the customer is fixed and the held gold is released by this purchase.
   const [params] = useSearchParams();
@@ -178,7 +212,8 @@ function NewTransactionForm({
   const location = useLocation();
   const [items, setItems] = useState<DraftItem[]>(() => {
     const pre = readPrefill(location.state);
-    return pre
+    const kept = restored.current?.items ?? [];
+    const added = pre
       ? [
           {
             ...newItem(pre.price),
@@ -187,8 +222,31 @@ function NewTransactionForm({
             priceTouched: pre.priceTouched,
           },
         ]
-      : [newItem()];
+      : [];
+    const all = [...kept, ...added];
+    return all.length > 0 ? all : [newItem()];
   });
+
+  // Keep the form as typed, a moment after each change, so leaving the page does not lose it.
+  useEffect(() => {
+    if (!dKey || draftDone.current) return;
+    const draft: PurchaseDraft = {
+      txId: txId.current,
+      newCustomerId: newCustomerId.current,
+      customer,
+      rep,
+      town,
+      items,
+      parts,
+      savedAt: new Date().toISOString(),
+    };
+    const timer = setTimeout(() => {
+      if (draftDone.current) return;
+      if (isMeaningful(draft)) useDraftStore.getState().put(dKey, draft);
+      else useDraftStore.getState().clear(dKey);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [dKey, customer, rep, town, items, parts]);
   const [payout, setPayout] = useState<PayoutSelection | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -326,6 +384,8 @@ function NewTransactionForm({
           atBranch: true,
         });
     await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
+    draftDone.current = true;
+    if (dKey) useDraftStore.getState().clear(dKey);
     toast.success(
       online
         ? twoStep
@@ -421,7 +481,33 @@ function NewTransactionForm({
       <PageHeader
         title="New transaction"
         subtitle="Buy gold from a customer. Nothing is final until you save."
+        actions={
+          <LayoutSwitch
+            value={layout}
+            onChange={(v) => setPersonal({ purchaseLayout: v })}
+          />
+        }
       />
+
+      {restored.current ? (
+        <Alert
+          type="info"
+          showIcon
+          title={`Continuing the purchase you started at ${new Date(restored.current.savedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}.`}
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                draftDone.current = true;
+                if (dKey) useDraftStore.getState().clear(dKey);
+                onStartOver();
+              }}
+            >
+              Start over
+            </Button>
+          }
+        />
+      ) : null}
 
       {dayBlocked ? (
         <Card
@@ -529,117 +615,129 @@ function NewTransactionForm({
               pay. The purchase will be marked as made on an old price.
             </div>
           ) : null}
-          {items.map((it, idx) => {
-            const r = results[idx]!;
-            const err = (f: "top" | "down" | "price") =>
-              r.errors.find((e) => e.field === f)?.message;
-            return (
-              <Card key={it.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Item {idx + 1}</h3>
-                  {items.length > 1 ? (
-                    <button
-                      className="min-h-10 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted"
-                      onClick={() =>
-                        setItems((p) => p.filter((x) => x.id !== it.id))
-                      }
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextField
-                    label="Top (g)"
-                    hint="On the scale"
-                    inputMode="decimal"
-                    value={it.top}
-                    onChange={(e) =>
-                      patch(it.id, { top: decimalInput(e.target.value) })
-                    }
-                    error={err("top")}
-                  />
-                  <TextField
-                    label="Down (g)"
-                    hint="In water"
-                    inputMode="decimal"
-                    value={it.down}
-                    onChange={(e) =>
-                      patch(it.id, { down: decimalInput(e.target.value) })
-                    }
-                    error={err("down")}
-                  />
-                  <TextField
-                    className="col-span-2"
-                    label="Price per pound (GHS)"
-                    hint={
-                      it.priceTouched && priceQuery.data
-                        ? `Changed by you · today is ${priceQuery.data.effectivePrice}`
-                        : undefined
-                    }
-                    inputMode="decimal"
-                    value={it.price}
-                    onChange={(e) =>
-                      patch(it.id, {
-                        price: decimalInput(e.target.value),
-                        priceTouched: true,
-                      })
-                    }
-                    error={err("price")}
-                  />
-                </div>
-                {r.warnings.map((w) => (
-                  <p
-                    key={w.code}
-                    role="alert"
-                    className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-xs"
-                  >
-                    {w.message}
-                  </p>
-                ))}
-                <div className="tnum rounded-lg bg-muted/60 px-3 py-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      {r.karat
-                        ? `${r.karat} karat · ${r.netWeight} g net`
-                        : "Fill in the weights"}
-                    </span>
-                    <strong className="text-lg">
-                      {r.amount ? cedis(r.amount) : "—"}
-                    </strong>
-                  </div>
-                  {r.density || r.pounds ? (
-                    <dl className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground">
-                      {r.density ? (
-                        <div className="flex gap-1">
-                          <dt>Density</dt>
-                          <dd className="font-medium text-foreground">
-                            {r.density}
-                          </dd>
-                        </div>
+          {layout === "focus" ? (
+            <FocusItems
+              items={items}
+              results={results}
+              todayPrice={priceQuery.data?.effectivePrice}
+              onPatch={patch}
+              onRemove={(id) => setItems((p) => p.filter((x) => x.id !== id))}
+            />
+          ) : (
+            <>
+              {items.map((it, idx) => {
+                const r = results[idx]!;
+                const err = (f: "top" | "down" | "price") =>
+                  r.errors.find((e) => e.field === f)?.message;
+                return (
+                  <Card key={it.id} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">Item {idx + 1}</h3>
+                      {items.length > 1 ? (
+                        <button
+                          className="min-h-10 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted"
+                          onClick={() =>
+                            setItems((p) => p.filter((x) => x.id !== it.id))
+                          }
+                        >
+                          Remove
+                        </button>
                       ) : null}
-                      {r.purity ? (
-                        <div className="flex gap-1">
-                          <dt>Purity</dt>
-                          <dd className="font-medium text-foreground">
-                            {percent(r.purity)}
-                          </dd>
-                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <TextField
+                        label="Top (g)"
+                        hint="On the scale"
+                        inputMode="decimal"
+                        value={it.top}
+                        onChange={(e) =>
+                          patch(it.id, { top: decimalInput(e.target.value) })
+                        }
+                        error={err("top")}
+                      />
+                      <TextField
+                        label="Down (g)"
+                        hint="In water"
+                        inputMode="decimal"
+                        value={it.down}
+                        onChange={(e) =>
+                          patch(it.id, { down: decimalInput(e.target.value) })
+                        }
+                        error={err("down")}
+                      />
+                      <TextField
+                        className="col-span-2"
+                        label="Price per pound (GHS)"
+                        hint={
+                          it.priceTouched && priceQuery.data
+                            ? `Changed by you · today is ${priceQuery.data.effectivePrice}`
+                            : undefined
+                        }
+                        inputMode="decimal"
+                        value={it.price}
+                        onChange={(e) =>
+                          patch(it.id, {
+                            price: decimalInput(e.target.value),
+                            priceTouched: true,
+                          })
+                        }
+                        error={err("price")}
+                      />
+                    </div>
+                    {r.warnings.map((w) => (
+                      <p
+                        key={w.code}
+                        role="alert"
+                        className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-xs"
+                      >
+                        {w.message}
+                      </p>
+                    ))}
+                    <div className="tnum rounded-lg bg-muted/60 px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">
+                          {r.karat
+                            ? `${r.karat} karat · ${r.netWeight} g net`
+                            : "Fill in the weights"}
+                        </span>
+                        <strong className="text-lg">
+                          {r.amount ? cedis(r.amount) : "—"}
+                        </strong>
+                      </div>
+                      {r.density || r.pounds ? (
+                        <dl className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+                          {r.density ? (
+                            <div className="flex gap-1">
+                              <dt>Density</dt>
+                              <dd className="font-medium text-foreground">
+                                {r.density}
+                              </dd>
+                            </div>
+                          ) : null}
+                          {r.purity ? (
+                            <div className="flex gap-1">
+                              <dt>Purity</dt>
+                              <dd className="font-medium text-foreground">
+                                {percent(r.purity)}
+                              </dd>
+                            </div>
+                          ) : null}
+                          {r.pounds ? (
+                            <div className="flex gap-1">
+                              <dt>Pounds</dt>
+                              <dd className="font-medium text-foreground">
+                                {r.pounds}
+                              </dd>
+                            </div>
+                          ) : null}
+                        </dl>
                       ) : null}
-                      {r.pounds ? (
-                        <div className="flex gap-1">
-                          <dt>Pounds</dt>
-                          <dd className="font-medium text-foreground">
-                            {r.pounds}
-                          </dd>
-                        </div>
-                      ) : null}
-                    </dl>
-                  ) : null}
-                </div>
-              </Card>
-            );
-          })}
+                    </div>
+                  </Card>
+                );
+              })}
+            </>
+          )}
 
           <Button
             variant="secondary"

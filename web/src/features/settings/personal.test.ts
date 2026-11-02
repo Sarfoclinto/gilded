@@ -17,5 +17,7 @@ describe("personal defaults for new purchases", () => {
     expect(DEFAULT_PERSONAL.afterSave).toBe("detail");
     expect(DEFAULT_PERSONAL.noteStrategy).toBe("prefer-100s");
     expect(DEFAULT_PERSONAL.notifySound).toBe(true);
+    expect(DEFAULT_PERSONAL.purchaseLayout).toBe("classic");
+    expect(DEFAULT_PERSONAL.keypad).toBe(true);
   });
 });
