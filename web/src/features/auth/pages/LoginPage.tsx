@@ -7,17 +7,8 @@ import { Button } from "@/shared/ui/Button";
 import { PasswordField } from "@/shared/ui/PasswordField";
 import { TextField } from "@/shared/ui/TextField";
 import { useLogin } from "../hooks";
+import { saveCompany, savedCompany } from "../company";
 import { useAuth } from "../store";
-
-const COMPANY_KEY = "gold.company.v1";
-
-function savedCompany(): string {
-  try {
-    return localStorage.getItem(COMPANY_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
 
 export default function LoginPage() {
   const status = useAuth((s) => s.status);
@@ -39,11 +30,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!ready) return;
     const co = company.trim();
-    try {
-      localStorage.setItem(COMPANY_KEY, co);
-    } catch {
-      /* private mode: just do not remember it */
-    }
+    saveCompany(co);
     login.mutate({
       username: username.trim(),
       password,
@@ -102,8 +89,8 @@ export default function LoginPage() {
             >
               <WifiOffIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
-                You are offline. Signing in needs a connection. If you were
-                already signed in on this device, you can keep working.
+                You are offline. You can sign in here if you have signed in on
+                this device before with a connection, within the last 7 days.
               </span>
             </p>
           ) : null}

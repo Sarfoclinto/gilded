@@ -2,17 +2,18 @@ import { z } from "zod";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { request } from "@/shared/api/client";
+import { OFFLINE_MAX_AGE_MS } from "@/shared/offline/policy";
 import { customerSchema, type Customer } from "./api";
 
 /**
  * The customers this device knows, so the picker works without a connection.
  *
- * Privacy: names and phones are kept only for the branch the user works in, for at most 12 hours since the last refresh,
- * and the whole directory is wiped on sign-out (like the rest of the cache). It lives under its own storage key,
+ * Privacy: names and phones are kept only for the branch the user works in, for at most the offline allowance (7 days) since the last refresh,
+ * and wiped when a different company signs in or by "Forget this device". It lives under its own storage key,
  * separate from the query cache, which deliberately never holds customer data.
  */
 const KEY = "gold.customers.v1";
-const MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const MAX_AGE_MS = OFFLINE_MAX_AGE_MS;
 
 interface DirectoryState {
   branchId: string | null;

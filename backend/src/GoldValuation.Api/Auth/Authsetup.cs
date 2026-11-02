@@ -29,10 +29,8 @@ public static class AuthSetup
             o.MapInboundClaims = false;   // keep our short claim names (sub, tid, perm, branch)
             o.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = true,
-                ValidIssuer = settings.Issuer,
-                ValidateAudience = true,
-                ValidAudience = settings.Audience,
+                ValidateIssuer = true, ValidIssuer = settings.Issuer,
+                ValidateAudience = true, ValidAudience = settings.Audience,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SigningKey)),
                 ValidateLifetime = true,
@@ -79,7 +77,7 @@ public static class AuthSetup
             if (origins.Length == 0) return;   // no browser origin allowed until one is configured
             p.WithOrigins(origins)
                 .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
-                .WithHeaders("Content-Type", "Authorization", "Idempotency-Key", "X-Client-Time", "X-Requested-With", "X-SignalR-User-Agent")
+                .WithHeaders("Content-Type", "Authorization", "Idempotency-Key", "X-Client-Time", "X-Client-Version", "X-Requested-With", "X-SignalR-User-Agent")
                 .AllowCredentials();
         }));
 
