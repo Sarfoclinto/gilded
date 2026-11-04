@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "workspaces": [
     "core-ts",
-    "web"
+    "web",
+    "desktop"
   ],
   "scripts": {
     "test": "npm run test -w @gold/core && npm run test -w @gold/web",
     "typecheck": "npm run typecheck -w @gold/core && npm run typecheck -w @gold/web",
     "dev": "npm run dev -w @gold/web",
+    "dev:desktop": "npm run start -w @gold/desktop",
     "build": "npm run build -w @gold/web"
   }
 }

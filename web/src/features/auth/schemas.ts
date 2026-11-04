@@ -23,6 +23,4 @@ export type SessionData = z.infer<typeof sessionSchema>;
 export interface LoginInput {
   username: string;
   password: string;
-  /** The company's short name. Left out, the server uses its default company. */
-  company?: string;
 }

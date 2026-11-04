@@ -1,19 +1,15 @@
-node_modules/
-dist/
-build/
-
-.env
+node_modules
+dist
 .env.local
 *.log
 
-# Keep the checked-in frontend development defaults
-# web/.env.development
-
-# .NET / Visual Studio
-**/bin/
-**/obj/
+# backend
+backend/**/bin/
+backend/**/obj/
+backend/**/appsettings.Development.json
+backend/**/appsettings.Local.json
 .vs/
-TestResults/
-coverage/
 *.user
-*.suo
+desktop/release
+web/.env.prod
+deploy/.env

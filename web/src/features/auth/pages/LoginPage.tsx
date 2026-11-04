@@ -7,7 +7,6 @@ import { Button } from "@/shared/ui/Button";
 import { PasswordField } from "@/shared/ui/PasswordField";
 import { TextField } from "@/shared/ui/TextField";
 import { useLogin } from "../hooks";
-import { saveCompany, savedCompany } from "../company";
 import { useAuth } from "../store";
 
 export default function LoginPage() {
@@ -17,25 +16,16 @@ export default function LoginPage() {
   const login = useLogin();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [company, setCompany] = useState(savedCompany);
-  const [editCompany, setEditCompany] = useState(false);
 
   const from = (location.state as { from?: string } | null)?.from ?? "/";
   if (status === "authenticated") return <Navigate to={from} replace />;
 
   const fields = login.error?.fieldErrors;
-  const showCompany = editCompany || !!fields?.company;
   const ready = username.trim() !== "" && password !== "" && !login.isPending;
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!ready) return;
-    const co = company.trim();
-    saveCompany(co);
-    login.mutate({
-      username: username.trim(),
-      password,
-      ...(co ? { company: co } : {}),
-    });
+    login.mutate({ username: username.trim(), password });
   };
 
   return (
@@ -96,38 +86,6 @@ export default function LoginPage() {
           ) : null}
 
           <form onSubmit={submit} className="space-y-4" noValidate>
-            {showCompany ? (
-              <TextField
-                label="Company"
-                hint="Leave empty to use the default company"
-                autoComplete="organization"
-                autoCapitalize="none"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                error={fields?.company?.[0]}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {company.trim() ? (
-                  <>
-                    Signing in to{" "}
-                    <strong className="text-foreground">
-                      {company.trim()}
-                    </strong>
-                    .{" "}
-                  </>
-                ) : null}
-                <button
-                  type="button"
-                  className="underline"
-                  onClick={() => setEditCompany(true)}
-                >
-                  {company.trim()
-                    ? "Change company"
-                    : "Sign in to a different company"}
-                </button>
-              </p>
-            )}
             <TextField
               label="Username"
               autoComplete="username"

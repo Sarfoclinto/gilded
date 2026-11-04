@@ -1,3 +1,4 @@
+import { printPage } from "@/shared/platform/platform";
 import { useMemo, useState, type ReactNode } from "react";
 import { Alert } from "antd";
 import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
@@ -349,7 +350,7 @@ export default function DailyAccountPage() {
           <Button
             variant="secondary"
             className="print:hidden"
-            onClick={() => window.print()}
+            onClick={() => void printPage("")}
             disabled={!selected}
           >
             <Printer className="mr-1.5 size-4" aria-hidden />

@@ -1,3 +1,4 @@
+import { printPage } from "@/shared/platform/platform";
 import { useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeftIcon, PrinterIcon } from "lucide-react";
@@ -42,7 +43,7 @@ export default function ReceiptPage() {
 
   useEffect(() => {
     if (!auto || !t) return;
-    const timer = setTimeout(() => window.print(), 400);
+    const timer = setTimeout(() => void printPage(mine.receiptPrinter), 400);
     return () => clearTimeout(timer);
   }, [auto, t]);
 
@@ -93,7 +94,7 @@ export default function ReceiptPage() {
               />{" "}
               Code
             </label>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => void printPage(mine.receiptPrinter)}>
               <PrinterIcon className="mr-1.5 size-4" aria-hidden />
               Print
             </Button>

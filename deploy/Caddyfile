@@ -10,6 +10,14 @@
 		reverse_proxy api:8080
 	}
 
+	# Desktop app updates: the installer and its latest.yml, placed by hand in deploy/updates/win/<stable|beta>/ (see desktop/README.md).
+	# No fallback to index.html here: a missing file must be a real 404, and the update list is always re-read.
+	handle /updates/* {
+		root * /srv
+		header Cache-Control "no-cache"
+		file_server
+	}
+
 	# Everything else is the web app. Unknown paths fall back to index.html so page refreshes work.
 	handle {
 		root * /srv

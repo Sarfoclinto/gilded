@@ -14,20 +14,6 @@ import {
 import { useAuth } from "./store";
 import type { LoginInput, SessionData, User } from "./schemas";
 
-const OWNER_KEY = "gold.cacheOwner.v1";
-
-/** The stored copy (price, customers, towns) belongs to one company. A different company signing in starts clean. */
-function claimDevice(qc: QueryClient, company: string | undefined) {
-  const owner = (company ?? "").trim().toLowerCase();
-  try {
-    const had = localStorage.getItem(OWNER_KEY);
-    if (had !== null && had !== owner) wipeStoredData(qc);
-    localStorage.setItem(OWNER_KEY, owner);
-  } catch {
-    /* storage blocked: nothing is kept anyway */
-  }
-}
-
 function wipeStoredData(qc: QueryClient) {
   qc.clear();
   clearCustomerDirectory();
@@ -52,30 +38,20 @@ const offlineFailure = (reason: "unknown" | "wrong-password" | "expired") =>
   });
 
 export function useLogin() {
-  const qc = useQueryClient();
   const { setSession, setOfflineSession } = useAuth.getState();
   return useApiMutation<LoginResult, LoginInput>({
     requiresOnline: false, // offline sign-in is handled below
     silent: true, // the login form shows its own inline error
     mutationFn: async (input) => {
       const offline = async (): Promise<LoginResult> => {
-        const r = await offlineSignIn(
-          input.company,
-          input.username,
-          input.password,
-        );
+        const r = await offlineSignIn(input.username, input.password);
         if (!r.ok) throw offlineFailure(r.reason);
         return { kind: "offline", user: r.user };
       };
       if (!isOnline()) return offline();
       try {
         const session = await authApi.login(input);
-        await rememberLogin(
-          input.company,
-          input.username,
-          input.password,
-          session.user,
-        );
+        await rememberLogin(input.username, input.password, session.user);
         return { kind: "online", session };
       } catch (e) {
         if (isApiError(e) && (e.kind === "network" || e.kind === "timeout"))
@@ -83,8 +59,7 @@ export function useLogin() {
         throw e;
       }
     },
-    onSuccess: (r, vars) => {
-      claimDevice(qc, vars.company);
+    onSuccess: (r) => {
       if (r.kind === "online") setSession(r.session);
       else setOfflineSession(r.user);
     },
@@ -121,11 +96,6 @@ export function useForgetDevice() {
   return () => {
     forgetOfflineLogins();
     wipeStoredData(qc);
-    try {
-      localStorage.removeItem(OWNER_KEY);
-    } catch {
-      /* nothing to remove */
-    }
     clear();
   };
 }

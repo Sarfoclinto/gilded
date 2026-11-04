@@ -44,8 +44,8 @@ describe("offline sign-in", () => {
     expect(JSON.stringify(rec)).not.toContain("supersecret");
   });
   it("keys ignore case and spaces around the name", () => {
-    expect(recordKey(" Acme ", " Ama ")).toBe(recordKey("acme", "ama"));
-    expect(recordKey("acme", "ama")).not.toBe(recordKey("other", "ama"));
+    expect(recordKey(" Ama ")).toBe(recordKey("ama"));
+    expect(recordKey("ama")).not.toBe(recordKey("kofi"));
   });
   it("compares hashes fully", () => {
     expect(sameHash("abc", "abc")).toBe(true);

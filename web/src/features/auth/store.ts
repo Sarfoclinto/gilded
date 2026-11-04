@@ -3,7 +3,6 @@ import { persist } from "zustand/middleware";
 import { session } from "@/shared/api/session";
 import type { SessionData, User } from "./schemas";
 import { touchLogin } from "./offlineLogin";
-import { savedCompany } from "./company";
 
 type Status = "booting" | "anonymous" | "authenticated";
 
@@ -37,7 +36,7 @@ export const useAuth = create<AuthState>()(
             ? keep
             : (user.branchIds[0] ?? null);
         set({ status: "authenticated", user, activeBranchId });
-        touchLogin(savedCompany(), user);
+        touchLogin(user);
       },
       setOfflineSession: (user) => {
         const keep = get().activeBranchId;

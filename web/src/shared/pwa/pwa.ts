@@ -49,7 +49,8 @@ export async function startPwa(onOfflineReady?: () => void) {
 
   void requestPersistentStorage();
 
-  if (!("serviceWorker" in navigator) || import.meta.env.DEV) return;
+  if (!("serviceWorker" in navigator) || import.meta.env.DEV || window.gilded)
+    return; // the desktop app carries the files itself
   const { registerSW } = await import("virtual:pwa-register");
   const update = registerSW({
     immediate: true,

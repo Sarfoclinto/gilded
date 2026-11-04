@@ -14,6 +14,7 @@ import { useUI } from "@/store/ui";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { DesktopRows } from "../DesktopRows";
 import { LayoutSwitch } from "@/features/transactions/focus/LayoutSwitch";
 import { useSettings } from "../api";
 import { usePersonalSettings, type PersonalSettings } from "../personal";
@@ -242,6 +243,7 @@ export default function MySettingsPage() {
 
       <Card>
         <h2 className="text-base font-semibold">This device</h2>
+        <DesktopRows />
         <Row
           title="Install the app"
           help={

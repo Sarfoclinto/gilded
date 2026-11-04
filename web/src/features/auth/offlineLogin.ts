@@ -6,7 +6,7 @@ import type { User } from "./schemas";
  *
  * After every successful online sign-in this device keeps a salted PBKDF2 hash of the password (never the password) plus the
  * last profile the server sent. With no connection the same person can sign in by proving the password against that hash.
- * - Works only for people who have signed in on this device while online, and only for the company's offline allowance (7 days unless the Director changed it) after their last online contact.
+ * - Works only for people who have signed in on this device while online, and only for the offline allowance (7 days unless the Director changed it) after their last online contact.
  * - Permissions are those the server last sent. Revoking someone takes effect when this device next reaches the server.
  * - No access token exists in this mode; the first request after reconnecting trades the refresh cookie for one.
  */
@@ -22,8 +22,8 @@ export interface OfflineRecord {
 }
 type Book = Record<string, OfflineRecord>;
 
-export const recordKey = (company: string | undefined, username: string) =>
-  `${(company ?? "").trim().toLowerCase()}|${username.trim().toLowerCase()}`;
+/** One company per installation, so a person is known by their username alone. */
+export const recordKey = (username: string) => username.trim().toLowerCase();
 
 const b64 = (b: ArrayBuffer | Uint8Array) =>
   btoa(
@@ -112,24 +112,19 @@ function write(book: Book) {
 
 /** Call after a successful online sign-in. */
 export async function rememberLogin(
-  company: string | undefined,
   username: string,
   password: string,
   user: User,
 ) {
   const book = read();
-  book[recordKey(company, username)] = await makeRecord(password, user);
+  book[recordKey(username)] = await makeRecord(password, user);
   write(book);
 }
 
 /** Call whenever the server confirms a session (login or refresh): newer profile, fresh clock. */
-export function touchLogin(
-  company: string | undefined,
-  user: User,
-  now = Date.now(),
-) {
+export function touchLogin(user: User, now = Date.now()) {
   const book = read();
-  const k = recordKey(company, user.username);
+  const k = recordKey(user.username);
   const rec = book[k];
   if (!rec) return;
   book[k] = { ...rec, user, lastOnlineAt: now };
@@ -137,11 +132,10 @@ export function touchLogin(
 }
 
 export async function offlineSignIn(
-  company: string | undefined,
   username: string,
   password: string,
 ): Promise<OfflineCheck> {
-  return checkRecord(read()[recordKey(company, username)], password);
+  return checkRecord(read()[recordKey(username)], password);
 }
 
 /** "Forget this device": removes every stored password check. */

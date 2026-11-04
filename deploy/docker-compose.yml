@@ -58,6 +58,7 @@ services:
       - "${HTTPS_PORT:-443}:443"
     volumes:
       - caddydata:/data
+      - ./updates:/srv/updates:ro   # desktop installers (desktop/README.md)
     depends_on:
       - api
 

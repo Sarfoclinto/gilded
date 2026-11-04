@@ -5,7 +5,10 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 COPY core-ts/package.json core-ts/
 COPY web/package.json web/
-RUN npm ci
+# The desktop package is a workspace too (the lock file lists it) but is not built here, so its Electron download is skipped.
+COPY desktop/package.json desktop/
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+RUN npm ci --workspace=@gold/web --include-workspace-root
 COPY core-ts core-ts
 COPY web web
 # Relative address: the browser calls the same site it was loaded from, so there is no CORS to configure.

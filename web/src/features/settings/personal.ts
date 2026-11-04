@@ -9,6 +9,8 @@ import type { PaperSize } from "@/features/receipt/settings";
 export interface PersonalSettings {
   /** 'company': follow the company's paper. Otherwise the paper of the printer at this desk. */
   receiptPaper: PaperSize | "company";
+  /** Desktop app only: the printer this computer sends receipts to without asking ('' = ask each time). */
+  receiptPrinter: string;
   /** After saving a purchase: follow the company's printer setting, always open the receipt, or never. */
   openReceipt: "company" | "always" | "never";
   showQr: boolean;
@@ -32,6 +34,7 @@ interface State extends PersonalSettings {
 
 export const DEFAULT_PERSONAL: PersonalSettings = {
   receiptPaper: "company",
+  receiptPrinter: "",
   openReceipt: "company",
   showQr: true,
   showWeights: true,
