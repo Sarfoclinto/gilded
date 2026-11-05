@@ -1,0 +1,216 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import type { DayStateLike, DrawerCommand } from "@gold/core";
+import { Hub } from "./hub";
+import { MemoryHubStore, SqliteHubStore, type HubStore } from "./store";
+
+const day = (
+  balance: Record<string, number>,
+  appliedIds: string[] = [],
+): DayStateLike => ({
+  day: {
+    id: "d1",
+    status: "open",
+    businessDate: "2026-11-05",
+    opening: { lines: balance },
+    closing: null,
+  },
+  balance,
+  appliedIds,
+  carryOver: null,
+});
+const pay = (id: string, lines: Record<string, number>): DrawerCommand => ({
+  id,
+  type: "transaction.create",
+  payload: { branchId: "b", payout: { lines } },
+});
+const topup = (id: string, lines: Record<string, number>): DrawerCommand => ({
+  id,
+  type: "drawer.movement",
+  payload: { dayId: "d1", kind: "topup", lines },
+});
+const from = (device: string, command: DrawerCommand, n = 1) => ({
+  command,
+  deviceId: device,
+  userId: `user-${device}`,
+  capturedAt: "2026-11-05T09:00:00.000Z",
+  localSeq: n,
+});
+
+const dirs: string[] = [];
+afterEach(() => {
+  for (const d of dirs.splice(0))
+    fs.rmSync(d, { recursive: true, force: true });
+});
+const tmpFile = () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "hub-"));
+  dirs.push(d);
+  return path.join(d, "hub.db");
+};
+
+const stores: Array<[string, () => HubStore]> = [
+  ["memory", () => new MemoryHubStore()],
+  ["sqlite", () => new SqliteHubStore(tmpFile())],
+];
+
+describe.each(stores)("hub on %s storage", (_name, make) => {
+  const newHub = (balance: Record<string, number> = { "100": 3 }) => {
+    const store = make();
+    const hub = new Hub(store, {
+      branchId: "b",
+      now: () => new Date("2026-11-05T09:00:05.000Z"),
+    });
+    hub.setSnapshot(day(balance), "2026-11-05T08:00:00.000Z");
+    return { hub, store };
+  };
+
+  it("numbers commands 1, 2, 3 in the order the hub received them, whatever the machines think the time is", () => {
+    const { hub } = newHub();
+    const r = [
+      hub.submit(from("pc2", topup("a", { "100": 1 }))),
+      hub.submit(from("pc1", topup("b", { "100": 1 }))),
+      hub.submit(from("pc3", topup("c", { "100": 1 }))),
+    ];
+    expect(r.map((x) => x.seq)).toEqual([1, 2, 3]);
+  });
+
+  it("two tellers race: the second is told the notes were just used, but is still recorded", () => {
+    const { hub } = newHub({ "100": 3 });
+    expect(hub.check(pay("t1", { "100": 2 })).ok).toBe(true);
+    const first = hub.submit(from("pc1", pay("t1", { "100": 2 })));
+    const second = hub.check(pay("t2", { "100": 2 }));
+    expect(first.covered).toBe(true);
+    expect(second).toMatchObject({ ok: false, short: { "100": 1 } });
+    const late = hub.submit(from("pc2", pay("t2", { "100": 2 })));
+    expect(late).toMatchObject({ covered: false, short: { "100": 1 } });
+    expect(hub.view().balance).toEqual({ "100": -1 });
+    expect(hub.view().negative).toBe(true);
+  });
+
+  it("sending the same command again returns the original answer and adds nothing", () => {
+    const { hub } = newHub();
+    const a = hub.submit(from("pc1", pay("t1", { "100": 1 })));
+    const b = hub.submit(from("pc1", pay("t1", { "100": 1 })));
+    expect(b).toEqual({ ...a, duplicate: true });
+    expect(hub.since(0)).toHaveLength(1);
+  });
+
+  it("a machine that was off catches up from the last number it saw", () => {
+    const { hub } = newHub();
+    hub.submit(from("pc1", topup("a", { "100": 1 })));
+    hub.submit(from("pc2", topup("b", { "100": 1 })));
+    hub.submit(from("pc1", topup("c", { "100": 1 })));
+    expect(hub.since(1).map((e) => e.command.id)).toEqual(["b", "c"]);
+    expect(hub.since(3)).toEqual([]);
+  });
+
+  it("once the server confirms commands, they stop counting against the drawer and leave the to-send list", () => {
+    const { hub } = newHub({ "100": 5 });
+    hub.submit(from("pc1", pay("t1", { "100": 2 })));
+    hub.submit(from("pc2", pay("t2", { "100": 1 })));
+    expect(hub.unconfirmed().map((e) => e.command.id)).toEqual(["t1", "t2"]);
+    expect(hub.view().balance).toEqual({ "100": 2 });
+    // The server now reports t1 applied: its balance already includes it.
+    expect(
+      hub.setSnapshot(day({ "100": 3 }, ["t1"]), "2026-11-05T09:30:00.000Z"),
+    ).toBe(true);
+    expect(hub.unconfirmed().map((e) => e.command.id)).toEqual(["t2"]);
+    expect(hub.view().balance).toEqual({ "100": 2 });
+  });
+
+  it("an older server answer never replaces a newer one", () => {
+    const { hub } = newHub({ "100": 5 });
+    expect(hub.setSnapshot(day({ "100": 1 }), "2026-11-05T07:00:00.000Z")).toBe(
+      false,
+    );
+    expect(hub.view().balance).toEqual({ "100": 5 });
+  });
+
+  it("keeps the signed envelope exactly as the machine made it, to send on to the server", () => {
+    const { hub } = newHub();
+    const signed = {
+      deviceId: "pc1-device",
+      capturedAt: "2026-11-05T09:00:00.000Z",
+      payloadJson: '{"a":1}',
+      signature: "c2ln",
+    };
+    hub.submit({ ...from("pc1", topup("a", { "100": 1 })), signed });
+    expect(hub.since(0)[0]!.signed).toEqual(signed);
+  });
+
+  it("with no server answer yet, it still numbers and keeps everything and flags nothing", () => {
+    const hub = new Hub(make(), { branchId: "b" });
+    const r = hub.submit(from("pc1", pay("t1", { "100": 1 })));
+    expect(r).toMatchObject({ seq: 1, covered: true });
+    expect(hub.view().status).toBe("unknown");
+  });
+});
+
+describe("sqlite storage survives a restart", () => {
+  it("keeps the log, the numbers, the server answer and settings; the next number carries on", () => {
+    const file = tmpFile();
+    const s1 = new SqliteHubStore(file);
+    const h1 = new Hub(s1, { branchId: "b" });
+    h1.setSnapshot(day({ "100": 3 }), "2026-11-05T08:00:00.000Z");
+    h1.submit(from("pc1", pay("t1", { "100": 1 })));
+    h1.submit(from("pc2", pay("t2", { "100": 1 })));
+    s1.setMeta("branch", "b");
+    s1.close();
+
+    const s2 = new SqliteHubStore(file);
+    const h2 = new Hub(s2, { branchId: "b" });
+    expect(s2.getMeta("branch")).toBe("b");
+    expect(h2.view().balance).toEqual({ "100": 1 });
+    expect(h2.submit(from("pc3", pay("t3", { "100": 1 }))).seq).toBe(3);
+    expect(h2.submit(from("pc1", pay("t1", { "100": 1 }))).duplicate).toBe(
+      true,
+    );
+    s2.close();
+  });
+
+  it("a power cut mid-run loses nothing that was acknowledged (the file is complete when another opener reads it)", () => {
+    const file = tmpFile();
+    const s1 = new SqliteHubStore(file);
+    const h1 = new Hub(s1, { branchId: "b" });
+    h1.setSnapshot(day({ "100": 9 }), "2026-11-05T08:00:00.000Z");
+    for (let i = 0; i < 50; i++)
+      h1.submit(from("pc1", pay(`t${i}`, { "100": 0 }), i));
+    // No close(): another connection sees all acknowledged commands.
+    const s2 = new SqliteHubStore(file);
+    expect(s2.all()).toHaveLength(50);
+    s2.close();
+    s1.close();
+  });
+});
+
+describe("several machines, in any interleaving, agree on the drawer", () => {
+  it("replaying what the hub numbered gives every machine the same balance", () => {
+    const { hub } = (() => {
+      const hub = new Hub(new MemoryHubStore(), { branchId: "b" });
+      hub.setSnapshot(day({ "100": 10, "50": 10 }), "2026-11-05T08:00:00.000Z");
+      return { hub };
+    })();
+    hub.submit(from("pc1", pay("a", { "100": 3 })));
+    hub.submit(from("pc2", pay("b", { "50": 4 })));
+    hub.submit(from("pc3", topup("c", { "100": 2 })));
+    hub.submit(from("pc2", pay("d", { "100": 5 })));
+    expect(hub.view().balance).toEqual({ "100": 4, "50": 6 });
+    // A machine that only has the numbered entries since 0 arrives at the same place.
+    const mirror = new Hub(new MemoryHubStore(), { branchId: "b" });
+    mirror.setSnapshot(
+      day({ "100": 10, "50": 10 }),
+      "2026-11-05T08:00:00.000Z",
+    );
+    for (const e of hub.since(0).reverse())
+      mirror.submit({
+        command: e.command,
+        deviceId: e.deviceId,
+        userId: e.userId,
+        capturedAt: e.capturedAt,
+        localSeq: e.localSeq,
+      });
+    expect(mirror.view().balance).toEqual(hub.view().balance);
+  });
+});
