@@ -56,6 +56,7 @@ const paths = {
     },
   },
   review: {
+    sync: { href: "/sync/review", label: "Offline entries" },
     cases: { href: "/review/cases", label: "Differences" },
     timeline: { href: "/review/timeline", label: "Branch timeline" },
     position: { href: "/review/position", label: "Between branches" },

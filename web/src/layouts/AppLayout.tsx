@@ -14,6 +14,7 @@ import { useNewPurchaseShortcut } from "./NewPurchaseButton";
 import { ClockWarning } from "./ClockWarning";
 import { UpdateBanner } from "./UpdateBanner";
 import { WarmCache } from "./WarmCache";
+import { DeviceRegistration } from "./DeviceRegistration";
 import { MobileTabBar } from "./MobileTabBar";
 import { DesktopSidebar, MenuDrawer } from "./Sidebar";
 
@@ -66,6 +67,7 @@ export default function AppLayout() {
     <LiveProvider>
       <div className="flex h-dvh bg-background">
         <WarmCache />
+        <DeviceRegistration />
         {desktop ? <DesktopSidebar /> : <MenuDrawer />}
         <div className="flex min-w-0 flex-1 flex-col">
           <UpdateBanner />

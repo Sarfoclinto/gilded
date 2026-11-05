@@ -10,6 +10,13 @@ export interface OutboxEntry<P = unknown> {
   /** Who saved it. Only that person's session sends it, so a purchase is never recorded under someone else. */
   userId?: string;
   payload: P;
+  /** Signed on this device when it was made (see signing.ts), so the server, or a branch computer relaying it, can trust who made it. */
+  signed?: {
+    deviceId: string;
+    capturedAt: string;
+    payloadJson: string;
+    signature: string;
+  };
   status: "pending" | "syncing" | "failed";
   attempts: number;
   createdAt: number;

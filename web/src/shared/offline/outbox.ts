@@ -11,11 +11,19 @@ import type { OutboxEntry, OutboxStore } from "./outboxStore";
  * - A connection problem stops the run and keeps everything for later (with growing delay).
  * - A server refusal (4xx) parks that one entry as `failed` for a person to look at, and the rest go on.
  */
-export type Handler = (payload: never) => Promise<unknown>;
+export type Handler = (payload: never, entry: OutboxEntry) => Promise<unknown>;
 
 export interface OutboxOptions {
   store: OutboxStore;
   handlers: Record<string, Handler>;
+  /** Signs a command when it is saved. Returning nothing is fine: the command then goes the normal way. */
+  sign?: (c: {
+    id: string;
+    type: string;
+    userId: string;
+    capturedAt: string;
+    payload: unknown;
+  }) => Promise<OutboxEntry["signed"] | undefined>;
   onSynced?: (entry: OutboxEntry, result: unknown) => void;
   now?: () => number;
   /** Who is signed in right now. Entries saved by someone else wait until that person signs in. */
@@ -77,11 +85,27 @@ export function createOutbox(opts: OutboxOptions) {
   async function enqueue<P>(id: string, type: string, payload: P) {
     if (entries.some((e) => e.id === id)) return; // same command twice (double tap) is one command
     const t = now();
+    const userId = opts.currentUser?.() ?? undefined;
+    let signed: OutboxEntry["signed"];
+    if (opts.sign && userId) {
+      try {
+        signed = await opts.sign({
+          id,
+          type,
+          userId,
+          capturedAt: new Date(t).toISOString(),
+          payload,
+        });
+      } catch {
+        signed = undefined;
+      }
+    }
     await save({
       id,
       type,
       payload,
-      userId: opts.currentUser?.() ?? undefined,
+      userId,
+      signed,
       status: "pending",
       attempts: 0,
       createdAt: t,
@@ -114,7 +138,7 @@ export function createOutbox(opts: OutboxOptions) {
         if (!handler) continue;
         await save({ ...entry, status: "syncing" });
         try {
-          const out = await handler(entry.payload as never);
+          const out = await handler(entry.payload as never, entry);
           await drop(entry.id);
           result.sent++;
           opts.onSynced?.(entry, out);

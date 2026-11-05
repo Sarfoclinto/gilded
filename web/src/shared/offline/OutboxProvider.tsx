@@ -16,6 +16,7 @@ import {
 } from "./outbox";
 import { createBestStore, type OutboxEntry } from "./outboxStore";
 import { useConnectivity } from "./connectivity";
+import { signForUser } from "./deviceKey";
 
 interface OutboxContextValue {
   outbox: Outbox | null;
@@ -47,6 +48,7 @@ export function OutboxProvider({ handlers, onSynced, children }: Props) {
         store: await createBestStore(),
         handlers,
         onSynced,
+        sign: signForUser,
         currentUser: () => useAuth.getState().user?.id ?? null,
       });
       await box.init();

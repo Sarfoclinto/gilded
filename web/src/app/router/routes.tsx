@@ -78,6 +78,9 @@ const BranchDetailPage = lazy(
 const DiscrepanciesPage = lazy(
   () => import("@/features/review/pages/DiscrepanciesPage"),
 );
+const SyncReviewPage = lazy(
+  () => import("@/features/sync/pages/SyncReviewPage"),
+);
 const BranchTimelinePage = lazy(
   () => import("@/features/review/pages/BranchTimelinePage"),
 );
@@ -220,6 +223,11 @@ export const appRoutes: AppRoute[] = [
     path: paths.review.cases.href,
     element: <DiscrepanciesPage />,
     access: { permission: PERMISSIONS.DISCREPANCIES_REVIEW },
+  },
+  {
+    path: paths.review.sync.href,
+    element: <SyncReviewPage />,
+    access: { permission: PERMISSIONS.SYNC_REVIEW },
   },
   {
     path: paths.review.timeline.href,

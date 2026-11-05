@@ -25,6 +25,8 @@ export const permissionLabels: Record<Permission, string> = {
     "Work the inbox of differences (take, note, resolve, reopen)",
   "notes:exchange":
     "Change notes for the branch itself: smaller notes for change, bigger notes to hand out fewer",
+  "sync:review":
+    "Review offline entries that could not be applied, then retry or dismiss them",
   "guide:manage":
     "Write and publish the business rules and guides, and set reminders to read them",
   "settings:manage":

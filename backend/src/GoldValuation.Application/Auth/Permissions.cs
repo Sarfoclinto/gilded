@@ -50,6 +50,8 @@ public static class Permissions
     public const string SettingsManage = "settings:manage";
     /// <summary>Write and publish the business's rules and guides, and set the reminders to read them. Directors only. Everyone can read the Guide.</summary>
     public const string GuideManage = "guide:manage";
+    /// <summary>Review offline entries that could not be applied (held or rejected), then retry or dismiss them.</summary>
+    public const string SyncReview = "sync:review";
     /// <summary>Change notes for the branch itself (smaller notes for change, bigger notes to hand out fewer), without a purchase.</summary>
     public const string NotesExchange = "notes:exchange";
 
@@ -65,7 +67,7 @@ public static class Permissions
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage, GuideManage];

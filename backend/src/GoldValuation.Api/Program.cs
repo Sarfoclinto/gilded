@@ -49,6 +49,7 @@ api.MapImports();
 api.MapPriceFeed();
 api.MapNotifications();
 api.MapGuide();
+api.MapSync();
 
 app.Run();
 

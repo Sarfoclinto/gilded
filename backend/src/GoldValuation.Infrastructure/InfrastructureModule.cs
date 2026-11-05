@@ -5,6 +5,7 @@ using GoldValuation.Application.PriceFeed;
 using GoldValuation.Application.Operations;
 using GoldValuation.Application.People;
 using GoldValuation.Application.Guide;
+using GoldValuation.Application.Sync;
 using GoldValuation.Application.Notifications;
 using GoldValuation.Application.Review;
 using GoldValuation.Application.Transfers;
@@ -14,6 +15,7 @@ using GoldValuation.Infrastructure.PriceFeed;
 using GoldValuation.Infrastructure.Operations;
 using GoldValuation.Infrastructure.People;
 using GoldValuation.Infrastructure.Guide;
+using GoldValuation.Infrastructure.Sync;
 using GoldValuation.Infrastructure.Notifications;
 using GoldValuation.Infrastructure.Review;
 using GoldValuation.Infrastructure.Transfers;
@@ -58,6 +60,9 @@ public static class InfrastructureModule
         services.AddScoped<NotificationsService>();
         services.AddSingleton<IGuideStore, PostgresGuideStore>();
         services.AddScoped<GuideService>();
+        services.AddSingleton<ISyncStore, PostgresSyncStore>();
+        services.AddSingleton<ICommandVerifier, EcdsaCommandVerifier>();
+        services.AddScoped<SyncService>();
         return services;
     }
 

@@ -3,6 +3,7 @@ import { clearCustomerDirectory } from "@/features/customers/directory";
 import { clearTowns } from "@/features/towns/towns";
 import { ApiError, isApiError } from "@/shared/api/errors";
 import { useApiMutation } from "@/shared/api/hooks";
+import { forgetDeviceKeys } from "@/shared/offline/deviceKey";
 import { isOnline } from "@/shared/offline/connectivity";
 import { PERSISTED_ROOTS } from "@/shared/offline/policy";
 import { authApi } from "./api";
@@ -95,6 +96,7 @@ export function useForgetDevice() {
   const clear = useAuth((s) => s.clear);
   return () => {
     forgetOfflineLogins();
+    void forgetDeviceKeys();
     wipeStoredData(qc);
     clear();
   };

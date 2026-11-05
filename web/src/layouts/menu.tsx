@@ -26,6 +26,7 @@ import {
   ArrowLeftRightIcon,
   BookOpenIcon,
   PenLineIcon,
+  CloudOffIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -145,6 +146,13 @@ export const appMenu: AppMenuItem[] = [
         title: paths.review.cases.label,
         icon: <SearchCheckIcon className={icon} />,
         permission: PERMISSIONS.DISCREPANCIES_REVIEW,
+      },
+      {
+        key: paths.review.sync.href,
+        label: link(paths.review.sync.href, paths.review.sync.label),
+        title: paths.review.sync.label,
+        icon: <CloudOffIcon className={icon} />,
+        permission: PERMISSIONS.SYNC_REVIEW,
       },
       {
         key: paths.review.timeline.href,
