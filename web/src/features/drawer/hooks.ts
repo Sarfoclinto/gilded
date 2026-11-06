@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/features/auth/store";
 import { useApiQuery } from "@/shared/api/hooks";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
@@ -6,6 +6,9 @@ import { dayKeys, daysApi, exchangeKeys } from "./api";
 import { projectDrawer, type Pending } from "./projection";
 import { useSettings } from "@/features/settings/api";
 import { OUTBOX } from "./schemas";
+import { usePeers } from "@/shared/offline/hubShare";
+import { pushSnapshot } from "@/shared/offline/hubSync";
+import { useHubState } from "@/shared/platform/platform";
 
 const RELEVANT = new Set<string>([
   OUTBOX.MOVEMENT,
@@ -26,12 +29,43 @@ export function useDrawer(branchId: string | null) {
     staleTime: 0,
     refetchOnMount: "always",
   });
+  const peers = usePeers((s) => s.entries);
+  const selfId = useHubState((s) => s.hub.selfId);
+  // Commands saved on the other computers of this branch count against the drawer too, so nobody is offered notes a colleague just used.
   const view = useMemo(() => {
-    const pending = entries.filter(
+    const own = entries.filter(
       (e) => e.status !== "failed" && RELEVANT.has(e.type),
     ) as unknown as Pending[];
-    return projectDrawer(query.data ?? null, pending, branchId ?? "", twoStep);
-  }, [query.data, entries, branchId, twoStep]);
+    const mine = new Set(own.map((e) => e.id));
+    const others = peers
+      .filter(
+        (p) =>
+          p.deviceId !== selfId &&
+          RELEVANT.has(p.command.type) &&
+          !mine.has(p.command.id),
+      )
+      .map((p) => p.command) as unknown as Pending[];
+    const withPeers = projectDrawer(
+      query.data ?? null,
+      [...own, ...others],
+      branchId ?? "",
+      twoStep,
+    );
+    // "Not sent yet" counts what this computer holds, not what its colleagues' computers do.
+    return {
+      ...withPeers,
+      pendingCount: projectDrawer(
+        query.data ?? null,
+        own,
+        branchId ?? "",
+        twoStep,
+      ).pendingCount,
+    };
+  }, [query.data, entries, peers, selfId, branchId, twoStep]);
+  // Give the hub the server's latest answer, so it counts from the same starting point.
+  useEffect(() => {
+    if (query.data && !query.isFetching) pushSnapshot(query.data);
+  }, [query.data, query.isFetching]);
   /** False while an answer is still on its way, so a screen does not act on an old snapshot. */
   const settled = !query.isFetching;
   return { view, state: query.data ?? null, query, settled };

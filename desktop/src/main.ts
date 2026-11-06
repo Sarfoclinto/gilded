@@ -9,13 +9,20 @@ import {
   shell,
 } from "electron";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveAsset } from "./assets";
 import { adjustResponseHeaders, APP_ORIGIN } from "./cors";
 import { readConfig, type Config } from "./config";
-import { isInsecure, normalizeServerUrl } from "./serverUrl";
+import {
+  isInsecure,
+  mayTrustSelfSigned,
+  normalizeServerUrl,
+} from "./serverUrl";
 import { startUpdater } from "./updater";
+import { HubError } from "./hub/client";
+import { HubManager, type HubState } from "./hub/manager";
 
 // For testing and for IT: keep this app's data in a chosen folder.
 if (process.env.GILDED_USER_DATA)
@@ -41,14 +48,18 @@ const assetsDir = path.join(__dirname, "..", "assets");
 
 let win: BrowserWindow | null = null;
 let config: Config;
+let hubManager: HubManager;
 
 let companyName = "Gilded";
+let allowSelfSigned = process.env.GILDED_ALLOW_SELF_SIGNED === "1";
 const bakedDefaults = (): Partial<Config> => {
   try {
     const d = JSON.parse(
       fs.readFileSync(path.join(assetsDir, "defaults.json"), "utf8"),
     ) as Partial<Config> & { companyName?: string };
     if (d.companyName?.trim()) companyName = d.companyName.trim();
+    if ((d as { allowSelfSigned?: boolean }).allowSelfSigned === true)
+      allowSelfSigned = true;
     return {
       serverUrl: (d.serverUrl && normalizeServerUrl(d.serverUrl)) || null,
       channel: d.channel === "beta" ? "beta" : "stable",
@@ -109,6 +120,26 @@ function createWindow() {
 }
 
 function installServerAccess() {
+  // Testing on the branch network: trust the one private-address server's own certificate (see serverUrl.ts). Everything else is checked normally.
+  session.defaultSession.setCertificateVerifyProc((req, cb) =>
+    cb(
+      mayTrustSelfSigned(config.serverUrl, req.hostname, allowSelfSigned)
+        ? 0
+        : -3,
+    ),
+  );
+  app.on("certificate-error", (event, _wc, url, _error, _cert, cb) => {
+    let host = "";
+    try {
+      host = new URL(url).hostname;
+    } catch {
+      /* not a URL */
+    }
+    if (mayTrustSelfSigned(config.serverUrl, host, allowSelfSigned)) {
+      event.preventDefault();
+      cb(true);
+    } else cb(false);
+  });
   // See cors.ts: only answers from the configured server are touched.
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     const server = config.serverUrl;
@@ -186,6 +217,41 @@ function wireIpc(updater: ReturnType<typeof startUpdater>) {
         );
       }),
   );
+  // Branch computers (see hub/): which role this computer has, pairing, status.
+  const hubResult = async (fn: () => Promise<HubState> | HubState) => {
+    try {
+      return { ok: true as const, state: await fn() };
+    } catch (e) {
+      return {
+        ok: false as const,
+        message:
+          e instanceof HubError ? e.message : "That did not work. Try again.",
+        code: e instanceof HubError ? e.code : "ERROR",
+      };
+    }
+  };
+  ipcMain.handle("hub:state", () => hubManager.state());
+  ipcMain.handle("hub:become", (_e, branchId: string, name: string) =>
+    hubResult(() => hubManager.becomeHub(String(branchId), String(name))),
+  );
+  ipcMain.handle("hub:off", () => hubResult(() => hubManager.turnOff()));
+  ipcMain.handle("hub:newCode", () => hubResult(() => hubManager.newCode()));
+  ipcMain.handle("hub:revoke", (_e, id: string) =>
+    hubResult(() => hubManager.revoke(String(id))),
+  );
+  ipcMain.handle("hub:join", (_e, text: string) =>
+    hubResult(() => hubManager.join(String(text), os.hostname())),
+  );
+  ipcMain.handle("hub:share:submit", (_e, r) =>
+    hubManager.share((a) => a.submit(r)),
+  );
+  ipcMain.handle("hub:share:since", (_e, after: number) =>
+    hubManager.share((a) => a.since(Number(after) || 0)),
+  );
+  ipcMain.handle("hub:share:snapshot", (_e, state, asOf: string) =>
+    hubManager.share((a) => a.snapshot(state, String(asOf))),
+  );
+  hubManager.onChange((s) => win?.webContents.send("hub:state", s));
   ipcMain.handle("updater:status", () => updater.status());
   ipcMain.handle("updater:check", () => updater.check());
   ipcMain.handle("updater:install", () => updater.install());
@@ -245,7 +311,11 @@ if (!app.requestSingleInstanceLock()) {
           : null,
       () => win,
     );
+    hubManager = new HubManager({
+      dir: path.join(app.getPath("userData"), "hub"),
+    });
     wireIpc(updater);
+    void hubManager.start();
     buildMenu(updater);
     createWindow();
     if (config.serverUrl && isInsecure(config.serverUrl))
@@ -254,4 +324,5 @@ if (!app.requestSingleInstanceLock()) {
       );
   });
   app.on("window-all-closed", () => app.quit());
+  app.on("before-quit", () => void hubManager?.stop());
 }

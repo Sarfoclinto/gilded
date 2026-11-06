@@ -89,6 +89,29 @@ describe.each(stores)("hub on %s storage", (_name, make) => {
     expect(hub.view().negative).toBe(true);
   });
 
+  it("strict: only records a command the drawer can cover; otherwise nothing is stored and the notes are reported", () => {
+    const { hub } = newHub({ "100": 3 });
+    expect(
+      hub.submit({ ...from("pc1", pay("t1", { "100": 2 })), strict: true }),
+    ).toMatchObject({ seq: 1, covered: true });
+    const r = hub.submit({
+      ...from("pc2", pay("t2", { "100": 2 })),
+      strict: true,
+    });
+    expect(r).toMatchObject({
+      taken: true,
+      covered: false,
+      short: { "100": 1 },
+      seq: 0,
+    });
+    expect(hub.since(0)).toHaveLength(1);
+    expect(hub.view().balance).toEqual({ "100": 1 });
+    // the same teller chooses fewer notes and goes through
+    expect(
+      hub.submit({ ...from("pc2", pay("t3", { "100": 1 })), strict: true }),
+    ).toMatchObject({ seq: 2, covered: true });
+  });
+
   it("sending the same command again returns the original answer and adds nothing", () => {
     const { hub } = newHub();
     const a = hub.submit(from("pc1", pay("t1", { "100": 1 })));

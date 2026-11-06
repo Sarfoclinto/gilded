@@ -26,6 +26,7 @@ import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { ConnectionBadge } from "@/shared/ui/ConnectionBadge";
 import { BranchSwitcher } from "./BranchSwitcher";
+import { HubPill } from "./HubPill";
 import { NewPurchaseButton } from "./NewPurchaseButton";
 import { appMenu } from "./menu";
 import { crumbsFor, filterMenu } from "./menuFilter";
@@ -95,6 +96,7 @@ export function Header() {
       <div className="flex shrink-0 items-center gap-2">
         {desktop ? <NewPurchaseButton /> : null}
         {desktop ? <BranchSwitcher /> : null}
+        <HubPill />
         <ConnectionBadge />
         <NotificationBell />
         <DropdownMenu>

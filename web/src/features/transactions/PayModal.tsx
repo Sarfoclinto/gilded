@@ -87,7 +87,11 @@ export function PayModal({
       return toast.error(parsed.error.issues[0]?.message ?? "Check the notes.");
     setBusy(true);
     // One entry per purchase: asking twice replaces the first instead of paying twice.
-    await outbox.enqueue(`pay-${t.id}`, OUTBOX.PAY, parsed.data);
+    const saved = await outbox.enqueue(`pay-${t.id}`, OUTBOX.PAY, parsed.data);
+    if (!saved.ok) {
+      setBusy(false);
+      return toast.error(saved.message);
+    }
     void outbox.syncNow();
     toast.success(`Paid out ${cedis(due)}`);
     setBusy(false);

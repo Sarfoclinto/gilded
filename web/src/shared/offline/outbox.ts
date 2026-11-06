@@ -82,7 +82,12 @@ export function createOutbox(opts: OutboxOptions) {
     publish();
   }
 
-  async function enqueue<P>(id: string, type: string, payload: P) {
+  async function enqueue<P>(
+    id: string,
+    type: string,
+    payload: P,
+    extra?: { shared?: { seq: number } },
+  ) {
     if (entries.some((e) => e.id === id)) return; // same command twice (double tap) is one command
     const t = now();
     const userId = opts.currentUser?.() ?? undefined;
@@ -106,6 +111,7 @@ export function createOutbox(opts: OutboxOptions) {
       payload,
       userId,
       signed,
+      shared: extra?.shared,
       status: "pending",
       attempts: 0,
       createdAt: t,
@@ -180,6 +186,11 @@ export function createOutbox(opts: OutboxOptions) {
     init,
     enqueue,
     flush,
+    /** The hub now has this entry. */
+    async markShared(id: string, seq: number) {
+      const e = entries.find((x) => x.id === id);
+      if (e && !e.shared) await save({ ...e, shared: { seq } });
+    },
     /** Put a failed entry back in the queue. */
     async retry(id: string) {
       const e = entries.find((x) => x.id === id);

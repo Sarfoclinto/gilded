@@ -13,3 +13,4 @@ backend/**/appsettings.Local.json
 desktop/release
 web/.env.prod
 deploy/.env
+desktop/assets/defaults.json

@@ -383,7 +383,12 @@ function NewTransactionForm({
           phone: cmd.customerPhone,
           atBranch: true,
         });
-    await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
+    const saved = await outbox.enqueue(cmd.id, TX_CREATE, parsed.data);
+    if (!saved.ok) {
+      setSaving(false);
+      toast.error(saved.message);
+      return;
+    }
     draftDone.current = true;
     if (dKey) useDraftStore.getState().clear(dKey);
     toast.success(

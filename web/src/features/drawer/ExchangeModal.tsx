@@ -52,7 +52,11 @@ export function ExchangeModal({
     if (!parsed.success)
       return toast.error(parsed.error.issues[0]?.message ?? "Check the notes.");
     setBusy(true);
-    await outbox.enqueue(cmd.id, OUTBOX.EXCHANGE, parsed.data);
+    const saved = await outbox.enqueue(cmd.id, OUTBOX.EXCHANGE, parsed.data);
+    if (!saved.ok) {
+      setBusy(false);
+      return toast.error(saved.message);
+    }
     void outbox.syncNow();
     toast.success("Notes changed");
     setGave({});

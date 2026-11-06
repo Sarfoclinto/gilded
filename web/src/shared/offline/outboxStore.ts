@@ -17,6 +17,8 @@ export interface OutboxEntry<P = unknown> {
     payloadJson: string;
     signature: string;
   };
+  /** Copied to the branch hub with this number (see hubShare.ts). Absent until the hub has it; the hub's copy is only for the other computers. */
+  shared?: { seq: number };
   status: "pending" | "syncing" | "failed";
   attempts: number;
   createdAt: number;

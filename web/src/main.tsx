@@ -4,10 +4,11 @@ import "./index.css";
 import { AppProviders } from "@/app/providers/AppProviders";
 import App from "@/app/App";
 import { startPwa } from "@/shared/pwa/pwa";
-import { followDesktopUpdates } from "@/shared/platform/platform";
+import { followDesktopUpdates, followHub } from "@/shared/platform/platform";
 import { toast } from "@/shared/ui/toast";
 
 followDesktopUpdates();
+followHub();
 void startPwa(() =>
   toast.success(
     "Gilded is stored on this device and will now open without a connection.",

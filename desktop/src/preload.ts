@@ -23,6 +23,27 @@ const api = {
       return () => ipcRenderer.removeListener("updater:status", h);
     },
   },
+  /** Branch computers: one is the hub, the others join it with a code. */
+  hub: {
+    state: () => ipcRenderer.invoke("hub:state"),
+    become: (branchId: string, name: string) =>
+      ipcRenderer.invoke("hub:become", branchId, name),
+    off: () => ipcRenderer.invoke("hub:off"),
+    newCode: () => ipcRenderer.invoke("hub:newCode"),
+    revoke: (id: string) => ipcRenderer.invoke("hub:revoke", id),
+    join: (text: string) => ipcRenderer.invoke("hub:join", text),
+    share: {
+      submit: (r: unknown) => ipcRenderer.invoke("hub:share:submit", r),
+      since: (after: number) => ipcRenderer.invoke("hub:share:since", after),
+      snapshot: (state: unknown, asOf: string) =>
+        ipcRenderer.invoke("hub:share:snapshot", state, asOf),
+    },
+    onState: (cb: (s: unknown) => void) => {
+      const h = (_e: unknown, s: unknown) => cb(s);
+      ipcRenderer.on("hub:state", h);
+      return () => ipcRenderer.removeListener("hub:state", h);
+    },
+  },
   /** For the landing page only. */
   launch: {
     info: () =>

@@ -2,7 +2,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveAsset } from "./assets";
 import { adjustResponseHeaders, rewriteSetCookie } from "./cors";
-import { isInsecure, normalizeServerUrl } from "./serverUrl";
+import {
+  isInsecure,
+  isPrivateHost,
+  mayTrustSelfSigned,
+  normalizeServerUrl,
+} from "./serverUrl";
 
 describe("server address", () => {
   it("cleans what people type", () => {
@@ -76,5 +81,35 @@ describe("talking to the company server", () => {
     expect(p.headers["Access-Control-Allow-Headers"]).toEqual([
       "content-type,x-client-version",
     ]);
+  });
+});
+
+describe("trusting a development certificate", () => {
+  it("knows private addresses", () => {
+    for (const h of [
+      "localhost",
+      "127.0.0.1",
+      "10.0.0.4",
+      "192.168.1.20",
+      "172.16.5.5",
+      "172.31.0.1",
+      "laptop.local",
+    ])
+      expect(isPrivateHost(h)).toBe(true);
+    for (const h of ["gilded.acme.com", "8.8.8.8", "172.32.0.1", "192.169.1.1"])
+      expect(isPrivateHost(h)).toBe(false);
+  });
+  it("only for the configured https server, on a private address, when switched on", () => {
+    const url = "https://192.168.1.20:5443";
+    expect(mayTrustSelfSigned(url, "192.168.1.20", true)).toBe(true);
+    expect(mayTrustSelfSigned(url, "192.168.1.20", false)).toBe(false); // not switched on
+    expect(mayTrustSelfSigned(url, "192.168.1.21", true)).toBe(false); // some other machine
+    expect(
+      mayTrustSelfSigned("https://gilded.acme.com", "gilded.acme.com", true),
+    ).toBe(false); // a real company server never qualifies
+    expect(
+      mayTrustSelfSigned("http://192.168.1.20:5080", "192.168.1.20", true),
+    ).toBe(false); // plain http has nothing to trust
+    expect(mayTrustSelfSigned(null, "x", true)).toBe(false);
   });
 });

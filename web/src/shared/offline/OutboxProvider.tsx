@@ -17,6 +17,7 @@ import {
 import { createBestStore, type OutboxEntry } from "./outboxStore";
 import { useConnectivity } from "./connectivity";
 import { signForUser } from "./deviceKey";
+import { gate, takenMessage } from "./hubShare";
 
 interface OutboxContextValue {
   outbox: Outbox | null;
@@ -131,8 +132,30 @@ export function useOutbox() {
       (e) => e.status !== "failed" && !!e.userId && e.userId !== me,
     ),
     failed: entries.filter((e) => e.status === "failed"),
-    enqueue: <P,>(id: string, type: string, payload: P) =>
-      outbox!.enqueue(id, type, payload),
+    /**
+     * Saves a command to send. On a computer in a branch with a hub, the notes are reserved with the hub first; if another computer just used
+     * them the command is not saved and the answer says why. Without a hub (or when it cannot be reached) this saves as it always did.
+     */
+    enqueue: async <P,>(
+      id: string,
+      type: string,
+      payload: P,
+    ): Promise<{ ok: true } | { ok: false; message: string }> => {
+      const userId = useAuth.getState().user?.id;
+      const g = userId
+        ? await gate({ id, type, payload }, userId, new Date().toISOString())
+        : ({ status: "solo" } as const);
+      if (g.status === "taken")
+        return { ok: false, message: takenMessage(g.short) };
+      await outbox!.enqueue(
+        id,
+        type,
+        payload,
+        g.status === "shared" ? { shared: { seq: g.seq } } : undefined,
+      );
+      return { ok: true };
+    },
+    markShared: (id: string, seq: number) => outbox?.markShared(id, seq),
     syncNow: () => outbox?.flush({ force: true }),
     retry: (id: string) => outbox?.retry(id),
     discard: (id: string) => outbox?.discard(id),

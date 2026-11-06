@@ -1,5 +1,13 @@
-import { admit, appliedKey, replayLog, type DayStateLike, type DrawerCommand, type DrawerView, type LogEntry } from '@gold/core';
-import type { HubStore, Snapshot, StoredEntry } from './store';
+import {
+  admit,
+  appliedKey,
+  replayLog,
+  type DayStateLike,
+  type DrawerCommand,
+  type DrawerView,
+  type LogEntry,
+} from "@gold/core";
+import type { HubStore, Snapshot, StoredEntry } from "./store";
 
 export interface Submission {
   command: DrawerCommand;
@@ -8,7 +16,9 @@ export interface Submission {
   capturedAt: string;
   /** Order on the machine that made it. */
   localSeq?: number;
-  signed?: StoredEntry['signed'];
+  signed?: StoredEntry["signed"];
+  /** Record it only if the drawer can cover it right now (an atomic "reserve the notes"). Otherwise nothing is stored and `taken` is set. */
+  strict?: boolean;
 }
 
 export interface SubmitResult {
@@ -18,6 +28,8 @@ export interface SubmitResult {
   short: Record<string, number>;
   /** The same command was already in the log; this is its original answer. */
   duplicate: boolean;
+  /** Strict only: the notes were not available, so nothing was recorded. `short` says which. */
+  taken?: boolean;
 }
 
 export interface CheckResult {
@@ -39,29 +51,66 @@ export interface CheckResult {
 export class Hub {
   constructor(
     private store: HubStore,
-    private opts: { branchId: string; twoStep?: boolean; now?: () => Date } = { branchId: '' },
+    private opts: { branchId: string; twoStep?: boolean; now?: () => Date } = {
+      branchId: "",
+    },
   ) {}
 
   private now = () => (this.opts.now ?? (() => new Date()))();
 
   private asLog(entries: StoredEntry[]): LogEntry[] {
-    return entries.map((e) => ({ command: e.command, deviceId: e.deviceId, capturedAt: e.capturedAt, seq: e.seq, localSeq: e.localSeq }));
+    return entries.map((e) => ({
+      command: e.command,
+      deviceId: e.deviceId,
+      capturedAt: e.capturedAt,
+      seq: e.seq,
+      localSeq: e.localSeq,
+    }));
   }
 
   view(): DrawerView {
-    return replayLog(this.store.getSnapshot()?.state ?? null, this.asLog(this.store.all()), this.opts.branchId, this.opts.twoStep).view;
+    return replayLog(
+      this.store.getSnapshot()?.state ?? null,
+      this.asLog(this.store.all()),
+      this.opts.branchId,
+      this.opts.twoStep,
+    ).view;
   }
 
   check(command: DrawerCommand): CheckResult {
-    const r = admit(this.view(), command, this.opts.branchId, this.opts.twoStep);
+    const r = admit(
+      this.view(),
+      command,
+      this.opts.branchId,
+      this.opts.twoStep,
+    );
     return { ok: r.ok, short: r.short, balance: r.balance };
   }
 
   submit(s: Submission): SubmitResult {
     const existing = this.store.get(s.command.id);
-    if (existing) return { seq: existing.seq, covered: existing.covered, short: existing.short, duplicate: true };
+    if (existing)
+      return {
+        seq: existing.seq,
+        covered: existing.covered,
+        short: existing.short,
+        duplicate: true,
+      };
     // Judged against the drawer as it stands now, which already includes everything numbered before this one.
-    const a = admit(this.view(), s.command, this.opts.branchId, this.opts.twoStep);
+    const a = admit(
+      this.view(),
+      s.command,
+      this.opts.branchId,
+      this.opts.twoStep,
+    );
+    if (s.strict && !a.ok)
+      return {
+        seq: 0,
+        covered: false,
+        short: a.short,
+        duplicate: false,
+        taken: true,
+      };
     const { entry, duplicate } = this.store.append({
       command: s.command,
       deviceId: s.deviceId,
@@ -73,7 +122,12 @@ export class Hub {
       short: a.short,
       signed: s.signed ?? null,
     });
-    return { seq: entry.seq, covered: entry.covered, short: entry.short, duplicate };
+    return {
+      seq: entry.seq,
+      covered: entry.covered,
+      short: entry.short,
+      duplicate,
+    };
   }
 
   since(after: number, limit?: number) {

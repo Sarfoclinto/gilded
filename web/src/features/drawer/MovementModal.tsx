@@ -53,7 +53,11 @@ export function MovementModal({
         `The notes must add up to GHS ${allowanceDue(n, rate).toLocaleString("en-GH")} (${n} × ${rate}).`,
       );
     setBusy(true);
-    await outbox.enqueue(cmd.id, OUTBOX.MOVEMENT, parsed.data);
+    const saved = await outbox.enqueue(cmd.id, OUTBOX.MOVEMENT, parsed.data);
+    if (!saved.ok) {
+      setBusy(false);
+      return toast.error(saved.message);
+    }
     void outbox.syncNow();
     toast.success(
       kind === "topup"

@@ -15,6 +15,7 @@ import { ClockWarning } from "./ClockWarning";
 import { UpdateBanner } from "./UpdateBanner";
 import { WarmCache } from "./WarmCache";
 import { DeviceRegistration } from "./DeviceRegistration";
+import { HubSync } from "./HubSync";
 import { MobileTabBar } from "./MobileTabBar";
 import { DesktopSidebar, MenuDrawer } from "./Sidebar";
 
@@ -68,6 +69,7 @@ export default function AppLayout() {
       <div className="flex h-dvh bg-background">
         <WarmCache />
         <DeviceRegistration />
+        <HubSync />
         {desktop ? <DesktopSidebar /> : <MenuDrawer />}
         <div className="flex min-w-0 flex-1 flex-col">
           <UpdateBanner />
