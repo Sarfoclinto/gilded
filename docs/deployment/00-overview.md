@@ -6,12 +6,12 @@ Read this first. It explains the parts, the three stages, and which guide to ope
 
 Gilded is four pieces. Docker runs each in its own sealed box ("container") so it behaves the same on your laptop and on a rented server.
 
-| Container | What it is                | Does                                                                                                       |
-| --------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `db`      | PostgreSQL 17             | Stores every record. Its data lives in a Docker _volume_ (`dbdata`) that survives restarts and updates.    |
-| `migrate` | the API, run once         | Applies database changes that have not been applied yet, then stops. Runs automatically on every start.    |
-| `api`     | ASP.NET Core              | The business rules, logins, price-feed worker, live updates.                                               |
-| `web`     | Caddy + the built web app | Serves the screens, passes `/api` and `/hubs` to the API, and gets the HTTPS certificate on a real domain. |
+| Container | What it is | Does |
+|---|---|---|
+| `db` | PostgreSQL 17 | Stores every record. Its data lives in a Docker *volume* (`dbdata`) that survives restarts and updates. |
+| `migrate` | the API, run once | Applies database changes that have not been applied yet, then stops. Runs automatically on every start. |
+| `api` | ASP.NET Core | The business rules, logins, price-feed worker, live updates. |
+| `web` | Caddy + the built web app | Serves the screens, passes `/api` and `/hubs` to the API, and gets the HTTPS certificate on a real domain. |
 
 Everything is described in `deploy/docker-compose.yml`. One command starts it all: `docker compose up -d --build`.
 
@@ -19,17 +19,18 @@ Everything is described in `deploy/docker-compose.yml`. One command starts it al
 
 1. **Demo on your laptop (free).** Guides 01 and 02. Docker Desktop, the project, real data loaded through the import screens. Use it to convince your boss.
 2. **Pilot on a rented server.** Guides 03 and 04. One small server, a domain, HTTPS, nightly backups. Cost: roughly GHS 2,000-2,700 per year (see 03).
-3. **Operate and grow.** Guide 05. Updates, backups, restore, monitoring, adding branches.
+3. **Operate and grow.** Guide 05. When branches get the desktop app, guide 07 adds installer hosting, a code-signing certificate (about US$150-300 a year) and a per-branch setup; the server itself does not change. Updates, backups, restore, monitoring, adding branches.
 
 ## Order of guides
 
-| File                           | Open it when                                            |
-| ------------------------------ | ------------------------------------------------------- |
-| `01-install-docker-windows.md` | You have nothing installed yet.                         |
-| `02-run-demo-on-laptop.md`     | Docker works. Includes the demo script for the meeting. |
-| `03-hosting-and-costs.md`      | Preparing the funding request.                          |
-| `04-go-live-checklist.md`      | Funding approved: server, domain, HTTPS, firewall.      |
-| `05-operations.md`             | The system is live: backups, updates, trouble.          |
+| File | Open it when |
+|---|---|
+| `01-install-docker-windows.md` | You have nothing installed yet. |
+| `02-run-demo-on-laptop.md` | Docker works. Includes the demo script for the meeting. |
+| `03-hosting-and-costs.md` | Preparing the funding request. |
+| `04-go-live-checklist.md` | Funding approved: server, domain, HTTPS, firewall. |
+| `05-operations.md` | The system is live: backups, updates, trouble. |
+| `07-desktop-app-and-branch-hub.md` | Branches will use the Windows desktop app and the shared branch drawer (hub): installer, signing, router, firewall, cost. |
 
 ## Words you will meet
 

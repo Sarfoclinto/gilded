@@ -8,7 +8,7 @@
     "desktop"
   ],
   "scripts": {
-    "test": "npm run test -w @gold/core && npm run test -w @gold/web",
+    "test": "npm run test -w @gold/core && npm run test -w @gold/web && npm run test -w @gold/desktop",
     "typecheck": "npm run typecheck -w @gold/core && npm run typecheck -w @gold/web",
     "dev": "npm run dev -w @gold/web",
     "dev:desktop": "npm run start -w @gold/desktop",

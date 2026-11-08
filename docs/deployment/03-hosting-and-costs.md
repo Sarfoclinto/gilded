@@ -30,6 +30,8 @@ Payment: foreign hosts take Visa/Mastercard in USD/EUR. Ask the bank to enable i
 | **Server snapshots/backups** | +20% of server price at the host | Easy extra safety. |
 | **Uptime alerts** (UptimeRobot free plan) | Free | Emails/phone alert if the site is down. |
 | **Data Protection Commission registration (Ghana, Act 843)** | check the Commission's current fee | You hold customer names and phones, so the company, as data controller, must register. Ask legal/compliance. |
+| **Code-signing certificate** for the Windows desktop app (OV) | about US$150-300/year (GHS 1,700-3,500) plus maybe US$30-80 token courier | Only needed to remove Windows' "protected your PC" warning; not needed for a one-branch pilot. Not available from Microsoft's cheap Azure service for Ghana. Details in guide 07. |
+| **Desktop app hosting** | 0 | Installers live on the same server (about 400 MB, small traffic). No extra server: the branch hub is a computer you already have. |
 | **Setup labour** | 0 if you or a colleague follow guide 04 | If you hire an engineer, ask for a fixed quote for "one server, Docker, HTTPS, backups". I have no reliable price. |
 
 ## Three plans, for the funding request
@@ -51,8 +53,11 @@ Contingency of 20% is included in the "Ask" row to absorb price changes and exch
 
 **Recommendation:** ask for plan B, **GHS 2,700 for the first year**, and mention plan D as the later option if distance or data-location rules matter. Moving between hosts later is straightforward: backup, restore (guide 05).
 
+## If branches use the desktop app
+Add one line to the request: **code signing, about GHS 3,500 for the first year** (high end), separate from the 20% contingency. Everything else in guide 07 costs nothing extra. A pilot without signing adds 0.
+
 ## What the money does not cover
-Staff phones/PCs and internet at the branches; SMS/e-mail (Gilded does not send them); any paid support; the company's time to train staff.
+Staff phones/PCs, an optional UPS for each branch's hub computer, and internet at the branches; SMS/e-mail (Gilded does not send them); any paid support; the company's time to train staff.
 
 ## Sources (checked Oct 2026)
 - Hetzner Cloud pricing: https://www.hetzner.com/cloud/ and https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/

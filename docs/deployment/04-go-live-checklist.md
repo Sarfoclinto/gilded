@@ -82,6 +82,7 @@ Create a free UptimeRobot account; add an HTTPS monitor for `https://gilded.your
 - Add branches, users and roles; staff log in once to confirm.
 - Set the price feed schedule and check "See what the page says now".
 - Load history and opening balances (*Bring in data*), then open the first day.
+- If branches will use the desktop app, continue with guide 07 after this one (installer, hub, router, firewall).
 - Staff devices: open the site once while online so it can work offline later.
 - Register with the Data Protection Commission (Ghana) and tell staff what customer data is held and why.
 
@@ -95,3 +96,4 @@ Create a free UptimeRobot account; add an HTTPS monitor for `https://gilded.your
 - [ ] First director password changed
 - [ ] Data imported and checked against paper totals
 - [ ] Staff trained; a support contact named
+- [ ] Desktop app: guide 07 checklist (only if used)

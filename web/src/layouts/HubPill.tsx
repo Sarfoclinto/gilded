@@ -21,7 +21,7 @@ export function HubPill() {
     title =
       st === "connected"
         ? `Sharing the drawer with ${hub.member?.hubName}.`
-        : "Drawer not shared right now. This computer works on its own.";
+        : "Drawer not shared right now. This computer works on its own. If it stays like this, ask a manager to check the hub.";
   }
   const cls = {
     ok: "bg-sky-500/15 text-sky-800 dark:text-sky-300",
