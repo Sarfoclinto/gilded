@@ -17,6 +17,11 @@ describe("server address", () => {
     expect(normalizeServerUrl("  https://gilded.acme.com/api/v1/  ")).toBe(
       "https://gilded.acme.com",
     );
+    expect(normalizeServerUrl("localhost")).toBe("http://localhost");
+    expect(normalizeServerUrl("localhost:8080")).toBe("http://localhost:8080");
+    expect(normalizeServerUrl("localhostel.com")).toBe(
+      "https://localhostel.com",
+    );
     expect(normalizeServerUrl("http://192.168.1.10:8080/")).toBe(
       "http://192.168.1.10:8080",
     );

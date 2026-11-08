@@ -63,9 +63,13 @@ export function Header() {
           <Link
             to={paths.home.href}
             aria-label="Home"
-            className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#C9A84C] to-[#E8C97A] font-display text-sm font-bold text-[#0D1B2E]"
+            className="grid size-8 shrink-0 place-items-center"
           >
-            G
+            <img
+              src="/logo-mark.svg"
+              alt=""
+              className="size-8 object-contain"
+            />
           </Link>
         ) : null}
         {desktop && crumbs.length > 0 ? (

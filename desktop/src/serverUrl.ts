@@ -5,7 +5,9 @@
 export function normalizeServerUrl(input: string): string | null {
   let s = input.trim();
   if (!s) return null;
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = `https://${s}`;
+  // No scheme typed: https, except for this computer itself (the laptop demo), which has no certificate.
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s))
+    s = `${/^(localhost|127\.0\.0\.1)(:|\/|$)/i.test(s) ? "http" : "https"}://${s}`;
   let u: URL;
   try {
     u = new URL(s);

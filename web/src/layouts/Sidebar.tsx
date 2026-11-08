@@ -21,16 +21,11 @@ function Logo({ collapsed }: { collapsed: boolean }) {
         to={paths.home.href}
         className="group flex items-center gap-x-3 no-underline"
       >
-        <div
-          className="grid size-9 shrink-0 place-items-center rounded-lg text-base font-bold"
-          style={{
-            background: "linear-gradient(135deg, #C9A84C, #E8C97A)",
-            color: "#0D1B2E",
-            fontFamily: "'Playfair Display', serif",
-          }}
-        >
-          G
-        </div>
+        <img
+          src="/logo-mark.svg"
+          alt=""
+          className="size-9 shrink-0 object-contain"
+        />
         {!collapsed && (
           <div className="flex flex-col leading-none">
             <span
