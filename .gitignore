@@ -1,7 +1,4 @@
-node_modules
-dist
 .env.local
-*.log
 
 # backend
 backend/**/bin/
@@ -13,4 +10,41 @@ backend/**/appsettings.Local.json
 desktop/release
 web/.env.prod
 deploy/.env
+deploy/updates/
 desktop/assets/defaults.json
+
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+release/
+out/
+build/
+
+# Electron packaged applications
+*.exe
+*.msi
+*.dmg
+*.app
+*.deb
+*.AppImage
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
