@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Sync;
+using GoldValuation.Domain.Calculation;
 using GoldValuation.Infrastructure.Operations;
 using GoldValuation.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,13 @@ public sealed class PostgresSyncStore(NpgsqlDataSource dataSource, ILogger<Postg
 
     public async Task<string> ApplyAsync(Guid tenantId, Guid userId, string json, CancellationToken ct) =>
         (await Run<string>(tenantId, userId, "select gold.sync_apply($1)", ct, Json(json)))!;
+
+    public async Task<CalcConfig> CalcConfigAsync(Guid tenantId, Guid userId, string formulaVersion, CancellationToken ct)
+    {
+        var json = await Run<string>(tenantId, userId, "select params::text from gold.formula_versions where key = $1", ct, Text(formulaVersion))
+                   ?? throw new AppException("FORMULA_NOT_CONFIGURED", "The calculation settings are missing for this company. Run the seed command.", 409);
+        return PostgresOperationsStore.ParseCalcConfig(json, formulaVersion);
+    }
 
     public async Task<string> ReviewAsync(ICurrentContext me, CancellationToken ct) =>
         (await Run<string>(me.TenantId, me.UserId, "select gold.sync_review_json()", ct))!;

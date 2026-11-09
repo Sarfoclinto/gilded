@@ -20,6 +20,12 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
     {
         var json = await Scalar(me, "select params::text from gold.formula_versions where key = $1", ct, new NpgsqlParameter { Value = formulaVersion })
                    ?? throw new AppException("FORMULA_NOT_CONFIGURED", "The calculation settings are missing for this company. Run the seed command.", 409);
+        return ParseCalcConfig(json, formulaVersion);
+    }
+
+    /// <summary>Reads the stored formula settings; anything missing falls back to the standard values.</summary>
+    public static CalcConfig ParseCalcConfig(string json, string formulaVersion)
+    {
         using var doc = JsonDocument.Parse(json);
         var d = CalcConfig.ExcelV1;
         decimal Read(string name, decimal fallback) =>
