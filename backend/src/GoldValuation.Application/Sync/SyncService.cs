@@ -1,7 +1,10 @@
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Auth;
+using GoldValuation.Application.Operations;
 
 namespace GoldValuation.Application.Sync;
 
@@ -13,9 +16,49 @@ namespace GoldValuation.Application.Sync;
 ///   3. the database applies it as that person and records the result (applied, held or rejected for review, never lost).
 /// A command that fails steps 1 or 2 is refused outright (nothing is recorded, the sender keeps it and shows why).
 /// </summary>
-public sealed class SyncService(ISyncStore store, ICommandVerifier verifier)
+public sealed class SyncService(ISyncStore store, ICommandVerifier verifier, IClock clock)
 {
     public const int MaxBatch = 200;
+    private const string Formula = "ExcelV1";
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
+    private sealed record PayInput(Guid TransactionId, Dictionary<string, int>? Lines, DateTimeOffset? CapturedAt, string? CheckAmount);
+
+    /// <summary>
+    /// What a device queued is what its screen sent to the normal save. The database functions want the worked-out form, so it goes through the
+    /// same checks and calculation as the normal save first (a purchase is recalculated with the company's formula; the device's figures are only compared).
+    /// Drawer movements and exchanges already have the database's shape.
+    /// </summary>
+    private async Task<JsonObject> PrepareAsync(Guid tenantId, Guid userId, string type, JsonObject payload, CancellationToken ct)
+    {
+        switch (type)
+        {
+            case "transaction.create":
+            {
+                var cmd = payload.Deserialize<CreateTransactionCommand>(WebJson) ?? throw AppException.Invalid("The purchase is not valid.");
+                var config = await store.CalcConfigAsync(tenantId, userId, Formula, ct);
+                return TransactionPlanner.Plan(cmd, config, clock.UtcNow);
+            }
+            case "transaction.pay":
+            {
+                var pay = payload.Deserialize<PayInput>(WebJson) ?? throw AppException.Invalid("The payment is not valid.");
+                if (pay.TransactionId == Guid.Empty) throw AppException.Invalid("Say which purchase is being paid.");
+                var lines = TransactionPlanner.ParseLines(pay.Lines);
+                if (lines.Count == 0) throw AppException.Invalid("Enter the notes you are handing over.");
+                var noteLines = new JsonObject();
+                foreach (var (denom, count) in lines.OrderByDescending(kv => kv.Key)) noteLines[denom.ToString(CultureInfo.InvariantCulture)] = count;
+                var o = new JsonObject { ["id"] = pay.TransactionId, ["lines"] = noteLines, ["capturedAt"] = pay.CapturedAt ?? clock.UtcNow };
+                if (!string.IsNullOrWhiteSpace(pay.CheckAmount))
+                {
+                    if (!decimal.TryParse(pay.CheckAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var check)) throw AppException.Invalid("Enter the amount as a number.");
+                    o["checkAmount"] = check;
+                }
+                return o;
+            }
+            default:
+                return payload;
+        }
+    }
 
     /// <summary>The exact text that is signed. The device builds the same text; the payload goes as the JSON text that was signed.</summary>
     public static string SigningMessage(string id, string type, string userId, string deviceId, string capturedAt, string payloadJson) =>
@@ -91,7 +134,25 @@ public sealed class SyncService(ISyncStore store, ICommandVerifier verifier)
         if (author is null || !author.Active) return Refused("USER_INACTIVE", "The person who made this is no longer active.");
         if (!author.Permissions.Contains(needed)) return Refused("FORBIDDEN", "The person who made this is not allowed to do it.");
 
-        var applied = new JsonObject { ["id"] = id, ["type"] = type, ["deviceId"] = device, ["capturedAt"] = at, ["payload"] = payload };
+        // Worked out by the server's own rules. If that fails, the entry is still recorded (as rejected, with the reason) for a manager to see.
+        var forDatabase = payload;
+        JsonObject? planError = null;
+        try
+        {
+            forDatabase = await PrepareAsync(tenantId, userId, type, payload, ct);
+        }
+        catch (AppException e)
+        {
+            var detail = e.FieldErrors?.Values.SelectMany(v => v).FirstOrDefault();
+            planError = new JsonObject { ["code"] = e.Code, ["message"] = detail is null ? e.Message : $"{e.Message} {detail}" };
+        }
+        catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException)
+        {
+            planError = new JsonObject { ["code"] = "VALIDATION_FAILED", ["message"] = "The entry content is not valid." };
+        }
+
+        var applied = new JsonObject { ["id"] = id, ["type"] = type, ["deviceId"] = device, ["capturedAt"] = at, ["payload"] = forDatabase };
+        if (planError is not null) applied["planError"] = planError;
         var json = await store.ApplyAsync(tenantId, userId, applied.ToJsonString(), ct);
         return JsonNode.Parse(json)!;
     }

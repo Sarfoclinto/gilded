@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Sync;
+using GoldValuation.Domain.Calculation;
 using GoldValuation.Infrastructure.Sync;
 using Xunit;
 
@@ -38,15 +39,21 @@ public class SyncServiceTests
             var id = JsonNode.Parse(json)!["id"]!.GetValue<string>();
             return Task.FromResult($"{{\"id\":\"{id}\",\"status\":\"applied\",\"flags\":[],\"replayed\":false}}");
         }
+        public Task<CalcConfig> CalcConfigAsync(Guid tenantId, Guid userId, string formulaVersion, CancellationToken ct) => Task.FromResult(CalcConfig.ExcelV1);
         public Task<string> ReviewAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("{\"items\":[]}");
         public Task<string> ResolveAsync(ICurrentContext me, string json, CancellationToken ct) { LastResolve = json; return Task.FromResult("{\"status\":\"applied\"}"); }
+    }
+
+    private sealed class FixedClock : IClock
+    {
+        public DateTimeOffset UtcNow => new(2026, 11, 2, 8, 5, 0, TimeSpan.Zero);
     }
 
     private static (SyncService Svc, FakeStore Store, ECDsa Key) Make()
     {
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var store = new FakeStore { Key = Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()) };
-        return (new SyncService(store, new EcdsaCommandVerifier()), store, key);
+        return (new SyncService(store, new EcdsaCommandVerifier(), new FixedClock()), store, key);
     }
 
     private static JsonObject Command(ECDsa key, string type = "transaction.create", string? payload = null, string? signedPayload = null, string? id = null, Guid? user = null, string device = Device)
@@ -72,6 +79,51 @@ public class SyncServiceTests
         var sent = JsonNode.Parse(store.Applied[0].Json)!;
         Assert.Equal("b1", sent["payload"]!["branchId"]!.GetValue<string>());
         Assert.Equal(Device, sent["deviceId"]!.GetValue<string>());
+    }
+
+    // What the web app queues for a purchase: the same body it sends to the normal save.
+    private const string PurchaseJson = """
+        {"id":"11111111-1111-4111-8111-aaaaaaaaaaaa","branchId":"22222222-2222-4222-8222-222222222222","customerName":"Kwesi","customerPhone":"0240000000",
+         "items":[{"id":"33333333-3333-4333-8333-333333333333","label":"ring","top":"7.77","down":"0.41","price":"11650"}],
+         "clientAmount":"11832","payout":{"policy":"down","strategy":"fewest-notes","payable":"11830","lines":{"100":118,"20":1,"10":1},"split":[]},
+         "capturedAt":"2026-11-02T08:00:00.000Z","priceAsOf":"2026-11-02T07:00:00.000Z","collateralId":null}
+        """;
+
+    [Fact]
+    public async Task A_queued_purchase_is_worked_out_the_normal_way_before_it_reaches_the_database()
+    {
+        var (svc, store, key) = Make();
+        var res = First(await svc.SubmitAsync(new Ctx(), Batch(Command(key, "transaction.create", PurchaseJson)), default));
+        Assert.Equal("applied", res["status"]!.GetValue<string>());
+        var sent = JsonNode.Parse(store.Applied.Single().Json)!;
+        Assert.Null(sent["planError"]);
+        var payload = sent["payload"]!;
+        Assert.Equal("Kwesi", payload["customer"]!["name"]!.GetValue<string>());          // the database wants the name inside "customer"
+        Assert.Equal(11832m, payload["calculatedAmount"]!.GetValue<decimal>());           // recalculated by the server
+        Assert.Equal("cash", payload["payments"]![0]!["method"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task A_purchase_the_server_finds_invalid_is_still_recorded_with_the_reason()
+    {
+        var (svc, store, key) = Make();
+        var noName = PurchaseJson.Replace("\"customerName\":\"Kwesi\"", "\"customerName\":\"\"");
+        await svc.SubmitAsync(new Ctx(), Batch(Command(key, "transaction.create", noName)), default);
+        var sent = JsonNode.Parse(store.Applied.Single().Json)!;
+        Assert.Equal("VALIDATION_FAILED", sent["planError"]!["code"]!.GetValue<string>());
+        Assert.Contains("customer name", sent["planError"]!["message"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task A_queued_payment_is_given_to_the_database_in_its_own_shape()
+    {
+        var (svc, store, key) = Make();
+        var tx = Guid.NewGuid();
+        await svc.SubmitAsync(new Ctx(), Batch(Command(key, "transaction.pay", $"{{\"transactionId\":\"{tx}\",\"lines\":{{\"100\":2,\"50\":1}},\"capturedAt\":\"2026-11-02T08:00:00.000Z\",\"checkAmount\":null}}")), default);
+        var payload = JsonNode.Parse(store.Applied.Single().Json)!["payload"]!;
+        Assert.Equal(tx.ToString(), payload["id"]!.GetValue<string>());
+        Assert.Equal(2, payload["lines"]!["100"]!.GetValue<int>());
+        Assert.Null(payload["transactionId"]);
     }
 
     [Fact]

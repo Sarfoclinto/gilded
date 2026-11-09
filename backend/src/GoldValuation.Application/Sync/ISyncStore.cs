@@ -1,4 +1,5 @@
 using GoldValuation.Application.Abstractions;
+using GoldValuation.Domain.Calculation;
 
 namespace GoldValuation.Application.Sync;
 
@@ -14,6 +15,8 @@ public interface ISyncStore
     Task<SyncAuthor?> AuthorAsync(Guid tenantId, Guid userId, CancellationToken ct);
     /// <summary>Runs one command as that person and returns the recorded result.</summary>
     Task<string> ApplyAsync(Guid tenantId, Guid userId, string json, CancellationToken ct);
+    /// <summary>The company's calculation settings, for working out a queued purchase exactly as the normal save does.</summary>
+    Task<CalcConfig> CalcConfigAsync(Guid tenantId, Guid userId, string formulaVersion, CancellationToken ct);
     Task<string> ReviewAsync(ICurrentContext me, CancellationToken ct);
     Task<string> ResolveAsync(ICurrentContext me, string json, CancellationToken ct);
 }
