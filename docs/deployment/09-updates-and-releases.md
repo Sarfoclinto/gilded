@@ -60,7 +60,7 @@ Do this for **every release with a database migration**, and for anything touchi
 scp deploy@<server IP>:/home/deploy/gilded/deploy/backups/<newest file>.sql.gz C:\gilded-staging\
 ```
 (The backup contains real customer data: keep it in a private folder, never e-mail it, and delete it after the rehearsal.)
-2. On your laptop, in `deploy`: put the **new** code in (`git pull`), then restore the backup: `./scripts/restore.sh <path to the file>` (type YES). This replaces the **laptop's** data only.
+2. On your laptop, in `deploy`: put the **new** code in (`git pull`), then restore the backup: `bash ./scripts/restore.sh <path to the file>` (type YES). This replaces the **laptop's** data only.
 3. `docker compose up -d --build`. Watch the migration: `docker compose logs migrate --tail 30`. It must end without errors.
 4. Sign in with a real director login (the restored data has the real users). Click through: Home, *Transactions* (old purchases open), a new test purchase, *Cash drawer*, *Day history*, *Offline entries*.
 5. Desktop changes: build the installer, copy it to the server's **beta** folder (`deploy/updates/win/beta/`, `latest.yml` last), install it on **one** computer whose `channel` is `beta`, and use it for a day before copying to `stable`. (Guide 07 step 6.)
@@ -74,7 +74,7 @@ Pick a time after every branch has closed its day.
 1. Log in: `ssh deploy@<server IP>`.
 2. Use `tmux` so a dropped connection cannot stop the update half-way: `tmux new -s update`. (If disconnected, log in again and run `tmux attach -t update`.)
 3. Go to the folder and note the current version (for rollback): `cd ~/gilded/deploy && git log --oneline -1`. Write down the short code (for example `a1b2c3d`).
-4. Install: `./scripts/update.sh`
+4. Install: `bash ./scripts/update.sh`
    It takes a backup, pulls the new code, rebuilds, applies migrations and restarts. The site is unavailable for roughly 1-3 minutes while the API restarts; computers keep working and send their queued entries afterwards.
 5. If it stops with an error, **do not repeat it blindly**. Read the message; if the migration failed, the old API is still running (see guide 05). Go to step 8.
 
@@ -94,7 +94,7 @@ Decide quickly; the longer wrong code runs, the more data it touches.
 git checkout <the short code from step 6.3>
 docker compose up -d --build
 ```
-- **The release included a database migration:** the new tables/columns stay (they are harmless to old code if you followed the "add first, remove later" rule). Roll the code back as above. Only if the data itself is damaged, restore the backup `update.sh` took just before: `./scripts/restore.sh backups/<that file>` (type YES). Everything entered since that backup is lost, so restore only as a last resort and tell the managers.
+- **The release included a database migration:** the new tables/columns stay (they are harmless to old code if you followed the "add first, remove later" rule). Roll the code back as above. Only if the data itself is damaged, restore the backup `update.sh` took just before: `bash ./scripts/restore.sh backups/<that file>` (type YES). Everything entered since that backup is lost, so restore only as a last resort and tell the managers.
 - Desktop release was bad: delete `latest.yml` from `updates/win/stable/` (computers stop updating), fix, and release a new **higher** version number (guide 07 step 11).
 - After a rollback, find the cause on your laptop (step 1) before trying again.
 
@@ -115,8 +115,8 @@ docker compose up -d --build
 | Laptop tests | `npm test` / `npm run typecheck` / `dotnet test backend/GoldValuation.slnx` |
 | Laptop run | `cd deploy && docker compose up -d --build` |
 | Save | `git add -A && git commit -m "..." && git push`, pull request, merge, `git tag vX.Y.Z && git push --tags` |
-| Rehearse | download backup, `./scripts/restore.sh <file>` on the laptop, `docker compose up -d --build` |
-| Install (night) | `ssh deploy@IP`, `tmux new -s update`, `cd ~/gilded/deploy`, note `git log --oneline -1`, `./scripts/update.sh` |
+| Rehearse | download backup, `bash ./scripts/restore.sh <file>` on the laptop, `docker compose up -d --build` |
+| Install (night) | `ssh deploy@IP`, `tmux new -s update`, `cd ~/gilded/deploy`, note `git log --oneline -1`, `bash ./scripts/update.sh` |
 | Check | `docker compose ps`, `/health/ready`, a test purchase, `docker compose logs api --tail 50` |
 | Roll back | `git checkout <old code>` then `docker compose up -d --build` |
 

@@ -21,7 +21,7 @@ Read this after guide 04 (going live) and before you hand the first installer to
 | Database | PostgreSQL | **Unchanged.** Offline entries arrive through the same signed `/sync/commands` endpoint (migration 0048). |
 | Branch computers | A browser | The Gilded app installed like any program. Opens with no internet. |
 | Between computers in a branch | Nothing | One computer is the **hub**. Others reach it over the branch wifi/cable (port 47600, encrypted). It keeps the shared cash drawer honest when the internet is down. |
-| Releases | `./scripts/update.sh` on the server | Same, **plus** a new installer when the desktop part changes (guide 06 has the new rule). |
+| Releases | `bash ./scripts/update.sh` on the server | Same, **plus** a new installer when the desktop part changes (guide 06 has the new rule). |
 | Backups | Database nightly | Unchanged. The hub keeps only a working copy of the last few days of branch entries; the database is the record. |
 
 ---
@@ -146,7 +146,7 @@ Prices excluding VAT, checked Nov 2026, GHS at about 11.5 per US$1; treat as +/-
 
 ### Step 11 - Release routine for the installer (adds to guide 06)
 Rule: **the server and the desktop app are released together if the change touches both.** Otherwise they are independent.
-1. Server change only (no new screens): `./scripts/update.sh` as before. Installed apps keep working; the web inside them needs a new installer only if the change needs new screens.
+1. Server change only (no new screens): `bash ./scripts/update.sh` as before. Installed apps keep working; the web inside them needs a new installer only if the change needs new screens.
 2. Desktop or screen change: raise `version` in `desktop/package.json`, build (step 4), copy to **beta** (step 6), install on one computer, test a payout, then copy to **stable**.
 3. Every computer checks for updates at start and every 4 hours, downloads quietly, shows "Restart now", and installs when closed. Offline computers do nothing and carry on.
 4. Roll back: computers only move to a **higher** version number, so you cannot "go back" by swapping files. Fix the problem and release a new higher version. If it is urgent, delete `latest.yml` from `stable` (computers then stop updating) and reinstall the affected computers by hand from the previous .exe you kept.

@@ -15,7 +15,7 @@ jobs:
     env: { PGPASSWORD: postgres, PGHOST: localhost, PGUSER: postgres }
     steps:
       - uses: actions/checkout@v4
-      - run: ./backend/db/run-tests.sh -h localhost -U postgres
+      - run: bash ./backend/db/run-tests.sh -h localhost -U postgres
   backend:
     runs-on: ubuntu-latest
     steps:

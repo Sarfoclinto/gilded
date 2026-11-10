@@ -59,7 +59,7 @@ Save with `Ctrl+O`, Enter, `Ctrl+X`. Store a copy of `.env` in the company passw
 ```
 docker compose up -d --build
 docker compose ps
-./scripts/first-company.sh "Your Company Ltd" director KSI "Kumasi Main"
+bash ./scripts/first-company.sh "Your Company Ltd" director KSI "Kumasi Main"
 ```
 Open `https://gilded.yourcompany.com`. The padlock should appear within a minute (Caddy requests the certificate when the first visitor arrives; DNS must already be correct and ports 80 and 443 open).
 
@@ -70,7 +70,7 @@ crontab -e
 ```
 add:
 ```
-0 2 * * * cd /home/deploy/gilded/deploy && ./scripts/backup.sh >> backups/backup.log 2>&1
+0 2 * * * cd /home/deploy/gilded/deploy && bash ./scripts/backup.sh >> backups/backup.log 2>&1
 ```
 Also turn on the host's server backups. Then copy `deploy/backups/` off the server regularly (Backblaze B2 with `rclone`, or download weekly). **Do a test restore** on your laptop once (guide 05) - a backup you have never restored is a hope, not a backup.
 

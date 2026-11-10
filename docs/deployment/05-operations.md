@@ -9,14 +9,14 @@ All commands run in the `deploy` folder (on the server, or in PowerShell on the 
 - Disk use: `df -h` (server), `docker system df`
 
 ## Backup and restore
-- Backup now: `./scripts/backup.sh` (files in `deploy/backups`, newest 14 kept).
-- Restore: `./scripts/restore.sh backups/gilded-<date>.sql.gz` - replaces everything, asks you to type YES.
+- Backup now: `bash ./scripts/backup.sh` (files in `deploy/backups`, newest 14 kept).
+- Restore: `bash ./scripts/restore.sh backups/gilded-<date>.sql.gz` - replaces everything, asks you to type YES.
 - Test restore on a laptop: install per guide 01, start the stack, copy the file in, restore. Check you can log in and see yesterday's records.
 - Keep copies off the server, and keep `.env` in the password manager.
 
 ## Update to a new version
 ```
-./scripts/update.sh
+bash ./scripts/update.sh
 ```
 It backs up, pulls the new code, rebuilds, applies new database changes, restarts. Do it outside trading hours. Database changes are additive and recorded; the `migrate` job runs before the API starts, so a failed migration stops the update and leaves the old API running - read `docker compose logs migrate`.
 
@@ -29,7 +29,7 @@ In the app as a director (*Branches*, *Users*). The new branch's access applies 
 - Different long random passwords; `.env` readable only by the admin (`chmod 600 .env`).
 - Only ports 22, 80, 443 open; SSH keys only.
 - Server updates: `sudo apt update && sudo apt upgrade` monthly (automatic security updates are on if you installed `unattended-upgrades`); reboot if asked.
-- Update Docker images monthly: `./scripts/update.sh` (rebuild fetches fresh base images).
+- Update Docker images monthly: `bash ./scripts/update.sh` (rebuild fetches fresh base images).
 - Leavers: deactivate their user the same day.
 - Customer data is personal data under Ghana's Data Protection Act, 2012 (Act 843): keep access limited, backups protected, and registration with the Data Protection Commission current.
 
