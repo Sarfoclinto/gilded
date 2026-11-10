@@ -40,7 +40,21 @@ const from = (device: string, command: DrawerCommand, n = 1) => ({
 });
 
 const dirs: string[] = [];
+const opened: HubStore[] = [];
+/** Opens a database file and remembers it, so it is closed before its folder is removed (Windows cannot delete a file that is still open). */
+const openSqlite = (file: string) => {
+  const s = new SqliteHubStore(file);
+  opened.push(s);
+  return s;
+};
 afterEach(() => {
+  for (const s of opened.splice(0)) {
+    try {
+      s.close();
+    } catch {
+      /* already closed by the test */
+    }
+  }
   for (const d of dirs.splice(0))
     fs.rmSync(d, { recursive: true, force: true });
 });
@@ -52,7 +66,7 @@ const tmpFile = () => {
 
 const stores: Array<[string, () => HubStore]> = [
   ["memory", () => new MemoryHubStore()],
-  ["sqlite", () => new SqliteHubStore(tmpFile())],
+  ["sqlite", () => openSqlite(tmpFile())],
 ];
 
 describe.each(stores)("hub on %s storage", (_name, make) => {
@@ -174,7 +188,7 @@ describe.each(stores)("hub on %s storage", (_name, make) => {
 describe("sqlite storage survives a restart", () => {
   it("keeps the log, the numbers, the server answer and settings; the next number carries on", () => {
     const file = tmpFile();
-    const s1 = new SqliteHubStore(file);
+    const s1 = openSqlite(file);
     const h1 = new Hub(s1, { branchId: "b" });
     h1.setSnapshot(day({ "100": 3 }), "2026-11-05T08:00:00.000Z");
     h1.submit(from("pc1", pay("t1", { "100": 1 })));
@@ -182,7 +196,7 @@ describe("sqlite storage survives a restart", () => {
     s1.setMeta("branch", "b");
     s1.close();
 
-    const s2 = new SqliteHubStore(file);
+    const s2 = openSqlite(file);
     const h2 = new Hub(s2, { branchId: "b" });
     expect(s2.getMeta("branch")).toBe("b");
     expect(h2.view().balance).toEqual({ "100": 1 });
@@ -195,13 +209,13 @@ describe("sqlite storage survives a restart", () => {
 
   it("a power cut mid-run loses nothing that was acknowledged (the file is complete when another opener reads it)", () => {
     const file = tmpFile();
-    const s1 = new SqliteHubStore(file);
+    const s1 = openSqlite(file);
     const h1 = new Hub(s1, { branchId: "b" });
     h1.setSnapshot(day({ "100": 9 }), "2026-11-05T08:00:00.000Z");
     for (let i = 0; i < 50; i++)
       h1.submit(from("pc1", pay(`t${i}`, { "100": 0 }), i));
     // No close(): another connection sees all acknowledged commands.
-    const s2 = new SqliteHubStore(file);
+    const s2 = openSqlite(file);
     expect(s2.all()).toHaveLength(50);
     s2.close();
     s1.close();

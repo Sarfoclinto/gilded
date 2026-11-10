@@ -52,8 +52,9 @@ describe("hub under random branch life", () => {
       const rand = rng(seed);
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hubsim-"));
       const file = path.join(dir, "hub.db");
+      let store!: SqliteHubStore;
       try {
-        let store = new SqliteHubStore(file);
+        store = new SqliteHubStore(file);
         const make = () =>
           new Hub(store, {
             branchId: "b",
@@ -129,6 +130,7 @@ describe("hub under random branch life", () => {
           } else {
             // the hub computer restarts: everything must come back exactly
             const before = hub.view();
+            store.close();
             store = new SqliteHubStore(file);
             hub = make();
             expect(hub.view()).toEqual(before);
@@ -149,6 +151,11 @@ describe("hub under random branch life", () => {
         // every short entry is still in the log, in its place (reality wins)
         expect(store.all().filter((e) => !e.covered).length).toBe(lateSolo);
       } finally {
+        try {
+          store.close(); // Windows cannot delete a file that is still open
+        } catch {
+          /* never opened, or already closed */
+        }
         fs.rmSync(dir, { recursive: true, force: true });
       }
     });
