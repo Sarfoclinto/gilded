@@ -13,6 +13,14 @@ deploy/.env
 deploy/updates/
 desktop/assets/defaults.json
 
+# deployment: secrets, real data, and built installers never go in Git
+.env
+deploy/.env
+deploy/backups/
+*.sql.gz
+deploy/updates/win/*/*
+!deploy/updates/win/*/.gitkeep
+
 
 # Dependencies
 node_modules/

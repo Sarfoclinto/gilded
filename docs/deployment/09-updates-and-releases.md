@@ -2,6 +2,8 @@
 
 Use this every time you change Gilded now that `app.gildedgold.org` is live. The rule: **nothing is edited on the live server. A change is made on your laptop, proven on a copy of the real data, and only then installed on the server at night.** Guide 06 explains why; this guide is the checklist.
 
+Note: this project's main branch is called **master**.
+
 The path: **1 Change > 2 Test on your laptop > 3 Save in Git > 4 Rehearse (staging) > 5 Announce > 6 Install on production at night > 7 Check > 8 (If wrong) roll back.**
 Allow: a small fix about 30 minutes end to end; a change with a database migration about 1-2 hours.
 
@@ -14,8 +16,8 @@ Allow: a small fix about 30 minutes end to end; a change with a database migrati
 
 ---
 ## Step 1 - Make the change (on your laptop)
-1. Update your copy: `git checkout main` then `git pull`.
-2. Make a branch named for the change: `git checkout -b fix-offline-purchase`. (Never work on `main` directly.)
+1. Update your copy: `git checkout master` then `git pull`.
+2. Make a branch named for the change: `git checkout -b fix-offline-purchase`. (Never work on `master` directly.)
 3. Make the change. When I give you files, copy them to the paths I name, then look at `git status` to see exactly what changed. Read the `B##-CHANGES.md` I send: it says what is untested.
 4. **Database changes** are new numbered files only (for example `0050_something.sql` in `backend/db/migrations/`). Never edit a migration that has already run anywhere.
 
@@ -45,7 +47,7 @@ git push -u origin fix-offline-purchase
 Open the repository on GitHub > **Compare & pull request** > create it. The automatic checks (CI) repeat the tests. Wait for the green tick. Then **Merge**. Add a line to `CHANGELOG.md` in the same change.
 Tag the release so you can always go back to it:
 ```
-git checkout main && git pull
+git checkout master && git pull
 git tag v1.0.1
 git push --tags
 ```
