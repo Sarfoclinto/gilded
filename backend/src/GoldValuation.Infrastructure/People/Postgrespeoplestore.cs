@@ -70,6 +70,9 @@ public sealed class PostgresPeopleStore(NpgsqlDataSource dataSource, ILogger<Pos
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = scope is null ? DBNull.Value : (object)scope.ToArray() },
             Json(filtersJson)))!;
 
+    public async Task<string> LiveAccountAsync(ICurrentContext me, Guid branchId, CancellationToken ct) =>
+        (await Scalar(me, "select gold.live_account_json($1)", ct, Uuid(branchId)))!;
+
     public async Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct) =>
         (await Scalar(me, "select gold.daily_accounts_json($1, $2, $3)", ct,
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = scope.ToArray() },

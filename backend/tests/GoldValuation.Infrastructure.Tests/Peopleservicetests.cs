@@ -129,6 +129,15 @@ public class PeopleServiceTests
     }
 
     [Fact]
+    public async Task LiveAccount_needs_days_read_and_a_visible_branch()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _svc.LiveAccountAsync(new Ctx([]), Tarkwa, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.LiveAccountAsync(new Ctx([Permissions.DaysRead]), Guid.NewGuid(), default));
+        await _svc.LiveAccountAsync(new Ctx([Permissions.DaysRead]), Tarkwa, default);
+        Assert.Equal(Tarkwa, _store.LastBranch);
+    }
+
+    [Fact]
     public async Task DailyAccounts_need_days_read_a_visible_branch_and_a_real_date()
     {
         await Assert.ThrowsAsync<AppException>(() => _svc.DailyAccountsAsync(new Ctx([]), null, "2026-10-30", default));
@@ -244,6 +253,7 @@ public class PeopleServiceTests
         public string? LastAudit; public IReadOnlyCollection<Guid>? LastAuditScope = [];
         public Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string f, CancellationToken ct) { LastAudit = f; LastAuditScope = scope; return Task.FromResult("{}"); }
         public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> LiveAccountAsync(ICurrentContext me, Guid branchId, CancellationToken ct) { LastBranch = branchId; return Task.FromResult("{}"); }
         public Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
         public Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
     }

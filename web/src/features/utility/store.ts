@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-export type UtilityTab = "calculator" | "notes" | "cash" | "customer";
+export type UtilityTab =
+  | "calculator"
+  | "notes"
+  | "cash"
+  | "customer"
+  | "closing";
 
 /** The customer the person is working on, shared by the New transaction page (which writes it) and the panel (which only reads it). */
 export interface LookupCustomer {
