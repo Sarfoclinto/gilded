@@ -116,7 +116,7 @@ docker compose ps
 The first build takes several minutes. All of `db`, `api`, `web` should say running (`migrate` says exited: that is correct).
 Create the company and first director (run once):
 ```
-./scripts/first-company.sh "Gilded Gold Enterprise" director KSI "Kumasi Main"
+bash ./scripts/first-company.sh "Gilded Gold Enterprise" director KSI "Kumasi Main"
 ```
 It asks you to choose the director's password. Use your real branch code/name instead of the examples.
 
@@ -131,9 +131,9 @@ crontab -e
 ```
 add the line (then save):
 ```
-0 2 * * * cd /home/deploy/gilded/deploy && ./scripts/backup.sh >> backups/backup.log 2>&1
+0 2 * * * cd /home/deploy/gilded/deploy && bash ./scripts/backup.sh >> backups/backup.log 2>&1
 ```
-Run one by hand now: `./scripts/backup.sh` and check `ls backups`. Hetzner's own server backups (ticked in A3) are the second layer. Copy `backups/` somewhere off the server weekly until you automate it (guide 04 step 10). Do one test restore on your laptop before real data goes in (guide 05).
+Run one by hand now: `bash ./scripts/backup.sh` and check `ls backups`. Hetzner's own server backups (ticked in A3) are the second layer. Copy `backups/` somewhere off the server weekly until you automate it (guide 04 step 10). Do one test restore on your laptop before real data goes in (guide 05).
 
 ### C8. Monitoring
 Free account at uptimerobot.com: **Add monitor**, HTTPS, URL `https://app.gildedgold.org/health/ready`, every 5 minutes, alert to your e-mail and one colleague.

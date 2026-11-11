@@ -9,7 +9,7 @@ The idea: **nobody edits the live server.** Every change is made on your laptop,
 4. **Push** the branch to GitHub and open a pull request. The CI workflow repeats all the tests and builds both Docker images. Merge only when it is green.
 5. **Merge to `main`.** Tag a release: `git tag v1.3.0 && git push --tags`.
 6. **Try it on staging** (see below), at least for database changes.
-7. **Deploy to production**, outside trading hours: on the server, `./scripts/update.sh` (backs up, pulls, rebuilds, migrates, restarts). It takes a few minutes. Staff on offline-first devices keep working; the screens reload with the new version.
+7. **Deploy to production**, outside trading hours: on the server, `bash ./scripts/update.sh` (backs up, pulls, rebuilds, migrates, restarts). It takes a few minutes. Staff on offline-first devices keep working; the screens reload with the new version.
 8. **Check.** Log in, make a test action, watch `docker compose logs api --tail 50`, and the uptime monitor.
 9. **Roll back if wrong.** `git checkout <previous tag>` then `docker compose up -d --build`. If the release changed the database, restore the backup `update.sh` made just before.
 
@@ -17,7 +17,7 @@ The idea: **nobody edits the live server.** Every change is made on your laptop,
 Server-only changes need only `update.sh`. A change to screens or the desktop code also needs a new installer: raise the version, build on Windows, copy to `deploy/updates/win/beta/`, test on one computer, then copy to `stable/` with `latest.yml` last. Full steps in guide 07.
 
 ## Staging: a rehearsal copy
-Your laptop stack IS staging: restore last night's production backup into it (`./scripts/restore.sh`), switch to the new version, run `docker compose up -d --build`, and check that the migrations apply to real-shaped data. Do this before any release that includes a new `backend/db/migrations/00NN_*.sql`. Later, a second small server (about US$5 a month) can hold staging permanently.
+Your laptop stack IS staging: restore last night's production backup into it (`bash ./scripts/restore.sh`), switch to the new version, run `docker compose up -d --build`, and check that the migrations apply to real-shaped data. Do this before any release that includes a new `backend/db/migrations/00NN_*.sql`. Later, a second small server (about US$5 a month) can hold staging permanently.
 
 ## Rules that keep the live data safe
 - **Migrations only move forward.** Never edit a migration already applied anywhere; add a new numbered file. The ledger is immutable by design; corrections are new entries.

@@ -7,6 +7,7 @@ read -r -p "This erases the current data and loads $f. Type YES to continue: " o
 [ "$ok" = "YES" ] || { echo "Cancelled."; exit 1; }
 docker compose stop api web
 docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "drop database if exists gold" -c "create database gold owner gold_migrator"
-gunzip -c "$f" | docker compose exec -T db psql -U postgres -d gold -v ON_ERROR_STOP=1 -q
+# "set role" makes the restored tables belong to gold_migrator, as after a normal install (otherwise later updates cannot change them)
+gunzip -c "$f" | docker compose exec -T db psql -U postgres -d gold -v ON_ERROR_STOP=1 -q -c "set role gold_migrator" -f -
 docker compose up -d
 echo "Restored."
