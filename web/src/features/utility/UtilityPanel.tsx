@@ -9,7 +9,8 @@ import { PERMISSIONS } from "@/config/permissions";
 import { PayoutPanel } from "@/features/calculator/PayoutPanel";
 import { TextField } from "@/shared/ui/TextField";
 import { decimalOnly } from "@/shared/lib/numbers";
-import { useUtilityPanel } from "./store";
+import { CustomerHistory } from "./CustomerHistory";
+import { useUtilityPanel, type UtilityTab } from "./store";
 
 /** Nominations: type an amount, see the notes to hand out. Uses the open drawer's notes when there is one. */
 function NominationsBody() {
@@ -36,17 +37,19 @@ function NominationsBody() {
 
 /** The panel content: the same calculators as the pages, working beside whatever page is open. Nothing here saves by itself. */
 export function UtilityContent() {
-  const [tab, setTab] = useState<"calculator" | "notes" | "cash">("calculator");
+  // The tab lives in the store so the button can send the person straight to the customer's history.
+  const { tab, setTab } = useUtilityPanel();
   const canSeeCash = useHasPermission(PERMISSIONS.DAYS_READ);
   return (
     <div className="space-y-4 p-4">
       <Segmented
         block
-        value={tab}
-        onChange={(v) => setTab(v as "calculator" | "notes" | "cash")}
+        value={tab === "cash" && !canSeeCash ? "calculator" : tab}
+        onChange={(v) => setTab(v as UtilityTab)}
         options={[
           { label: "Calculator", value: "calculator" },
           { label: "Notes", value: "notes" },
+          { label: "Customer", value: "customer" },
           ...(canSeeCash ? [{ label: "Cash", value: "cash" }] : []),
         ]}
       />
@@ -61,6 +64,7 @@ export function UtilityContent() {
       </div>
       {/* Mounted only while looked at, so opening the tab asks for fresh figures. */}
       {tab === "cash" && canSeeCash && <CashBody />}
+      {tab === "customer" && <CustomerHistory />}
     </div>
   );
 }
@@ -68,10 +72,10 @@ export function UtilityContent() {
 export function PanelHeader({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex items-center justify-between border-b border-border px-4 py-2">
-      <h2 className="text-base font-semibold">Calculators</h2>
+      <h2 className="text-base font-semibold">Tools</h2>
       <button
         type="button"
-        aria-label="Close calculators"
+        aria-label="Close tools"
         className="grid size-11 place-items-center rounded-lg hover:bg-muted"
         onClick={onClose}
       >
@@ -89,7 +93,7 @@ export function UtilityButton() {
   return (
     <button
       type="button"
-      aria-label="Open calculators"
+      aria-label="Open tools"
       onClick={toggle}
       className={`fixed right-4 z-30 print:hidden grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ${desktop ? "bottom-6" : "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"}`}
     >
