@@ -40,3 +40,15 @@ describe("checkExchange", () => {
     expect(checkExchange({ "200": 1 }, {}, drawer).valid).toBe(false);
   });
 });
+
+describe("checkExchange on a branch with the note rule off", () => {
+  it("may hand out notes the drawer lacks, as long as both sides are worth the same", () => {
+    const strict = checkExchange({ "100": 1 }, { "20": 5 }, { "100": 1 });
+    const loose = checkExchange({ "100": 1 }, { "20": 5 }, { "100": 1 }, true);
+    expect(strict.valid).toBe(false);
+    expect(loose.valid).toBe(true);
+    expect(
+      checkExchange({ "100": 1 }, { "20": 4 }, { "100": 1 }, true).valid,
+    ).toBe(false);
+  });
+});

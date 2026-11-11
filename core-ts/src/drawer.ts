@@ -1,4 +1,10 @@
-import { addLines, shortfall, subtractLines, type Lines } from "./lines";
+import {
+  addLines,
+  lineTotal,
+  shortfall,
+  subtractLines,
+  type Lines,
+} from "./lines";
 import { DENOMINATIONS, type NoteLimits } from "./solver";
 
 /**
@@ -50,6 +56,8 @@ export interface DayStateLike {
   balance?: Lines | null;
   appliedIds?: string[];
   carryOver?: Lines | null;
+  /** True when this branch has the note-by-note rule switched off: only the total in the drawer is enforced. */
+  looseDenominations?: boolean;
 }
 
 export interface DrawerView {
@@ -67,6 +75,8 @@ export interface DrawerView {
   pendingCount: number;
   /** True if any denomination is below zero (more paid out than recorded). */
   negative: boolean;
+  /** The note-by-note rule is off for this branch: tellers may hand out notes the books lack, but never more money than the drawer holds. */
+  loose: boolean;
 }
 
 /** The id under which the server will report this command as applied. A payout is counted under its purchase's id. */
@@ -106,6 +116,14 @@ export function drawerEffect(
   }
 }
 
+/** Strict: any note count below zero. Loose: only when the money in the drawer is below zero. */
+function isNegative(balance: Lines | null, loose: boolean): boolean {
+  if (!balance) return false;
+  return loose
+    ? lineTotal(balance) < 0
+    : Object.values(balance).some((n) => n < 0);
+}
+
 export function projectDrawer(
   state: DayStateLike | null,
   pending: DrawerCommand[],
@@ -122,6 +140,7 @@ export function projectDrawer(
   let balance: Lines | null =
     state?.day?.status === "open" ? (state.balance ?? {}) : null;
   let pendingCount = 0;
+  const loose = !!state?.looseDenominations;
 
   for (const p of pending) {
     if (applied.has(appliedKey(p))) continue;
@@ -140,13 +159,19 @@ export function projectDrawer(
     closingLines: state?.day?.closing?.cash.counted ?? null,
     carryOver: state?.carryOver ?? null,
     pendingCount,
-    negative: !!balance && Object.values(balance).some((n) => n < 0),
+    negative: isNegative(balance, loose),
+    loose,
   };
 }
 
 /** Solver limits from the drawer: a note is available only while the drawer holds some, and the limit is exactly how many it holds. */
-export function limitsFromBalance(balance: Lines): NoteLimits {
+export function limitsFromBalance(balance: Lines, loose = false): NoteLimits {
   const limits: NoteLimits = {};
+  // Loose: every note may be offered (null = no limit); the screens still stop an amount above the drawer's total.
+  if (loose) {
+    for (const d of DENOMINATIONS) limits[`${d}`] = null;
+    return limits;
+  }
   for (const d of DENOMINATIONS) {
     const n = balance[`${d}`] ?? 0;
     if (n > 0) limits[`${d}`] = n;
@@ -212,7 +237,7 @@ export interface Admission {
  * notes are told apart: the second hears which notes were just used. The balance returned is what the drawer holds afterwards.
  */
 export function admit(
-  view: Pick<DrawerView, "status" | "dayId" | "balance">,
+  view: Pick<DrawerView, "status" | "dayId" | "balance"> & { loose?: boolean },
   c: DrawerCommand,
   branchId: string,
   twoStep = false,
@@ -226,7 +251,12 @@ export function admit(
   if (!e || !view.balance)
     return { ok: true, short: {}, balance: view.balance };
   const available = addLines(view.balance, e.in);
-  const short = shortfall(available, e.out);
+  // Loose branch: only the money must be there. If it is not, every note asked for is reported as the shortfall.
+  const short = view.loose
+    ? lineTotal(e.out) > lineTotal(available)
+      ? { ...e.out }
+      : {}
+    : shortfall(available, e.out);
   return {
     ok: Object.keys(short).length === 0,
     short,
@@ -266,7 +296,7 @@ export function replayLog(
     seen.add(entry.command.id);
     count++;
     const a = admit(
-      { status: base.status, dayId: base.dayId, balance },
+      { status: base.status, dayId: base.dayId, balance, loose: base.loose },
       entry.command,
       branchId,
       twoStep,
@@ -284,7 +314,7 @@ export function replayLog(
       ...base,
       balance,
       pendingCount: count,
-      negative: !!balance && Object.values(balance).some((n) => n < 0),
+      negative: isNegative(balance, base.loose),
     },
     steps,
   };

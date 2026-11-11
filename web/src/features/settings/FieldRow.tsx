@@ -1,4 +1,5 @@
-import { Input, InputNumber, Segmented, Switch } from "antd";
+import { Input, InputNumber, Segmented, Select, Switch } from "antd";
+import { useAllBranches } from "@/features/branches/api";
 import { wholeNumber, type Field } from "./model";
 
 /** One setting as a row: its name and help on the left, its control on the right (under it on a phone). */
@@ -14,6 +15,7 @@ export function FieldRow({
   onChange: (v: unknown) => void;
 }) {
   const id = `setting-${field.key}`;
+  const allBranches = useAllBranches().data ?? [];
   const control = (() => {
     switch (field.kind) {
       case "toggle":
@@ -58,6 +60,22 @@ export function FieldRow({
                   : wholeNumber(String(v), field.max ?? 1_000_000);
               if (n !== null) onChange(n);
             }}
+            aria-label={field.label}
+          />
+        );
+      case "branches":
+        return (
+          <Select
+            id={id}
+            mode="multiple"
+            size="large"
+            className="w-full sm:w-80"
+            value={Array.isArray(value) ? (value as string[]) : []}
+            placeholder={field.placeholder}
+            options={allBranches.map((b) => ({ value: b.id, label: b.name }))}
+            optionFilterProp="label"
+            disabled={disabled}
+            onChange={(v) => onChange(v)}
             aria-label={field.label}
           />
         );

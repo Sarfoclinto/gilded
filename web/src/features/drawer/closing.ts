@@ -114,9 +114,11 @@ export interface FigureCheck {
   invalid: boolean;
 }
 
+/** `loose`: this branch has the note-by-note rule off, so a different mix of notes with the same total needs no reason. */
 export function checkFigures(
   preview: ClosingPreview,
   d: Declared,
+  loose = false,
 ): FigureCheck[] {
   const noteDifference =
     Object.keys(subtractLines(d.cash, preview.expected.cash.lines)).length > 0;
@@ -131,7 +133,12 @@ export function checkFigures(
       expected,
       declared,
       difference: invalid ? 0 : Number(declared) - Number(expected),
-      needsReason: figure === "cash" ? noteDifference : valueDiffers,
+      needsReason:
+        figure === "cash"
+          ? loose
+            ? valueDiffers
+            : noteDifference
+          : valueDiffers,
       valueDiffers,
       invalid,
     };

@@ -1,4 +1,4 @@
-import { DENOMINATIONS, lineTotal, type Lines } from "@gold/core";
+import { DENOMINATIONS, lineTotal, type Lines } from '@gold/core';
 
 export interface ExchangeCheck {
   gaveTotal: number;
@@ -13,18 +13,13 @@ export interface ExchangeCheck {
 }
 
 /** Changing notes: both sides worth exactly the same, different notes on each side, and the drawer must have what is handed out. */
-export function checkExchange(
-  gave: Lines,
-  took: Lines,
-  drawer: Lines | null,
-): ExchangeCheck {
+export function checkExchange(gave: Lines, took: Lines, drawer: Lines | null, loose = false): ExchangeCheck {
   const gaveTotal = lineTotal(gave);
   const tookTotal = lineTotal(took);
-  const overlap = DENOMINATIONS.filter(
-    (d) => (gave[`${d}`] ?? 0) > 0 && (took[`${d}`] ?? 0) > 0,
-  );
+  const overlap = DENOMINATIONS.filter((d) => (gave[`${d}`] ?? 0) > 0 && (took[`${d}`] ?? 0) > 0);
   const short: Record<string, number> = {};
-  if (drawer) {
+  // A branch with the note rule off may hand out notes the books lack. Both sides are worth the same, so the money can never run short.
+  if (drawer && !loose) {
     for (const d of DENOMINATIONS) {
       const need = took[`${d}`] ?? 0;
       // What the customer gives back goes into the drawer, but only the notes the drawer already holds can be handed out.
@@ -33,16 +28,5 @@ export function checkExchange(
     }
   }
   const remaining = gaveTotal - tookTotal;
-  return {
-    gaveTotal,
-    tookTotal,
-    remaining,
-    overlap,
-    short,
-    valid:
-      gaveTotal > 0 &&
-      remaining === 0 &&
-      overlap.length === 0 &&
-      Object.keys(short).length === 0,
-  };
+  return { gaveTotal, tookTotal, remaining, overlap, short, valid: gaveTotal > 0 && remaining === 0 && overlap.length === 0 && Object.keys(short).length === 0 };
 }

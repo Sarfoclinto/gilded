@@ -4,7 +4,7 @@ import type { Settings } from "./api";
  * The company settings screen is drawn from this list, so a new setting is one entry here (and one key on the server),
  * and a new group of settings is one more section: it becomes a new tab by itself.
  */
-export type FieldKind = "toggle" | "number" | "text" | "choice";
+export type FieldKind = "toggle" | "number" | "text" | "choice" | "branches";
 
 export interface Field {
   key: keyof Settings;
@@ -163,6 +163,13 @@ export const SECTIONS: Section[] = [
         help: "When opening and closing, the screen does not show what the books say the drawer should hold. If the count does not match, the teller is told only then (without the amount) and must recount or write why. The drawer page still shows the running balance, because paying out needs it.",
       },
       {
+        key: "drawer.looseBranches",
+        kind: "branches",
+        label: "Branches that do not enforce single notes",
+        help: "At the branches chosen here, tellers may hand out notes the books think the drawer lacks (busy days, giving change). They enter the notes they really hand out, and those must add up to the cash amount. The money is always enforced: nobody can pay out more than the drawer holds. Opening and closing still count notes, but only the total must match. Leave empty to enforce notes everywhere.",
+        placeholder: "None: every branch enforces notes",
+      },
+      {
         key: "allowance.perPerson",
         kind: "number",
         label: "Office allowance per person",
@@ -180,7 +187,11 @@ export type Draft = Partial<Settings>;
 export function changes(saved: Settings, draft: Draft): Draft {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(draft))
-    if (v !== undefined && v !== saved[k as keyof Settings]) out[k] = v;
+    if (
+      v !== undefined &&
+      JSON.stringify(v) !== JSON.stringify(saved[k as keyof Settings])
+    )
+      out[k] = v;
   return out as Draft;
 }
 
