@@ -92,6 +92,8 @@ export const dayStateSchema = z.object({
   appliedIds: z.array(z.string()),
   /** What the books say the drawer holds now (null before the very first day). Offered as the next opening count. */
   carryOver: linesSchema.nullable(),
+  /** This branch has the note-by-note rule off: only the total money in the drawer is enforced, and counts at opening/closing match on the total. */
+  looseDenominations: z.boolean().optional(),
   asOf: z.string(),
 });
 export type DayState = z.infer<typeof dayStateSchema>;

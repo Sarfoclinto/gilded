@@ -11,6 +11,8 @@ export interface ManualCheck {
   /** Only when the notes add up exactly to the cash part and the drawer has them all. */
   valid: boolean;
   lines: Counts;
+  /** More money than the drawer holds. Only checked when a total is given (loose branches). */
+  overTotal: boolean;
 }
 
 /** The notes a teller picked by hand, checked against the cash to give and the notes in the drawer. */
@@ -18,6 +20,7 @@ export function checkManual(
   counts: Counts,
   cash: number,
   limits: NoteLimits,
+  maxTotal: number | null = null,
 ): ManualCheck {
   const lines: Counts = {};
   const overStock: Record<string, number> = {};
@@ -33,12 +36,19 @@ export function checkManual(
     else if (have !== null && n > have) overStock[`${d}`] = n - have;
   }
   const remaining = cash - total;
+  // The money in the drawer is always enforced, even when single notes are not.
+  const overTotal = maxTotal !== null && total > maxTotal;
   return {
     total,
     remaining,
     overStock,
-    valid: remaining === 0 && Object.keys(overStock).length === 0 && total > 0,
+    valid:
+      remaining === 0 &&
+      Object.keys(overStock).length === 0 &&
+      total > 0 &&
+      !overTotal,
     lines,
+    overTotal,
   };
 }
 

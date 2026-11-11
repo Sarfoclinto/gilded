@@ -34,7 +34,7 @@ export function ExchangeModal({
   const [took, setTook] = useState<Lines>({});
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const check = checkExchange(gave, took, view.balance);
+  const check = checkExchange(gave, took, view.balance, view.loose);
 
   const submit = async () => {
     if (!check.valid) return;

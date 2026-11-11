@@ -47,3 +47,15 @@ describe("setCount", () => {
     expect(setCount({}, 50, -4)).toEqual({});
   });
 });
+
+describe("checkManual with a money cap (note rule off)", () => {
+  const unlimited = { "100": null, "50": null, "20": null } as const;
+  it("accepts any notes that add up, up to what the drawer holds", () => {
+    expect(checkManual({ "20": 5 }, 100, unlimited, 200).valid).toBe(true);
+  });
+  it("refuses more money than the drawer holds", () => {
+    const c = checkManual({ "100": 3 }, 300, unlimited, 200);
+    expect(c.overTotal).toBe(true);
+    expect(c.valid).toBe(false);
+  });
+});

@@ -57,7 +57,9 @@ export default function OpenDayPage() {
   const hasCount = Object.keys(lines).length > 0;
   const differs = books !== null && hasCount && !same(lines, books);
   const diffAmount = books ? lineTotal(lines) - lineTotal(books) : 0;
-  const needsReason = differs && (!blind || revealed);
+  // Note rule off for this branch: only a different TOTAL needs a reason.
+  const needsReason =
+    differs && (!view.loose || diffAmount !== 0) && (!blind || revealed);
   const canSave = afterClose
     ? !!branchId && !open.isPending && explanation.trim().length >= 5
     : !!branchId &&
@@ -178,7 +180,10 @@ export default function OpenDayPage() {
         />
       )}
 
-      {differs && !afterClose && (!blind || revealed) ? (
+      {differs &&
+      (!view.loose || diffAmount !== 0) &&
+      !afterClose &&
+      (!blind || revealed) ? (
         <Card className="space-y-3 border-amber-500/60">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-medium">

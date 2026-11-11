@@ -125,3 +125,23 @@ describe("figure state and progress", () => {
     });
   });
 });
+
+describe("closing on a branch with the note rule off", () => {
+  it("a different mix of notes with the same total needs no reason", () => {
+    const mix: Declared = { ...same, cash: { "100": 11 } };
+    expect(
+      checkFigures(preview, mix).find((c) => c.figure === "cash")?.needsReason,
+    ).toBe(true);
+    expect(
+      checkFigures(preview, mix, true).find((c) => c.figure === "cash")
+        ?.needsReason,
+    ).toBe(false);
+  });
+  it("a different total still needs a reason", () => {
+    const less: Declared = { ...same, cash: { "100": 10 } };
+    expect(
+      checkFigures(preview, less, true).find((c) => c.figure === "cash")
+        ?.needsReason,
+    ).toBe(true);
+  });
+});
