@@ -1,7 +1,7 @@
 {
   "name": "@gold/desktop",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Gilded desktop app (Windows first): the web app inside a window that opens with no internet.",
   "author": "Gilded",
   "main": "dist/main.js",
