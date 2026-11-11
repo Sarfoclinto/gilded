@@ -11,7 +11,7 @@ desktop/release
 web/.env.prod
 deploy/.env
 deploy/updates/
-desktop/assets/defaults.json
+#desktop/assets/defaults.json
 
 # deployment: secrets, real data, and built installers never go in Git
 .env
