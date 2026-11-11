@@ -9,6 +9,7 @@ import { PERMISSIONS } from "@/config/permissions";
 import { PayoutPanel } from "@/features/calculator/PayoutPanel";
 import { TextField } from "@/shared/ui/TextField";
 import { decimalOnly } from "@/shared/lib/numbers";
+import { ClosingStatus } from "./ClosingStatus";
 import { CustomerHistory } from "./CustomerHistory";
 import { useUtilityPanel, type UtilityTab } from "./store";
 
@@ -44,13 +45,22 @@ export function UtilityContent() {
     <div className="space-y-4 p-4">
       <Segmented
         block
-        value={tab === "cash" && !canSeeCash ? "calculator" : tab}
+        value={
+          (tab === "cash" || tab === "closing") && !canSeeCash
+            ? "calculator"
+            : tab
+        }
         onChange={(v) => setTab(v as UtilityTab)}
         options={[
           { label: "Calculator", value: "calculator" },
           { label: "Notes", value: "notes" },
           { label: "Customer", value: "customer" },
-          ...(canSeeCash ? [{ label: "Cash", value: "cash" }] : []),
+          ...(canSeeCash
+            ? [
+                { label: "Cash", value: "cash" },
+                { label: "Closing", value: "closing" },
+              ]
+            : []),
         ]}
       />
       {/* Both stay mounted so switching tabs keeps what was typed. */}
@@ -65,6 +75,7 @@ export function UtilityContent() {
       {/* Mounted only while looked at, so opening the tab asks for fresh figures. */}
       {tab === "cash" && canSeeCash && <CashBody />}
       {tab === "customer" && <CustomerHistory />}
+      {tab === "closing" && canSeeCash && <ClosingStatus />}
     </div>
   );
 }

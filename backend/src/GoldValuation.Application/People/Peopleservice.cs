@@ -201,6 +201,14 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
         return store.DailyAccountsAsync(me, me.BranchIds.ToArray(), branchId, d, ct);
     }
 
+    /// <summary>What the closing account would show if the branch closed right now. Needs days:read and a branch the caller works in.</summary>
+    public Task<string> LiveAccountAsync(ICurrentContext me, Guid branchId, CancellationToken ct)
+    {
+        me.Require(Permissions.DaysRead);
+        me.RequireBranch(branchId);
+        return store.LiveAccountAsync(me, branchId, ct);
+    }
+
     private static readonly string[] AuditFilters = ["q", "category", "action", "actorId", "branchId", "from", "to", "minAmount", "sort", "page", "size"];
 
     /// <summary>
