@@ -78,12 +78,12 @@ begin
   r := gold.sync_apply(jsonb_build_object('id', c_open2, 'type', 'day.open', 'capturedAt', now() - interval '3 hours',
         'payload', jsonb_build_object('id', d2, 'branchId', b2, 'businessDate', current_date, 'lines', '{"100":10}'::jsonb, 'capturedAt', now() - interval '3 hours')));
   perform gold_test.assert(r->>'status' = 'applied', 'the other branch day arrives: ' || r::text);
-  r := gold.sync_resolve(jsonb_build_object('id', c_held, 'action', 'retry'));
-  perform gold_test.assert(r->>'status' = 'applied', 'retry applies it: ' || r::text);
-  perform gold_test.assert((select created_by from gold.drawer_movements where id = mv_held) = u2, 'the movement is under the person who made it, not the reviewer');
-  perform gold_test.assert(gold.current_actor() = u1, 'the reviewer is the current person again');
-  perform gold_test.assert((select 'reviewed' = any(flags) from gold.sync_commands where id = c_held), 'marked reviewed');
-  perform gold_test.assert((select resolved_by from gold.sync_commands where id = c_held) = u1, 'reviewer recorded');
+  -- B51: the server tries waiting entries again by itself when the day they need arrives; no manager has to press anything
+  perform gold_test.assert((select status from gold.sync_commands where id = c_held) = 'applied', 'the held movement went in by itself once its day arrived');
+  perform gold_test.assert((select created_by from gold.drawer_movements where id = mv_held) = u2, 'the movement is under the person who made it, not whoever sent the opening');
+  perform gold_test.assert(gold.current_actor() = u1, 'the current person is unchanged afterwards');
+  perform gold_test.assert((select 'auto-retried' = any(flags) and resolved_by is null from gold.sync_commands where id = c_held), 'marked as applied by the server');
+  perform gold_test.assert(gold_test.code_of(format($q$select gold.sync_resolve('{"id":"%s","action":"retry"}'::jsonb)$q$, c_held)) = 'ALREADY_RESOLVED', 'nothing left for a manager to retry');
 
   -- the rejected one: retry fails again, dismiss needs a reason
   r := gold.sync_resolve(jsonb_build_object('id', c_bad, 'action', 'retry'));
@@ -94,6 +94,6 @@ begin
   perform gold_test.assert(gold_test.code_of(format($q$select gold.sync_resolve('{"id":"%s","action":"retry"}'::jsonb)$q$, c_bad)) = 'ALREADY_RESOLVED', 'cannot resolve twice');
   rv := gold.sync_review_json();
   perform gold_test.assert((rv->>'held')::int = 0 and (rv->>'rejected')::int = 0 and jsonb_array_length(rv->'recent') = 2, 'review is clear, history kept');
-  perform gold_test.assert((select count(*) from gold.audit_events where action in ('sync.retried', 'sync.dismissed')) = 2, 'audited');
+  perform gold_test.assert((select count(*) from gold.audit_events where action in ('sync.retried', 'sync.dismissed')) = 1, 'audited');
   raise notice 'offline sync ok';
 end $$;
