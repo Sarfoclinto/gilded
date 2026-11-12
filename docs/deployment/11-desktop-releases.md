@@ -55,6 +55,14 @@ Open `latest.yml` in Notepad: the first line must say `version: 0.2.0`. If it sh
 Do **not** commit anything from `desktop/release/`.
 
 ## 4. Copy to the server's beta channel (first, to test)
+**One time only, on the server** (the folders are not in Git, and the `updates` folder belongs to root because Docker created it). If `ls ~/gilded/deploy/updates/win` already lists `beta` and `stable` owned by `deploy`, skip this:
+```
+sudo mkdir -p ~/gilded/deploy/updates/win/beta ~/gilded/deploy/updates/win/stable
+sudo chown -R deploy:deploy ~/gilded/deploy/updates
+ls -ld ~/gilded/deploy/updates ~/gilded/deploy/updates/win/*
+```
+(If `sudo` asks for a password the `deploy` user does not have, log in as root and run the same two commands without `sudo`.)
+
 Run this on your **laptop**, not inside the ssh session. Go into the folder first and use only file names (never `C:\...` in an scp command: scp reads `C` as a computer name, see guide 10 section 3).
 
 PowerShell:
@@ -67,10 +75,14 @@ Git Bash: the same two lines, after `cd /c/Users/<you>/.../desktop/release` (or 
 
 **Always copy `latest.yml` last, in its own command.** It is the signpost; if it appeared before the installer, a computer could find a signpost pointing at a file that is not there yet.
 
-Check from your laptop (any browser, or `curl -I`):
-- `https://app.gildedgold.org/updates/win/beta/latest.yml` shows the text with `version: 0.2.0`.
-- `https://app.gildedgold.org/updates/win/beta/Gilded-Setup-0.2.0.exe` starts a download (not a 404).
-On the server, `ls -l ~/gilded/deploy/updates/win/beta` should list all three. If the browser says forbidden: `chmod 644 ~/gilded/deploy/updates/win/beta/*`.
+Check from your laptop. **Use `curl -I` (Git Bash or PowerShell 7) or a private/incognito window, not your normal browser tab**: a browser that has opened Gilded keeps the app's background worker, which can answer any address with the app's own "page not found" screen (version 1.2.1 and later of the website no longer does this, but an old worker only replaces itself when you next visit the site).
+```
+curl -I https://app.gildedgold.org/updates/win/beta/latest.yml
+curl -I https://app.gildedgold.org/updates/win/beta/Gilded-Setup-0.2.0.exe
+```
+Each must start with `HTTP/2 200` (a 404 here, with no web page, means the file is not in that folder). To read the text: `curl https://app.gildedgold.org/updates/win/beta/latest.yml` shows `version: 0.2.0`.
+On the server, `ls -l ~/gilded/deploy/updates/win/beta` should list all three. If the answer is 403 Forbidden: `chmod 644 ~/gilded/deploy/updates/win/beta/*`.
+Installed desktop computers are not affected by the browser problem: they fetch the files directly, not through a browser tab.
 
 ## 5. Try it on one computer (the beta computer)
 One test computer (yours) follows the beta folder. Do this once on it:
@@ -116,9 +128,9 @@ A new computer has no updater yet, so install by hand: open `https://app.gildedg
 | What you see | Why, and what to do |
 |---|---|
 | A computer never offers the update | The version in `latest.yml` is not higher than the installed one; or the app is a development copy (only installed copies update); or the computer has no connection; or `latest.yml` is not in the folder that computer's channel reads. Open `https://app.gildedgold.org/updates/win/stable/latest.yml` in a browser to see what the server really says. |
-| `latest.yml` shows 404 | Wrong folder or file name on the server. Check `ls ~/gilded/deploy/updates/win/stable`. |
+| `latest.yml` shows 404 | Wrong folder or file name on the server. Check `ls ~/gilded/deploy/updates/win/stable`. A 404 that looks like the Gilded app (menu and all) is only your browser's old background worker: test with `curl -I` or a private window. |
 | "Forbidden" or the installer will not download | File permissions: `chmod 644` the files in that folder. |
 | Download starts and then fails with a checksum error | The `.exe` was replaced after `latest.yml` was made. Rebuild, and upload all three files again from the same build. |
-| `scp` says "No such file or directory" or tries a host called C | Go into `desktop\release` first and use bare file names (guide 10, section 3). The server folders `updates/win/beta` and `stable` already exist (they come with the repo). |
+| `scp` says "No such file or directory" or tries a host called C | Go into `desktop\release` first and use bare file names (guide 10, section 3). The server folders `updates/win/beta` and `stable` must exist and belong to `deploy`: do the one-time commands at the top of section 4. |
 | After `git pull` on the server the installers vanish | They are ignored by Git so normal pulls leave them alone. Only `git clean -fdx` deletes them. Never run that in `~/gilded`. |
 | Windows warns "protected your PC" | Normal for an unsigned installer; "More info > Run anyway". A code-signing certificate removes it. |
