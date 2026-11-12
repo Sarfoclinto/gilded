@@ -17,6 +17,9 @@ export const dayFlagText: Record<string, string> = {
   OFFLINE_ENTRY: "Opened while offline",
   OPENING_DIFFERS: "Opening count differed from the books",
   CLOSING_DIFFERS: "Closing differed from the books",
+  OFFLINE_CLOSE: "Closed while offline",
+  FOUND_AT_SYNC: "A difference was found when the offline count arrived",
+  SECOND_COUNT: "A second count arrived for this day",
 };
 
 export const signoffText = {

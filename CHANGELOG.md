@@ -22,3 +22,6 @@
 
 ## v1.3.0
 - Managers now get a notification when the drawer ran short at a branch hub: an entry saved while a computer could not reach the hub, which the drawer had no notes for.
+
+## v1.4.0
+- Nothing visible for staff yet (the server is ready for opening and closing the day with no internet).
