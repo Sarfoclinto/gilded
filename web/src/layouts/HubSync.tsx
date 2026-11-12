@@ -4,6 +4,11 @@ import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { desktop, useHubState } from "@/shared/platform/platform";
 import { usePeers } from "@/shared/offline/hubShare";
 import { pullPeers } from "@/shared/offline/hubSync";
+import {
+  flushShortNotices,
+  noticeFrom,
+  useShortNotices,
+} from "@/shared/offline/hubShort";
 
 const inFlight = new Set<string>();
 const SHAREABLE = new Set([
@@ -16,7 +21,8 @@ const SHAREABLE = new Set([
 /**
  * Keeps this computer in step with its branch hub (desktop app only; shows nothing):
  *  - every few seconds, pulls what the other computers saved so the drawer here counts it;
- *  - copies commands saved while the hub could not be reached, so the others hear about them once it is back.
+ *  - copies commands saved while the hub could not be reached, so the others hear about them once it is back;
+ *  - when the hub says such a command was short on notes, tells the server so the branch's managers get a notice (kept until it is sent).
  * With no hub, or one that is away, it does nothing and the computer works alone.
  */
 export function HubSync() {
@@ -60,12 +66,27 @@ export function HubSync() {
           capturedAt: new Date(e.createdAt).toISOString(),
         })
         .then((r) => {
-          if (r.ok) void markShared(e.id, r.data.seq);
+          if (!r.ok) return;
+          void markShared(e.id, r.data.seq);
+          // The hub kept the entry but the drawer could not cover it: tell the branch's managers (kept until the server has it).
+          const notice = noticeFrom(e, r.data);
+          if (notice) {
+            useShortNotices.getState().add(notice);
+            void flushShortNotices();
+          }
         })
         .catch(() => {})
         .finally(() => inFlight.delete(e.id));
     }
   }, [entries, authed, ready, markShared]);
+
+  // Notices that could not be sent yet (no internet) go out as soon as there is a connection and a signed-in person.
+  useEffect(() => {
+    if (!authed) return;
+    void flushShortNotices();
+    const t = setInterval(() => void flushShortNotices(), 20000);
+    return () => clearInterval(t);
+  }, [authed]);
 
   return null;
 }

@@ -7,4 +7,6 @@ public interface INotificationsStore
 {
     Task<string> ListAsync(ICurrentContext me, int limit, bool unreadOnly, CancellationToken ct);
     Task<string> MarkReadAsync(ICurrentContext me, Guid[]? ids, CancellationToken ct);
+    /// <summary>Records that an entry was short at a branch hub and tells the branch's managers (migration 0052). Repeats are ignored.</summary>
+    Task<string> ReportHubShortAsync(ICurrentContext me, string json, CancellationToken ct);
 }

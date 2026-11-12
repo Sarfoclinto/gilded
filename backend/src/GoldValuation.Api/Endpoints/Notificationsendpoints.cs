@@ -21,6 +21,9 @@ public static class NotificationsEndpoints
             else if (body["all"]?.GetValue<bool>() != true) throw GoldValuation.Application.Abstractions.AppException.Invalid("Send ids or all: true.");
             return Data(await svc.MarkReadAsync(me, ids, ct));
         });
+        // A computer tells us the branch hub found an entry it saved was short (see migration 0052). Safe to resend.
+        api.MapPost("/notifications/hub-short", async (JsonObject body, ICurrentContext me, NotificationsService svc, CancellationToken ct) =>
+            Data(await svc.ReportHubShortAsync(me, body, ct)));
         return api;
     }
 }

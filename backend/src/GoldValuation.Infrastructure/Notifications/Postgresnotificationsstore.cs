@@ -19,6 +19,9 @@ public sealed class PostgresNotificationsStore(NpgsqlDataSource dataSource, ILog
         (await Scalar(me, "select gold.notifications_mark_read($1)", ct,
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = (object?)ids ?? DBNull.Value }))!;
 
+    public async Task<string> ReportHubShortAsync(ICurrentContext me, string json, CancellationToken ct) =>
+        (await Scalar(me, "select gold.report_hub_short($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = json }))!;
+
     private async Task<string?> Scalar(ICurrentContext me, string sql, CancellationToken ct, params NpgsqlParameter[] args)
     {
         try
