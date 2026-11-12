@@ -55,3 +55,25 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 ## Queued (agreed, not started)
 - **Town carat hints (steps 2-4 of the origin-town idea):** "usually 22 high here" on the transaction page and on the customer, a news/feed for new tellers, an "unusual for this town" flag, and a manager screen to rename/merge towns. Needs a few weeks of collected data; plain statistics first, ML only if they are not enough.
 - **General note exchange (drawer change):** a screen, separate from changing a customer's notes after a purchase, for a branch to swap notes for its own needs (smaller notes to give change, bigger notes to hand out fewer). Out must equal in, in and out must be different notes, it must be a drawer movement so the count stays right, and every one writes an audit entry. Builds on the existing `exchange` movement kind (0037), which today links to a purchase; this one has no purchase. Decided: it is a new permission that a manager can give to any role or person (not tied to days:manage); no reason is required; no second person needed for now (revisit if exchanges get large).
+- **World gold price chart (idea from Sherlock, like the NetDania screen):** a live chart of the world spot price, as an extra panel only.
+  - **Widget:** TradingView's free "Advanced Real-Time Chart" embed (symbol `OANDA:XAUUSD` or `TVC:GOLD`, interval 60, timezone Africa/Accra, theme following the app). It brings its own data, so no price API. The default TradingView branding must stay on. In React: a small component that adds a `<script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js">` with the JSON config in `useEffect`.
+  - **Not the "Advanced Charts" library:** that one is self-hosted and only free for public sites with attribution; Gilded is a paid app behind a login, so use the embed widget only.
+  - **Offline:** the widget does not work offline. Hide the panel when the branch is offline; never put it on a screen people need to do their work.
+  - **Label it clearly** "World spot (USD/oz)": it is not GoldBod's price and must not be used for valuations.
+  - **Second option (works offline):** chart our own stored GoldBod price history with `lightweight-charts` (Apache-2.0), showing the price the business actually buys at. Good setup is both: widget for world spot, lightweight-charts for our own history.
+  - Where: a card on the director/manager dashboards, or a tab in the tools panel. To decide when picked up. Check TradingView's current widget terms before shipping.
+
+## Product backlog (candidates for the next major updates)
+- Manager notice when entries are recorded short at a branch hub.
+- Offline day open/close.
+- Optional separate permission for branch computers.
+- Edit conflicts for users, branches and roles.
+- Branch overview showing the two-session status.
+- Dashboard fixes: the owed-to-us direction filter and whole-cedi display.
+- Small cleanups: CA warnings and an Npgsql bump.
+- QR-scan offline pay.
+- Town feature steps 3-4 (see "Queued" above).
+- Optional held-price expiry/escalation.
+- ESC/POS raw receipt printing.
+- World gold price chart (see "Queued" above).
+- Before wide desktop rollout: a code-signing certificate for the Windows installer; real-hardware tests of hub failure; move the domain to the company account.
