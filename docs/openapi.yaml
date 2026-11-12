@@ -1000,6 +1000,18 @@ paths:
       responses:
         '200': { description: The inbox, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '422': { $ref: '#/components/responses/Error' }
+  /notifications/hub-short:
+    post:
+      tags: [Notifications]
+      summary: Report that the branch hub found an entry short
+      description: |
+        Body `{ branchId, commandId, short: { "<note value>": <count> }, capturedAt? }`. Sent by a computer when the branch hub recorded one of its entries
+        but the drawer did not hold enough notes for it. Records it once per `commandId` (a repeat returns `recorded: false`) and notifies the people who may
+        review differences at that branch. Changes no entry or balance. Needs a permission to save purchases or drawer entries and a branch the caller works in.
+      responses:
+        '200': { description: "`{ recorded, value? }`", content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /imports/history:
     post:
       tags: [Imports]

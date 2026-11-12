@@ -64,7 +64,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
   - Where: a card on the director/manager dashboards, or a tab in the tools panel. To decide when picked up. Check TradingView's current widget terms before shipping.
 
 ## Product backlog (candidates for the next major updates)
-- Manager notice when entries are recorded short at a branch hub.
+- ~~Manager notice when entries are recorded short at a branch hub.~~ **Done in B50** (v1.3.0).
 - Offline day open/close.
 - Optional separate permission for branch computers.
 - Edit conflicts for users, branches and roles.

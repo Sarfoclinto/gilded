@@ -201,7 +201,7 @@ export function FocusItems({
           <section
             key={it.id}
             aria-label={`Item ${idx + 1}`}
-            className="space-y-3"
+            className="@container space-y-3"
           >
             {items.length > 1 ? (
               <div className="flex items-center justify-between">
@@ -215,16 +215,20 @@ export function FocusItems({
                 </button>
               </div>
             ) : null}
-            <div className="grid gap-3 2xl:grid-cols-2 2xl:items-stretch">
+            {/* Side by side only when this block itself is wide (a container query, not the screen width): in the narrow tools panel it stacks. */}
+            <div className="grid gap-3 @3xl:grid-cols-2 @3xl:items-stretch">
               <div className="rounded-3xl border border-amber-300/60 bg-amber-50 p-3 dark:border-amber-700/40 dark:bg-amber-950/30">
                 <p className="mb-2 flex items-center gap-2 px-1 text-sm">
-                  <span className="size-2.5 rounded-full bg-gold" aria-hidden />
+                  <span
+                    className="size-2.5 shrink-0 rounded-full bg-gold"
+                    aria-hidden
+                  />
                   <strong className="text-base">Input</strong>
-                  <span className="text-amber-800 dark:text-amber-200 hidden sm:inline">
+                  <span className="hidden text-amber-800 @md:inline dark:text-amber-200">
                     details of the gold
                   </span>
                   {idx === 0 && headerAction ? (
-                    <span className="ml-auto">{headerAction}</span>
+                    <span className="ml-auto shrink-0">{headerAction}</span>
                   ) : null}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -244,9 +248,14 @@ export function FocusItems({
               </div>
               <div className="rounded-3xl bg-navy p-3 text-white">
                 <p className="mb-2 flex items-center gap-2 px-1 text-sm">
-                  <span className="size-2.5 rounded-full bg-gold" aria-hidden />
+                  <span
+                    className="size-2.5 shrink-0 rounded-full bg-gold"
+                    aria-hidden
+                  />
                   <strong className="text-base">Results</strong>
-                  <span className="text-white/70">update as you type</span>
+                  <span className="hidden text-white/70 @md:inline">
+                    update as you type
+                  </span>
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <ResultTile label="Pounds" value={r.pounds ?? "—"} />
