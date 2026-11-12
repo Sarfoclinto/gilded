@@ -8,6 +8,12 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { TextField } from "@/shared/ui/TextField";
 import { useAuth } from "@/features/auth/store";
 import { useCurrentPrice } from "@/features/prices/api";
+import { usePersonalSettings } from "@/features/settings/personal";
+import {
+  FocusItems,
+  type FocusItem,
+} from "@/features/transactions/focus/FocusItems";
+import { LayoutSwitch } from "@/features/transactions/focus/LayoutSwitch";
 import { cedis, percent } from "./format";
 import { PayoutPanel } from "./PayoutPanel";
 
@@ -29,6 +35,9 @@ export function CalculatorBody({
   const [down, setDown] = useState("");
   const [price, setPrice] = useState("");
   const [priceTouched, setPriceTouched] = useState(false);
+  // Same Classic / Focus choice as the New transaction page (kept per person on this device).
+  const layout = usePersonalSettings((s) => s.purchaseLayout);
+  const setPersonal = usePersonalSettings((s) => s.update);
 
   // Fill the price from today's price until the person types their own.
   useEffect(() => {
@@ -44,6 +53,13 @@ export function CalculatorBody({
   const priceNote = priceQuery.data
     ? `Today: GoldBod ${priceQuery.data.basePrice} + margin ${priceQuery.data.margin}`
     : "Enter the price";
+  const focusItem: FocusItem = { id: "calc", top, down, price, priceTouched };
+  const patchFocus = (_id: string, c: Partial<FocusItem>) => {
+    if (c.top !== undefined) setTop(c.top);
+    if (c.down !== undefined) setDown(c.down);
+    if (c.price !== undefined) setPrice(c.price);
+    if (c.priceTouched !== undefined) setPriceTouched(c.priceTouched);
+  };
   const hasInput = !!(top || down || priceTouched);
   const details: [string, string | null | undefined][] = [
     ["Density", r.density],
@@ -52,6 +68,67 @@ export function CalculatorBody({
     ["Net weight", r.netWeight ? `${r.netWeight} g` : null],
     ["Pounds", r.pounds],
   ];
+
+  const switcher = (
+    <LayoutSwitch
+      compact
+      value={layout}
+      onChange={(v) => setPersonal({ purchaseLayout: v })}
+    />
+  );
+
+  const actions = (
+    <div className="space-y-4">
+      {amount !== null && amount > 0 ? (
+        <Button
+          className="w-full"
+          onClick={() => {
+            onSaveAsPurchase?.();
+            navigate(paths.transactions.create.href, {
+              state: { prefill: { top, down, price, priceTouched } },
+            });
+          }}
+        >
+          Save as a purchase
+        </Button>
+      ) : (
+        <p className="text-center text-sm text-muted-foreground">
+          Enter the weights to see the amount.
+        </p>
+      )}
+      {amount !== null && amount > 0 ? <PayoutPanel amount={amount} /> : null}
+    </div>
+  );
+
+  if (layout === "focus") {
+    return (
+      <div className="space-y-4">
+        <FocusItems
+          items={[focusItem]}
+          results={[r]}
+          todayPrice={priceQuery.data?.effectivePrice}
+          onPatch={patchFocus}
+          onRemove={() => {}}
+          headerAction={switcher}
+        />
+        {hasInput ? (
+          <button
+            type="button"
+            className="min-h-9 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted"
+            onClick={() => {
+              setTop("");
+              setDown("");
+              setPriceTouched(false);
+              setPrice(priceQuery.data?.effectivePrice ?? "");
+            }}
+          >
+            Clear
+          </button>
+        ) : null}
+        {actions}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -65,20 +142,23 @@ export function CalculatorBody({
         <Card className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Weights</h2>
-            {hasInput ? (
-              <button
-                type="button"
-                className="min-h-9 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted"
-                onClick={() => {
-                  setTop("");
-                  setDown("");
-                  setPriceTouched(false);
-                  setPrice(priceQuery.data?.effectivePrice ?? "");
-                }}
-              >
-                Clear
-              </button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {switcher}
+              {hasInput ? (
+                <button
+                  type="button"
+                  className="min-h-9 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted"
+                  onClick={() => {
+                    setTop("");
+                    setDown("");
+                    setPriceTouched(false);
+                    setPrice(priceQuery.data?.effectivePrice ?? "");
+                  }}
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <TextField
