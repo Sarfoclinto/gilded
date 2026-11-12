@@ -13,3 +13,9 @@
 
 ## v1.2.1
 - Nothing visible for staff (the website no longer intercepts the desktop installer download address).
+
+## v1.2.2
+- Phone: the bottom menu is cleaner (rounded highlight on the current tab, shorter labels "History" and "Drawer", a raised New button).
+- Drawer: separate green "Cash in" and red "Cash out" buttons; the form now opens on the one you pressed, with a coloured total and a clear button ("Add cash" / "Take cash out").
+- Calculators: the Classic | Focus switch (big inputs, big result, number pad on touch screens) now works on the calculators too, same choice as New transaction.
+- All pop-up windows with a navy header no longer have a white frame around the header.

@@ -16,6 +16,8 @@ export function NoteCountInput({
   disabled,
   expected,
   hideTotalCheck,
+  accent,
+  sign,
 }: {
   value: Lines;
   onChange: (next: Lines) => void;
@@ -24,6 +26,10 @@ export function NoteCountInput({
   expected?: Lines;
   /** Hide the optional "total you were given" box (the screen already checks the total another way). */
   hideTotalCheck?: boolean;
+  /** Background of the total bar (a Tailwind class), to colour it by what the count is for. Default: navy. */
+  accent?: string;
+  /** Shown before the total, e.g. "+" for cash in and "−" for cash out. */
+  sign?: string;
 }) {
   const [typed, setTyped] = useState("");
   const check = checkTotal(typed, lineTotal(value));
@@ -140,7 +146,9 @@ export function NoteCountInput({
         })}
       </div>
 
-      <div className="tnum flex items-center justify-between gap-3 rounded-xl bg-navy p-3 text-white">
+      <div
+        className={`tnum flex items-center justify-between gap-3 rounded-xl p-3 text-white ${accent ?? "bg-navy"}`}
+      >
         <span className="text-sm text-white/70">
           {count.toLocaleString("en-GH")} {count === 1 ? "note" : "notes"}
         </span>
@@ -155,7 +163,8 @@ export function NoteCountInput({
               Clear
             </button>
           ) : null}
-          <strong className="text-xl text-gold">
+          <strong className={`text-xl ${accent ? "text-white" : "text-gold"}`}>
+            {sign ? `${sign} ` : ""}
             {cedis(lineTotal(value))}
           </strong>
         </div>
