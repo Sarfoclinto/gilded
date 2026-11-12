@@ -42,7 +42,7 @@ export function LayoutSwitch({
     <div
       role="radiogroup"
       aria-label="Screen design"
-      className={`relative inline-grid grid-cols-2 rounded-full border border-border bg-muted ${compact ? "p-0.5" : "p-1"}`}
+      className={`relative inline-grid shrink-0 grid-cols-2 rounded-full border border-border bg-muted ${compact ? "p-0.5" : "p-1"}`}
     >
       <span
         aria-hidden
@@ -60,7 +60,7 @@ export function LayoutSwitch({
             aria-checked={on}
             onClick={() => onChange(o.value)}
             title={o.hint}
-            className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full font-semibold transition-colors ${compact ? "min-h-8 px-3 text-xs" : "min-h-10 px-4 text-sm"} ${on ? "text-white" : "text-muted-foreground hover:text-foreground"}`}
+            className={`relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-semibold transition-colors ${compact ? "min-h-8 px-3 text-xs" : "min-h-10 px-4 text-sm"} ${on ? "text-white" : "text-muted-foreground hover:text-foreground"}`}
           >
             <Icon
               className={`${compact ? "size-3.5" : "size-4"} ${on ? "text-gold" : ""}`}
