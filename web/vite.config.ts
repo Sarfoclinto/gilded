@@ -41,7 +41,13 @@ export default defineConfig({
         ],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//, /^\/hubs\//, /^\/health/],
+        // /updates is the desktop installer folder: the browser must ask the server for it, never get the app page back.
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/hubs\//,
+          /^\/health/,
+          /^\/updates\//,
+        ],
         cleanupOutdatedCaches: true,
       },
     }),
