@@ -17,6 +17,7 @@ import type {
 import { reviewNotice, viaSync, viaSyncOnly } from "@/features/sync/send";
 import { syncKeys } from "@/features/sync/api";
 import { toast } from "@/shared/ui/toast";
+import { noteSynced } from "@/shared/offline/hubSync";
 import type { Handler } from "@/shared/offline/outbox";
 import type { OutboxEntry } from "@/shared/offline/outboxStore";
 
@@ -43,6 +44,8 @@ export const outboxHandlers: Record<string, Handler> = {
 export const makeOnSynced =
   (qc: QueryClient) => (entry: OutboxEntry, result?: unknown) => {
     const notice = reviewNotice(result);
+    // The server has it (unless it was only kept for review): the branch hub may stop counting it once it has a server answer that includes it.
+    if (!notice) noteSynced(entry.id);
     if (notice) {
       toast.error(notice);
       void qc.invalidateQueries({ queryKey: syncKeys.all });

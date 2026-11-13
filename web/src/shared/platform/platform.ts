@@ -59,6 +59,8 @@ export interface HubSubmitResult {
   short: Record<string, number>;
   duplicate: boolean;
   taken?: boolean;
+  /** For an opening or closing the hub did not record: the day is already open, or it is no longer open. */
+  reason?: "day-open" | "day-not-open";
 }
 export interface HubLogEntry {
   seq: number;
@@ -99,6 +101,18 @@ export interface GildedBridge {
         state: unknown,
         asOf: string,
       ): Promise<HubShare<{ accepted: boolean }>>;
+      /** The server answer the hub counts from, with the entries after it (B53). */
+      state?(): Promise<
+        HubShare<{
+          snapshot: { state: unknown; asOf: string } | null;
+          entries: HubLogEntry[];
+        }>
+      >;
+      /** Tell the hub the server has these commands, as of that server answer (B53). */
+      confirm?(
+        ids: string[],
+        asOf: string,
+      ): Promise<HubShare<{ confirmed: number }>>;
     };
   };
   updater: {

@@ -65,7 +65,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 
 ## Product backlog (candidates for the next major updates)
 - ~~Manager notice when entries are recorded short at a branch hub.~~ **Done in B50** (v1.3.0).
-- Offline day open/close. **Design agreed** (docs/OFFLINE-DAYS-DESIGN.md); build in 3 steps: server (**B51 done**, v1.4.0), screens (**B52 done**, v1.5.0, to be hand-tested), hub (B53).
+- ~~Offline day open/close.~~ **Done in B51 (server), B52 (screens), B53 (hub)**, v1.4.0–v1.6.0. Left to do: the two-computer test on real hardware with the network unplugged (B53 notes).
 - Optional separate permission for branch computers.
 - Edit conflicts for users, branches and roles.
 - Branch overview showing the two-session status.
@@ -77,3 +77,4 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - ESC/POS raw receipt printing.
 - World gold price chart (see "Queued" above).
 - Before wide desktop rollout: a code-signing certificate for the Windows installer; real-hardware tests of hub failure; move the domain to the company account.
+- Hub: an entry kept for a manager's review and applied on a later day may be counted once more by the hub (B53 limit); trim the hub's log file.

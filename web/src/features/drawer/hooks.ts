@@ -5,8 +5,12 @@ import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { dayKeys, daysApi, exchangeKeys } from "./api";
 import { projectDrawer, type Pending } from "./projection";
 import { useSettings } from "@/features/settings/api";
-import { OUTBOX } from "./schemas";
-import { usePeers } from "@/shared/offline/hubShare";
+import { dayStateSchema, OUTBOX, type DayState } from "./schemas";
+import {
+  orderWaiting,
+  usePeers,
+  type HubBase,
+} from "@/shared/offline/hubShare";
 import { pushSnapshot } from "@/shared/offline/hubSync";
 import { useHubState } from "@/shared/platform/platform";
 
@@ -18,6 +22,21 @@ const RELEVANT = new Set<string>([
   OUTBOX.DAY_CLOSE,
   "transaction.create",
 ]);
+
+/**
+ * Which server answer to count from: this computer's own, or the one the branch hub holds when that is newer (a colleague's computer
+ * had a connection more recently). Only an answer for this branch is taken.
+ */
+export function pickBase(
+  mine: DayState | null,
+  hub: HubBase | null,
+  branchId: string | null,
+): DayState | null {
+  if (!hub || !branchId || (mine && mine.asOf >= hub.asOf)) return mine;
+  const parsed = dayStateSchema.safeParse(hub.state);
+  if (!parsed.success || parsed.data.day?.branchId !== branchId) return mine;
+  return parsed.data;
+}
 
 /** The drawer for a branch as this device sees it: server snapshot plus anything still waiting to be sent. */
 export function useDrawer(branchId: string | null) {
@@ -32,50 +51,43 @@ export function useDrawer(branchId: string | null) {
     refetchOnMount: "always",
   });
   const peers = usePeers((s) => s.entries);
+  const hubBase = usePeers((s) => s.snapshot);
+  const base = useMemo(
+    () => pickBase(query.data ?? null, hubBase, branchId),
+    [query.data, hubBase, branchId],
+  );
   const selfId = useHubState((s) => s.hub.selfId);
   // Commands saved on the other computers of this branch count against the drawer too, so nobody is offered notes a colleague just used.
   const { view, waiting } = useMemo(() => {
-    const own = entries.filter(
+    const ownEntries = entries.filter(
       (e) => e.status !== "failed" && RELEVANT.has(e.type),
-    ) as unknown as Pending[];
-    const mine = new Set(own.map((e) => e.id));
-    const others = peers
-      .filter(
-        (p) =>
-          p.deviceId !== selfId &&
-          RELEVANT.has(p.command.type) &&
-          !mine.has(p.command.id),
-      )
-      .map((p) => p.command) as unknown as Pending[];
-    const all = [...own, ...others];
-    const withPeers = projectDrawer(
-      query.data ?? null,
-      all,
-      branchId ?? "",
-      twoStep,
     );
+    const own = ownEntries as unknown as Pending[];
+    const others = peers.filter(
+      (p) => p.deviceId !== selfId && RELEVANT.has(p.command.type),
+    );
+    // One order for everything: the hub's numbering first, then what this computer made that the hub has not seen.
+    const all = orderWaiting(ownEntries, others) as unknown as Pending[];
+    const withPeers = projectDrawer(base, all, branchId ?? "", twoStep);
     // "Not sent yet" counts what this computer holds, not what its colleagues' computers do.
     return {
       view: {
         ...withPeers,
-        pendingCount: projectDrawer(
-          query.data ?? null,
-          own,
-          branchId ?? "",
-          twoStep,
-        ).pendingCount,
+        pendingCount: projectDrawer(base, own, branchId ?? "", twoStep)
+          .pendingCount,
       },
       waiting: all,
     };
-  }, [query.data, entries, peers, selfId, branchId, twoStep]);
+  }, [base, entries, peers, selfId, branchId, twoStep]);
   // Give the hub the server's latest answer, so it counts from the same starting point.
   useEffect(() => {
-    if (query.data && !query.isFetching) pushSnapshot(query.data);
-  }, [query.data, query.isFetching]);
+    if (query.data && !query.isFetching)
+      pushSnapshot(query.data, query.dataUpdatedAt);
+  }, [query.data, query.isFetching, query.dataUpdatedAt]);
   /** False while an answer is still on its way, so a screen does not act on an old snapshot. */
   const settled = !query.isFetching;
   /** `waiting`: everything not yet at the server that the drawer above already counts, in the order it was made. */
-  return { view, waiting, state: query.data ?? null, query, settled };
+  return { view, waiting, state: base, query, settled };
 }
 
 /** Same, for the branch the person is working in. */

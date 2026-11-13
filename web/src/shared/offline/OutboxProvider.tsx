@@ -146,7 +146,7 @@ export function useOutbox() {
         ? await gate({ id, type, payload }, userId, new Date().toISOString())
         : ({ status: "solo" } as const);
       if (g.status === "taken")
-        return { ok: false, message: takenMessage(g.short) };
+        return { ok: false, message: takenMessage(g.short, g.reason) };
       await outbox!.enqueue(
         id,
         type,

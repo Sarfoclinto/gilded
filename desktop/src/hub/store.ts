@@ -24,6 +24,12 @@ export interface StoredEntry {
     payloadJson: string;
     signature: string;
   } | null;
+  /**
+   * Set once the server is known to have the command: the `asOf` of a server answer that includes it. From then on the command is
+   * left out whenever the hub's stored server answer is at least that new. It is what keeps yesterday's entries from being counted
+   * again today, when the server's list of applied ids only covers the day that is open.
+   */
+  confirmedAsOf?: string | null;
 }
 
 export interface Snapshot {
@@ -42,6 +48,8 @@ export interface HubStore {
   since(after: number, limit?: number): StoredEntry[];
   all(): StoredEntry[];
   get(commandId: string): StoredEntry | undefined;
+  /** Marks commands as known to the server as of that server answer. A command already marked keeps its earlier mark. */
+  confirm(commandIds: string[], asOf: string): void;
   getSnapshot(): Snapshot | null;
   setSnapshot(s: Snapshot): void;
   /** Hub-wide settings that must survive a restart (branch id, pairing). */
@@ -77,6 +85,11 @@ export class MemoryHubStore implements HubStore {
     const e = this.entries.find((x) => x.command.id === id);
     return e ? structuredClone(e) : undefined;
   }
+  confirm(ids: string[], asOf: string) {
+    const set = new Set(ids);
+    for (const e of this.entries)
+      if (set.has(e.command.id) && !e.confirmedAsOf) e.confirmedAsOf = asOf;
+  }
   getSnapshot() {
     return this.snap ? structuredClone(this.snap) : null;
   }
@@ -105,6 +118,7 @@ interface Row {
   short: string;
   command: string;
   signed: string | null;
+  confirmed_as_of?: string | null;
 }
 
 /**
@@ -135,6 +149,12 @@ export class SqliteHubStore implements HubStore {
       CREATE TABLE IF NOT EXISTS snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), as_of TEXT NOT NULL, state TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     `);
+    // Added later (B53): a log file made by an earlier version gets the column the first time it is opened.
+    const cols = this.db.prepare("PRAGMA table_info(log)").all() as unknown as {
+      name: string;
+    }[];
+    if (!cols.some((c) => c.name === "confirmed_as_of"))
+      this.db.exec("ALTER TABLE log ADD COLUMN confirmed_as_of TEXT");
   }
   private toEntry(r: Row): StoredEntry {
     return {
@@ -148,6 +168,7 @@ export class SqliteHubStore implements HubStore {
       covered: r.covered === 1,
       short: JSON.parse(r.short) as Record<string, number>,
       signed: r.signed ? (JSON.parse(r.signed) as StoredEntry["signed"]) : null,
+      confirmedAsOf: r.confirmed_as_of ?? null,
     };
   }
   get(id: string) {
@@ -191,6 +212,12 @@ export class SqliteHubStore implements HubStore {
         .prepare("SELECT * FROM log ORDER BY seq")
         .all() as unknown as Row[]
     ).map((r) => this.toEntry(r));
+  }
+  confirm(ids: string[], asOf: string) {
+    const stmt = this.db.prepare(
+      "UPDATE log SET confirmed_as_of = ? WHERE id = ? AND confirmed_as_of IS NULL",
+    );
+    for (const id of ids) stmt.run(asOf, id);
   }
   getSnapshot() {
     const r = this.db

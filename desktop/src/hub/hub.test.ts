@@ -251,3 +251,186 @@ describe("several machines, in any interleaving, agree on the drawer", () => {
     expect(mirror.view().balance).toEqual(hub.view().balance);
   });
 });
+
+describe("days on the hub (B53)", () => {
+  const B = "b";
+  const mon = (
+    balance: Record<string, number>,
+    appliedIds: string[] = ["mon"],
+  ): DayStateLike => ({
+    day: {
+      id: "mon",
+      status: "open",
+      businessDate: "2026-11-09",
+      opening: { lines: balance },
+      closing: null,
+    },
+    balance,
+    appliedIds,
+    carryOver: balance,
+  });
+  const open = (
+    id: string,
+    date: string,
+    lines: Record<string, number>,
+  ): DrawerCommand => ({
+    id,
+    type: "day.open",
+    payload: { id, branchId: B, businessDate: date, lines },
+  });
+  const close = (
+    id: string,
+    dayId: string,
+    cash: Record<string, number>,
+  ): DrawerCommand => ({
+    id,
+    type: "day.close",
+    payload: { dayId, branchId: B, declared: { cash } },
+  });
+  const strict = (device: string, command: DrawerCommand) => ({
+    ...from(device, command),
+    strict: true,
+  });
+  const hubWith = (
+    state: DayStateLike,
+    asOf = "2026-11-09T08:00:00.000Z",
+    store: HubStore = new MemoryHubStore(),
+  ) => {
+    const hub = new Hub(store, { branchId: B });
+    hub.setSnapshot(state, asOf);
+    return hub;
+  };
+
+  it("one closing per day: the second computer is told the day is no longer open, and nothing is recorded for it", () => {
+    const hub = hubWith(mon({ "100": 10 }));
+    expect(
+      hub.submit(strict("pc1", close("c1", "mon", { "100": 10 }))),
+    ).toMatchObject({ seq: 1, covered: true });
+    expect(
+      hub.submit(strict("pc2", close("c2", "mon", { "100": 9 }))),
+    ).toMatchObject({ taken: true, reason: "day-not-open", seq: 0 });
+    expect(hub.since(0)).toHaveLength(1);
+    expect(hub.view()).toMatchObject({
+      status: "closed",
+      carryOver: { "100": 10 },
+    });
+  });
+
+  it("one opening per day: the second computer is told the day is already open", () => {
+    const hub = hubWith(mon({ "100": 10 }));
+    hub.submit(strict("pc1", close("c1", "mon", { "100": 10 })));
+    expect(
+      hub.submit(strict("pc1", open("tue", "2026-11-10", { "100": 10 }))),
+    ).toMatchObject({ covered: true });
+    expect(
+      hub.submit(strict("pc2", open("tue2", "2026-11-10", { "100": 10 }))),
+    ).toMatchObject({ taken: true, reason: "day-open" });
+    expect(hub.view()).toMatchObject({
+      status: "open",
+      dayId: "tue",
+      balance: { "100": 10 },
+      local: true,
+    });
+  });
+
+  it("notes are reserved against the day opened on the hub, across the rollover", () => {
+    const hub = hubWith(mon({ "100": 10 }));
+    hub.submit(strict("pc1", pay("t1", { "100": 4 })));
+    hub.submit(strict("pc1", close("c1", "mon", { "100": 6 })));
+    hub.submit(strict("pc2", open("tue", "2026-11-10", { "100": 6 })));
+    expect(hub.submit(strict("pc1", pay("t2", { "100": 5 })))).toMatchObject({
+      covered: true,
+    });
+    expect(hub.submit(strict("pc2", pay("t3", { "100": 2 })))).toMatchObject({
+      taken: true,
+      short: { "100": 1 },
+    });
+    expect(hub.view().balance).toEqual({ "100": 1 });
+  });
+
+  it("an opening copied late (made while the hub was away) is recorded even though a day is open: reality wins", () => {
+    const hub = hubWith(mon({ "100": 10 }));
+    const r = hub.submit(from("pc2", open("mon2", "2026-11-09", { "100": 9 })));
+    expect(r).toMatchObject({ covered: false, seq: 1 });
+    expect(hub.view()).toMatchObject({
+      dayId: "mon",
+      aliases: { mon2: "mon" },
+    });
+    // its closing, under the second id, closes the open day
+    expect(
+      hub.submit(strict("pc2", close("c1", "mon2", { "100": 10 }))),
+    ).toMatchObject({ covered: true });
+    expect(hub.view().status).toBe("closed");
+  });
+
+  it("yesterday's entries are not counted again today, even though the server's applied list starts over each day", () => {
+    const hub = hubWith(mon({ "100": 10 }));
+    hub.submit(strict("pc1", pay("t1", { "100": 4 })));
+    // the server has t1 (Monday's answer lists it) ...
+    hub.setSnapshot(
+      mon({ "100": 6 }, ["mon", "t1"]),
+      "2026-11-09T12:00:00.000Z",
+    );
+    // ... and on Tuesday its list no longer mentions t1
+    const tue: DayStateLike = {
+      day: {
+        id: "tue",
+        status: "open",
+        businessDate: "2026-11-10",
+        opening: { lines: { "100": 6 } },
+        closing: null,
+      },
+      balance: { "100": 6 },
+      appliedIds: ["tue"],
+      carryOver: { "100": 6 },
+    };
+    hub.setSnapshot(tue, "2026-11-10T08:00:00.000Z");
+    expect(hub.view()).toMatchObject({
+      balance: { "100": 6 },
+      pendingCount: 0,
+    });
+    expect(hub.state().entries).toHaveLength(0);
+    expect(hub.since(0)).toHaveLength(1); // the log itself keeps everything
+  });
+
+  it("a computer can say the server has its entry, as of the answer it hands over", () => {
+    const hub = hubWith(mon({ "100": 10 }));
+    hub.submit(strict("pc1", pay("t1", { "100": 4 })));
+    // confirmed as of an answer the hub does not have yet: still counted, or the payout would vanish from the drawer
+    hub.confirm(["t1"], "2026-11-10T08:00:00.000Z");
+    expect(hub.view().balance).toEqual({ "100": 6 });
+    const tue: DayStateLike = {
+      day: {
+        id: "tue",
+        status: "open",
+        businessDate: "2026-11-10",
+        opening: { lines: { "100": 6 } },
+        closing: null,
+      },
+      balance: { "100": 6 },
+      appliedIds: ["tue"],
+      carryOver: { "100": 6 },
+    };
+    hub.setSnapshot(tue, "2026-11-10T08:00:00.000Z");
+    expect(hub.view().balance).toEqual({ "100": 6 });
+    expect(hub.state()).toMatchObject({
+      entries: [],
+      snapshot: { asOf: "2026-11-10T08:00:00.000Z" },
+    });
+  });
+
+  it("confirmations survive a restart, and an older log file gains the column", () => {
+    const file = tmpFile();
+    const s1 = openSqlite(file);
+    const hub = hubWith(mon({ "100": 10 }), "2026-11-09T08:00:00.000Z", s1);
+    hub.submit(strict("pc1", pay("t1", { "100": 4 })));
+    hub.setSnapshot(
+      mon({ "100": 6 }, ["mon", "t1"]),
+      "2026-11-09T12:00:00.000Z",
+    );
+    s1.close();
+    const s2 = openSqlite(file);
+    expect(new Hub(s2, { branchId: B }).state().entries).toHaveLength(0);
+    expect(s2.get("t1")?.confirmedAsOf).toBe("2026-11-09T12:00:00.000Z");
+  });
+});

@@ -19,12 +19,34 @@ class HttpError extends Error {
   }
 }
 
-const isCommand = (c: unknown): c is DrawerCommand =>
-  !!c &&
-  typeof c === "object" &&
-  typeof (c as { id?: unknown }).id === "string" &&
-  typeof (c as { type?: unknown }).type === "string" &&
-  typeof (c as { payload?: unknown }).payload === "object";
+const isObject = (x: unknown): x is Record<string, unknown> =>
+  !!x && typeof x === "object" && !Array.isArray(x);
+/** A command the hub can keep. An opening or closing must have the parts everyone's drawer is worked out from. */
+const isCommand = (c: unknown): c is DrawerCommand => {
+  if (
+    !isObject(c) ||
+    typeof c.id !== "string" ||
+    typeof c.type !== "string" ||
+    !isObject(c.payload)
+  )
+    return false;
+  const p = c.payload;
+  if (c.type === "day.open")
+    return (
+      typeof p.id === "string" &&
+      typeof p.branchId === "string" &&
+      typeof p.businessDate === "string" &&
+      isObject(p.lines)
+    );
+  if (c.type === "day.close")
+    return (
+      typeof p.dayId === "string" &&
+      typeof p.branchId === "string" &&
+      isObject(p.declared) &&
+      isObject(p.declared.cash)
+    );
+  return true;
+};
 
 /**
  * The hub's door on the branch network. HTTPS only, with the hub's own certificate (machines pin it when they pair).
@@ -119,6 +141,17 @@ export function createHubServer(opts: {
       case "GET /v1/since": {
         const after = Number(url.searchParams.get("after") ?? 0);
         return { entries: hub.since(Number.isFinite(after) ? after : 0, 500) };
+      }
+      case "GET /v1/state":
+        return hub.state();
+      case "POST /v1/confirm": {
+        if (!Array.isArray(body.ids) || typeof body.asOf !== "string")
+          throw new HttpError(
+            422,
+            "BAD_CONFIRM",
+            "The confirmation is not valid.",
+          );
+        return hub.confirm(body.ids as string[], body.asOf);
       }
       case "POST /v1/snapshot": {
         if (!body.state || typeof body.asOf !== "string")

@@ -30,6 +30,8 @@ export interface SubmitResult {
   duplicate: boolean;
   /** Strict only: the notes were not available, so nothing was recorded. `short` says which. */
   taken?: boolean;
+  /** Strict only, for an opening or closing that was not recorded: the day is already open, or it is no longer open. */
+  reason?: "day-open" | "day-not-open";
 }
 
 export interface CheckResult {
@@ -68,13 +70,36 @@ export class Hub {
     }));
   }
 
+  /**
+   * The entries the server's stored answer does not include yet. An entry stops counting once the server is known to have it
+   * (`confirmedAsOf`) and the stored answer is at least that new, so an entry from an earlier day is never counted a second time.
+   */
+  active(): StoredEntry[] {
+    const asOf = this.store.getSnapshot()?.asOf;
+    return this.store
+      .all()
+      .filter((e) => !(e.confirmedAsOf && asOf && e.confirmedAsOf <= asOf));
+  }
+
   view(): DrawerView {
     return replayLog(
       this.store.getSnapshot()?.state ?? null,
-      this.asLog(this.store.all()),
+      this.asLog(this.active()),
       this.opts.branchId,
       this.opts.twoStep,
     ).view;
+  }
+
+  /** The server's answer the hub counts from, and the entries after it: one consistent pair for a computer to show its drawer from. */
+  state(): { snapshot: Snapshot | null; entries: StoredEntry[] } {
+    return { snapshot: this.store.getSnapshot(), entries: this.active() };
+  }
+
+  /** A computer says the server has these commands, as of that server answer (which it hands over with `setSnapshot`). */
+  confirm(commandIds: string[], asOf: string): { confirmed: number } {
+    const ids = commandIds.filter((x) => typeof x === "string").slice(0, 1000);
+    this.store.confirm(ids, asOf);
+    return { confirmed: ids.length };
   }
 
   check(command: DrawerCommand): CheckResult {
@@ -110,6 +135,7 @@ export class Hub {
         short: a.short,
         duplicate: false,
         taken: true,
+        reason: a.reason,
       };
     const { entry, duplicate } = this.store.append({
       command: s.command,
@@ -139,12 +165,28 @@ export class Hub {
     const cur = this.store.getSnapshot();
     if (cur && cur.asOf >= asOf) return false;
     this.store.setSnapshot({ state, asOf } satisfies Snapshot);
+    // Everything this answer lists as applied is known to the server from now on, also after the day rolls over and the list starts again.
+    const applied = new Set(state.appliedIds ?? []);
+    const ids = this.store
+      .all()
+      .filter(
+        (e) =>
+          !e.confirmedAsOf &&
+          (applied.has(appliedKey(e.command)) ||
+            (e.command.type === "day.open" &&
+              state.day?.id === e.command.payload.id) ||
+            (e.command.type === "day.close" &&
+              state.day?.id === e.command.payload.dayId &&
+              state.day.status === "closed")),
+      )
+      .map((e) => e.command.id);
+    if (ids.length) this.store.confirm(ids, asOf);
     return true;
   }
 
   /** Entries the server has not confirmed yet, in order: what still has to be sent on. */
   unconfirmed(): StoredEntry[] {
     const applied = new Set(this.store.getSnapshot()?.state.appliedIds ?? []);
-    return this.store.all().filter((e) => !applied.has(appliedKey(e.command)));
+    return this.active().filter((e) => !applied.has(appliedKey(e.command)));
   }
 }

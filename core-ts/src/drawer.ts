@@ -97,6 +97,8 @@ export interface DrawerView {
   loose: boolean;
   /** The day's state (open or closed) comes from an opening or closing made on a device that the server has not received yet. */
   local: boolean;
+  /** Other ids that mean the day in `dayId`: the same date opened a second time on another device. */
+  aliases: Record<string, string>;
 }
 
 /** The id under which the server will report this command as applied. A payout is counted under its purchase's id. */
@@ -114,17 +116,20 @@ export function drawerEffect(
     dayId: string | null;
     branchId: string;
     twoStep?: boolean;
+    aliases?: Record<string, string>;
   },
 ): { in: Lines; out: Lines } | null {
   if (ctx.status !== "open") return null;
   switch (c.type) {
     case "drawer.movement":
-      if (c.payload.dayId !== ctx.dayId) return null;
+      if ((ctx.aliases?.[c.payload.dayId] ?? c.payload.dayId) !== ctx.dayId)
+        return null;
       return c.payload.kind === "topup"
         ? { in: c.payload.lines, out: {} }
         : { in: {}, out: c.payload.lines };
     case "drawer.exchange":
-      if (c.payload.dayId !== ctx.dayId) return null;
+      if ((ctx.aliases?.[c.payload.dayId] ?? c.payload.dayId) !== ctx.dayId)
+        return null;
       return { in: c.payload.gave, out: c.payload.took };
     case "transaction.create":
       // Two-step: saving a purchase takes no cash out of the drawer; the payout does.
@@ -150,14 +155,131 @@ function isNegative(balance: Lines | null, loose: boolean): boolean {
 const positive = (l: Lines): Lines =>
   Object.fromEntries(Object.entries(l).filter(([, n]) => n > 0));
 
+/** The drawer while commands are being taken one by one (the screens and the hub both go through here, so they cannot disagree). */
+interface Run {
+  status: DrawerView["status"];
+  dayId: string | null;
+  businessDate: string | null;
+  balance: Lines | null;
+  openingLines: Lines | null;
+  closingLines: Lines | null;
+  carryOver: Lines | null;
+  local: boolean;
+  aliases: Record<string, string>;
+}
+
+function startRun(state: DayStateLike | null): Run {
+  return {
+    status: state
+      ? state.day
+        ? (state.day.status as DrawerView["status"])
+        : "none"
+      : "unknown",
+    dayId: state?.day?.id ?? null,
+    businessDate: state?.day?.businessDate ?? null,
+    balance:
+      state?.day?.status === "open" ? { ...(state.balance ?? {}) } : null,
+    openingLines: state?.day?.opening.lines ?? null,
+    closingLines: state?.day?.closing?.cash.counted ?? null,
+    carryOver: state?.carryOver ?? null,
+    local: false,
+    aliases: {},
+  };
+}
+
+/** Does the server's answer already include this opening or closing? (Other commands are checked against `appliedIds`.) */
+function dayCommandApplied(
+  state: DayStateLike | null,
+  applied: Set<string>,
+  c: DrawerCommand,
+): boolean {
+  if (c.type === "day.open")
+    return applied.has(c.id) || state?.day?.id === c.payload.id;
+  if (c.type === "day.close")
+    return (
+      !!state?.day &&
+      state.day.id === c.payload.dayId &&
+      state.day.status === "closed"
+    );
+  return false;
+}
+
 /**
- * The drawer as a device sees it. Commands are taken in the order given (the order they were made).
- * Openings and closings made with no connection are followed too, so a device can close Monday, open Tuesday and keep
- * working while the server still thinks it is Monday:
- *  - a waiting opening makes the drawer open, with its own id and the notes that were counted;
- *  - a waiting closing closes it, and the notes counted are what the next opening starts from;
+ * Takes one command into the run. Openings and closings made with no connection are followed, so a branch can close Monday,
+ * open Tuesday and keep working while the server still thinks it is Monday:
+ *  - an opening makes the drawer open, with its own id and the notes that were counted;
+ *  - a closing closes it, and the notes counted are what the next opening starts from;
  *  - an opening for the date that is already open is the same day under a second id (the server merges them the same way).
  */
+function stepRun(
+  run: Run,
+  c: DrawerCommand,
+  branchId: string,
+  twoStep: boolean,
+): void {
+  if (c.type === "day.open") {
+    if (c.payload.branchId !== branchId) return;
+    if (
+      run.status === "open" &&
+      run.dayId &&
+      run.businessDate === c.payload.businessDate &&
+      !c.payload.afterClose
+    ) {
+      run.aliases[c.payload.id] = run.dayId;
+      return;
+    }
+    run.status = "open";
+    run.dayId = c.payload.id;
+    run.businessDate = c.payload.businessDate;
+    run.openingLines = { ...(c.payload.lines ?? {}) };
+    run.balance = { ...(c.payload.lines ?? {}) };
+    run.closingLines = null;
+    run.local = true;
+    return;
+  }
+  if (c.type === "day.close") {
+    if (c.payload.branchId !== branchId) return;
+    const target = run.aliases[c.payload.dayId] ?? c.payload.dayId;
+    if (run.status !== "open" || target !== run.dayId) return; // for a day that is no longer the open one
+    run.status = "closed";
+    // (written defensively: a badly formed entry in a shared log must not stop everyone's drawer from being worked out)
+    run.closingLines = { ...(c.payload.declared?.cash ?? {}) };
+    run.carryOver = positive(c.payload.declared?.cash ?? {});
+    run.balance = null;
+    run.local = true;
+    return;
+  }
+  if (!run.balance) return;
+  const e = drawerEffect(c, {
+    status: run.status,
+    dayId: run.dayId,
+    branchId,
+    twoStep,
+    aliases: run.aliases,
+  });
+  if (e) run.balance = subtractLines(addLines(run.balance, e.in), e.out);
+}
+
+const viewOf = (
+  run: Run,
+  pendingCount: number,
+  loose: boolean,
+): DrawerView => ({
+  status: run.status,
+  dayId: run.dayId,
+  businessDate: run.businessDate,
+  balance: run.balance,
+  openingLines: run.openingLines,
+  closingLines: run.closingLines,
+  carryOver: run.carryOver,
+  pendingCount,
+  negative: isNegative(run.balance, loose),
+  loose,
+  local: run.local,
+  aliases: { ...run.aliases },
+});
+
+/** The drawer as a device sees it: the server's last answer plus every command not yet confirmed, in the order given (the order they were made). */
 export function projectDrawer(
   state: DayStateLike | null,
   pending: DrawerCommand[],
@@ -165,88 +287,20 @@ export function projectDrawer(
   twoStep = false,
 ): DrawerView {
   const applied = new Set(state?.appliedIds ?? []);
-  let status: DrawerView["status"] = state
-    ? state.day
-      ? (state.day.status as DrawerView["status"])
-      : "none"
-    : "unknown";
-  let dayId = state?.day?.id ?? null;
-  let balance: Lines | null =
-    state?.day?.status === "open" ? (state.balance ?? {}) : null;
-  let businessDate = state?.day?.businessDate ?? null;
-  let openingLines = state?.day?.opening.lines ?? null;
-  let closingLines = state?.day?.closing?.cash.counted ?? null;
-  let carryOver = state?.carryOver ?? null;
-  let local = false;
+  const run = startRun(state);
   let pendingCount = 0;
-  const loose = !!state?.looseDenominations;
-  const alias = new Map<string, string>();
-  const real = (id: string) => alias.get(id) ?? id;
-
   for (const p of pending) {
-    if (p.type === "day.open") {
-      if (p.payload.branchId !== branchId) continue;
-      if (applied.has(p.id) || state?.day?.id === p.payload.id) continue; // the server has it
-      pendingCount++;
+    if (p.type === "day.open" || p.type === "day.close") {
       if (
-        status === "open" &&
-        dayId &&
-        businessDate === p.payload.businessDate &&
-        !p.payload.afterClose
-      ) {
-        alias.set(p.payload.id, dayId); // the same day, opened twice
+        p.payload.branchId !== branchId ||
+        dayCommandApplied(state, applied, p)
+      )
         continue;
-      }
-      status = "open";
-      dayId = p.payload.id;
-      businessDate = p.payload.businessDate;
-      openingLines = { ...p.payload.lines };
-      balance = { ...p.payload.lines };
-      closingLines = null;
-      local = true;
-      continue;
-    }
-    if (p.type === "day.close") {
-      if (p.payload.branchId !== branchId) continue;
-      const target = real(p.payload.dayId);
-      if (state?.day?.id === target && state.day.status === "closed") continue; // the server has it
-      pendingCount++;
-      if (status !== "open" || target !== dayId) continue; // for a day this device no longer has open
-      status = "closed";
-      closingLines = { ...p.payload.declared.cash };
-      carryOver = positive(p.payload.declared.cash);
-      balance = null;
-      local = true;
-      continue;
-    }
-    if (applied.has(appliedKey(p))) continue;
+    } else if (applied.has(appliedKey(p))) continue;
     pendingCount++;
-    if (!balance) continue;
-    const c =
-      (p.type === "drawer.movement" || p.type === "drawer.exchange") &&
-      alias.has(p.payload.dayId)
-        ? ({
-            ...p,
-            payload: { ...p.payload, dayId: real(p.payload.dayId) },
-          } as DrawerCommand)
-        : p;
-    const e = drawerEffect(c, { status, dayId, branchId, twoStep });
-    if (e) balance = subtractLines(addLines(balance, e.in), e.out);
+    stepRun(run, p, branchId, twoStep);
   }
-
-  return {
-    status,
-    dayId,
-    businessDate,
-    balance,
-    openingLines,
-    closingLines,
-    carryOver,
-    pendingCount,
-    negative: isNegative(balance, loose),
-    loose,
-    local,
-  };
+  return viewOf(run, pendingCount, !!state?.looseDenominations);
 }
 
 /** Solver limits from the drawer: a note is available only while the drawer holds some, and the limit is exactly how many it holds. */
@@ -315,6 +369,8 @@ export interface Admission {
   short: Lines;
   /** The drawer after the command (also when not ok: the books record what happened). */
   balance: Lines | null;
+  /** Why not, when it is not about notes: the day is already open, or it is no longer open (someone else closed it). */
+  reason?: "day-open" | "day-not-open";
 }
 
 /**
@@ -322,16 +378,39 @@ export interface Admission {
  * notes are told apart: the second hears which notes were just used. The balance returned is what the drawer holds afterwards.
  */
 export function admit(
-  view: Pick<DrawerView, "status" | "dayId" | "balance"> & { loose?: boolean },
+  view: Pick<DrawerView, "status" | "dayId" | "balance"> & {
+    loose?: boolean;
+    aliases?: Record<string, string>;
+  },
   c: DrawerCommand,
   branchId: string,
   twoStep = false,
 ): Admission {
+  // One open day per branch: a second opening, or a closing of a day that is no longer open, is told apart the same way.
+  if (c.type === "day.open") {
+    if (c.payload.branchId !== branchId || view.status !== "open")
+      return { ok: true, short: {}, balance: view.balance };
+    return { ok: false, short: {}, balance: view.balance, reason: "day-open" };
+  }
+  if (c.type === "day.close") {
+    if (c.payload.branchId !== branchId)
+      return { ok: true, short: {}, balance: view.balance };
+    const target = view.aliases?.[c.payload.dayId] ?? c.payload.dayId;
+    if (view.status === "open" && target === view.dayId)
+      return { ok: true, short: {}, balance: null };
+    return {
+      ok: false,
+      short: {},
+      balance: view.balance,
+      reason: "day-not-open",
+    };
+  }
   const e = drawerEffect(c, {
     status: view.status,
     dayId: view.dayId,
     branchId,
     twoStep,
+    aliases: view.aliases,
   });
   if (!e || !view.balance)
     return { ok: true, short: {}, balance: view.balance };
@@ -370,37 +449,38 @@ export function replayLog(
 ): { view: DrawerView; steps: ReplayStep[] } {
   const ordered = sortLog(log);
   const applied = new Set(state?.appliedIds ?? []);
-  const base = projectDrawer(state, [], branchId, twoStep);
-  let balance = base.balance;
+  const loose = !!state?.looseDenominations;
+  const run = startRun(state);
   let count = 0;
   const steps: ReplayStep[] = [];
   const seen = new Set<string>();
   for (const entry of ordered) {
-    const key = appliedKey(entry.command);
-    if (applied.has(key) || seen.has(entry.command.id)) continue; // confirmed already, or the same command copied to the log twice
-    seen.add(entry.command.id);
+    const c = entry.command;
+    if (seen.has(c.id)) continue; // the same command copied to the log twice
+    if (c.type === "day.open" || c.type === "day.close") {
+      if (dayCommandApplied(state, applied, c)) continue;
+    } else if (applied.has(appliedKey(c))) continue; // confirmed already
+    seen.add(c.id);
     count++;
     const a = admit(
-      { status: base.status, dayId: base.dayId, balance, loose: base.loose },
-      entry.command,
+      {
+        status: run.status,
+        dayId: run.dayId,
+        balance: run.balance,
+        loose,
+        aliases: run.aliases,
+      },
+      c,
       branchId,
       twoStep,
     );
-    balance = a.balance;
+    stepRun(run, c, branchId, twoStep); // recorded whether or not it was covered: reality wins
     steps.push({
-      id: entry.command.id,
+      id: c.id,
       covered: a.ok,
       short: a.short,
-      balance,
+      balance: run.balance,
     });
   }
-  return {
-    view: {
-      ...base,
-      balance,
-      pendingCount: count,
-      negative: isNegative(balance, base.loose),
-    },
-    steps,
-  };
+  return { view: viewOf(run, count, loose), steps };
 }
