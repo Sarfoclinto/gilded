@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/features/auth/store";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { desktop, useHubState } from "@/shared/platform/platform";
-import { usePeers } from "@/shared/offline/hubShare";
+import { SHAREABLE, usePeers } from "@/shared/offline/hubShare";
 import { pullPeers } from "@/shared/offline/hubSync";
 import {
   flushShortNotices,
@@ -11,12 +11,6 @@ import {
 } from "@/shared/offline/hubShort";
 
 const inFlight = new Set<string>();
-const SHAREABLE = new Set([
-  "drawer.movement",
-  "drawer.exchange",
-  "transaction.create",
-  "transaction.pay",
-]);
 
 /**
  * Keeps this computer in step with its branch hub (desktop app only; shows nothing):

@@ -1,21 +1,26 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { loadOrCreateCert, type HubCert } from './cert';
-import { HubClient, HubError, pairWithHub, type HubLink } from './client';
-import type { DayStateLike, DrawerCommand } from '@gold/core';
-import type { SubmitResult } from './hub';
-import type { StoredEntry } from './store';
-import { Hub } from './hub';
-import { decodePairing, encodePairing, Pairing, type PairedDevice } from './pairing';
-import { createHubServer } from './server';
-import { SqliteHubStore, type HubStore } from './store';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { loadOrCreateCert, type HubCert } from "./cert";
+import { HubClient, HubError, pairWithHub, type HubLink } from "./client";
+import type { DayStateLike, DrawerCommand } from "@gold/core";
+import type { SubmitResult } from "./hub";
+import type { Snapshot, StoredEntry } from "./store";
+import { Hub } from "./hub";
+import {
+  decodePairing,
+  encodePairing,
+  Pairing,
+  type PairedDevice,
+} from "./pairing";
+import { createHubServer } from "./server";
+import { SqliteHubStore, type HubStore } from "./store";
 
 export const HUB_PORT = 47600;
 /** The hub computer's own commands are filed under this name in its log. */
-export const HUB_SELF = 'hub-local';
+export const HUB_SELF = "hub-local";
 
-export type Role = 'off' | 'hub' | 'member';
+export type Role = "off" | "hub" | "member";
 
 interface Saved {
   role: Role;
@@ -26,12 +31,29 @@ interface Saved {
   link?: HubLink & { hubName: string; branchId: string; deviceId?: string };
 }
 
-export type MemberState = 'connected' | 'unreachable' | 'different-hub' | 'not-paired';
+export type MemberState =
+  | "connected"
+  | "unreachable"
+  | "different-hub"
+  | "not-paired";
 
 export interface HubState {
   role: Role;
-  hub?: { running: boolean; address: string; port: number; name: string; devices: PairedDevice[]; code: { text: string; code: string; expiresAt: string } | null; error?: string };
-  member?: { hubName: string; address: string; state: MemberState; lastOk: string | null };
+  hub?: {
+    running: boolean;
+    address: string;
+    port: number;
+    name: string;
+    devices: PairedDevice[];
+    code: { text: string; code: string; expiresAt: string } | null;
+    error?: string;
+  };
+  member?: {
+    hubName: string;
+    address: string;
+    state: MemberState;
+    lastOk: string | null;
+  };
   /** This computer's own id in the hub's log, so its screens can tell its own commands from the others'. */
   selfId?: string;
 }
@@ -49,9 +71,13 @@ export interface ManagerDeps {
 /** The first private IPv4 address of this computer, i.e. the one the other computers can reach. */
 export function lanAddress(): string {
   const nets = os.networkInterfaces();
-  const all = Object.values(nets).flatMap((n) => n ?? []).filter((n) => n.family === 'IPv4' && !n.internal);
-  const priv = all.find((n) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(n.address));
-  return (priv ?? all[0])?.address ?? '127.0.0.1';
+  const all = Object.values(nets)
+    .flatMap((n) => n ?? [])
+    .filter((n) => n.family === "IPv4" && !n.internal);
+  const priv = all.find((n) =>
+    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(n.address),
+  );
+  return (priv ?? all[0])?.address ?? "127.0.0.1";
 }
 
 /**
@@ -60,7 +86,7 @@ export function lanAddress(): string {
  * its hub just reports `unreachable`; the screens then keep working alone, exactly as they do without a hub.
  */
 export class HubManager {
-  private saved: Saved = { role: 'off' };
+  private saved: Saved = { role: "off" };
   private store: HubStore | null = null;
   private hub: Hub | null = null;
   private pairing: Pairing | null = null;
@@ -70,21 +96,21 @@ export class HubManager {
   private error: string | undefined;
   private code: { text: string; code: string; expiresAt: string } | null = null;
   private client: HubClient | null = null;
-  private memberState: MemberState = 'unreachable';
+  private memberState: MemberState = "unreachable";
   private lastOk: string | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private listeners = new Set<(s: HubState) => void>();
 
   constructor(private deps: ManagerDeps) {}
 
-  private file = () => path.join(this.deps.dir, 'hub-config.json');
+  private file = () => path.join(this.deps.dir, "hub-config.json");
   private address = () => (this.deps.address ?? lanAddress)();
 
   async start(): Promise<void> {
     try {
-      this.saved = JSON.parse(fs.readFileSync(this.file(), 'utf8')) as Saved;
+      this.saved = JSON.parse(fs.readFileSync(this.file(), "utf8")) as Saved;
     } catch {
-      this.saved = { role: 'off' };
+      this.saved = { role: "off" };
     }
     await this.apply();
   }
@@ -96,22 +122,34 @@ export class HubManager {
 
   private async apply() {
     await this.stopAll();
-    if (this.saved.role === 'hub') await this.startHub();
-    else if (this.saved.role === 'member' && this.saved.link) this.startMember();
+    if (this.saved.role === "hub") await this.startHub();
+    else if (this.saved.role === "member" && this.saved.link)
+      this.startMember();
     this.emit();
   }
 
   private async startHub() {
     this.error = undefined;
     try {
-      this.store = this.deps.openStore ? this.deps.openStore() : new SqliteHubStore(path.join(this.deps.dir, 'hub.db'));
+      this.store = this.deps.openStore
+        ? this.deps.openStore()
+        : new SqliteHubStore(path.join(this.deps.dir, "hub.db"));
       this.cert = await loadOrCreateCert(this.deps.dir);
-      this.hub = new Hub(this.store, { branchId: this.saved.branchId ?? '' });
+      this.hub = new Hub(this.store, { branchId: this.saved.branchId ?? "" });
       this.pairing = new Pairing(this.store, this.deps.now);
-      this.server = createHubServer({ hub: this.hub, pairing: this.pairing, cert: this.cert, branchId: this.saved.branchId ?? '', hubName: this.saved.hubName ?? 'Hub' });
+      this.server = createHubServer({
+        hub: this.hub,
+        pairing: this.pairing,
+        cert: this.cert,
+        branchId: this.saved.branchId ?? "",
+        hubName: this.saved.hubName ?? "Hub",
+      });
       this.port = await this.server.listen(this.port === 0 ? 0 : HUB_PORT);
     } catch (e) {
-      this.error = (e as { code?: string }).code === 'EADDRINUSE' ? `Port ${HUB_PORT} is already in use on this computer.` : 'The hub could not start.';
+      this.error =
+        (e as { code?: string }).code === "EADDRINUSE"
+          ? `Port ${HUB_PORT} is already in use on this computer.`
+          : "The hub could not start.";
       await this.stopAll();
       this.saved = { ...this.saved }; // keep the choice; the person sees the problem
     }
@@ -120,15 +158,20 @@ export class HubManager {
   private startMember() {
     const l = this.saved.link!;
     this.client = new HubClient(l);
-    this.memberState = 'unreachable';
+    this.memberState = "unreachable";
     const poll = async () => {
       try {
         await this.client!.status();
-        this.memberState = 'connected';
+        this.memberState = "connected";
         this.lastOk = new Date().toISOString();
       } catch (e) {
-        const code = e instanceof HubError ? e.code : '';
-        this.memberState = code === 'CERT_CHANGED' ? 'different-hub' : code === 'NOT_PAIRED' ? 'not-paired' : 'unreachable';
+        const code = e instanceof HubError ? e.code : "";
+        this.memberState =
+          code === "CERT_CHANGED"
+            ? "different-hub"
+            : code === "NOT_PAIRED"
+              ? "not-paired"
+              : "unreachable";
       }
       this.emit();
     };
@@ -151,11 +194,31 @@ export class HubManager {
   }
 
   state(): HubState {
-    const s: HubState = { role: this.saved.role, ...(this.saved.role === 'hub' ? { selfId: HUB_SELF } : this.saved.role === 'member' && this.saved.link?.deviceId ? { selfId: this.saved.link.deviceId } : {}) };
-    if (this.saved.role === 'hub') {
-      s.hub = { running: !!this.server, address: this.address(), port: this.port, name: this.saved.hubName ?? 'Hub', devices: this.pairing?.list() ?? [], code: this.liveCode(), error: this.error };
-    } else if (this.saved.role === 'member' && this.saved.link) {
-      s.member = { hubName: this.saved.link.hubName, address: `${this.saved.link.host}:${this.saved.link.port}`, state: this.memberState, lastOk: this.lastOk };
+    const s: HubState = {
+      role: this.saved.role,
+      ...(this.saved.role === "hub"
+        ? { selfId: HUB_SELF }
+        : this.saved.role === "member" && this.saved.link?.deviceId
+          ? { selfId: this.saved.link.deviceId }
+          : {}),
+    };
+    if (this.saved.role === "hub") {
+      s.hub = {
+        running: !!this.server,
+        address: this.address(),
+        port: this.port,
+        name: this.saved.hubName ?? "Hub",
+        devices: this.pairing?.list() ?? [],
+        code: this.liveCode(),
+        error: this.error,
+      };
+    } else if (this.saved.role === "member" && this.saved.link) {
+      s.member = {
+        hubName: this.saved.link.hubName,
+        address: `${this.saved.link.host}:${this.saved.link.port}`,
+        state: this.memberState,
+        lastOk: this.lastOk,
+      };
     }
     return s;
   }
@@ -176,7 +239,11 @@ export class HubManager {
 
   /** Make this computer the branch hub. */
   async becomeHub(branchId: string, name: string): Promise<HubState> {
-    this.saved = { role: 'hub', branchId, hubName: name.trim().slice(0, 60) || 'Hub' };
+    this.saved = {
+      role: "hub",
+      branchId,
+      hubName: name.trim().slice(0, 60) || "Hub",
+    };
     this.persist();
     await this.apply();
     return this.state();
@@ -184,7 +251,7 @@ export class HubManager {
 
   /** Back to working alone. A hub keeps its log on disk; turning it off does not erase it. */
   async turnOff(): Promise<HubState> {
-    this.saved = { role: 'off' };
+    this.saved = { role: "off" };
     this.persist();
     await this.apply();
     return this.state();
@@ -194,7 +261,16 @@ export class HubManager {
   newCode(): HubState {
     if (!this.pairing || !this.cert) return this.state();
     const c = this.pairing.newCode();
-    this.code = { code: c.code, expiresAt: c.expiresAt, text: encodePairing({ host: this.address(), port: this.port, code: c.code, fingerprint: this.cert.fingerprint }) };
+    this.code = {
+      code: c.code,
+      expiresAt: c.expiresAt,
+      text: encodePairing({
+        host: this.address(),
+        port: this.port,
+        code: c.code,
+        fingerprint: this.cert.fingerprint,
+      }),
+    };
     this.emit();
     return this.state();
   }
@@ -208,9 +284,25 @@ export class HubManager {
   /** On another computer: join the hub with the line the hub showed. */
   async join(text: string, deviceName: string): Promise<HubState> {
     const p = decodePairing(text);
-    if (!p) throw new HubError('BAD_PAIRING_TEXT', 'That does not look like the line shown on the hub computer.');
+    if (!p)
+      throw new HubError(
+        "BAD_PAIRING_TEXT",
+        "That does not look like the line shown on the hub computer.",
+      );
     const r = await pairWithHub({ ...p, deviceName });
-    this.saved = { role: 'member', link: { host: r.host, port: r.port, certPem: r.certPem, fingerprint: r.fingerprint, token: r.token, hubName: r.hubName, branchId: r.branchId, deviceId: r.deviceId } };
+    this.saved = {
+      role: "member",
+      link: {
+        host: r.host,
+        port: r.port,
+        certPem: r.certPem,
+        fingerprint: r.fingerprint,
+        token: r.token,
+        hubName: r.hubName,
+        branchId: r.branchId,
+        deviceId: r.deviceId,
+      },
+    };
     this.persist();
     await this.apply();
     return this.state();
@@ -220,33 +312,66 @@ export class HubManager {
    * What the screens do with the hub, the same on the hub computer (straight into its own log) and on a member (over the link).
    * An unreachable hub is not an error for the screens: they report `unreachable` and carry on alone.
    */
-  async share<T>(fn: (a: ShareAccess) => Promise<T>): Promise<{ ok: true; data: T } | { ok: false; unreachable: boolean; message: string }> {
+  async share<T>(
+    fn: (a: ShareAccess) => Promise<T>,
+  ): Promise<
+    { ok: true; data: T } | { ok: false; unreachable: boolean; message: string }
+  > {
     const access = this.access();
-    if (!access) return { ok: false, unreachable: true, message: 'No hub.' };
+    if (!access) return { ok: false, unreachable: true, message: "No hub." };
     try {
       return { ok: true, data: await fn(access) };
     } catch (e) {
       if (e instanceof HubError) {
-        if (e.code === 'CERT_CHANGED') this.memberState = 'different-hub';
-        else if (e.code === 'NOT_PAIRED') this.memberState = 'not-paired';
-        return { ok: false, unreachable: e.unreachable || e.code === 'CERT_CHANGED' || e.code === 'NOT_PAIRED', message: e.message };
+        if (e.code === "CERT_CHANGED") this.memberState = "different-hub";
+        else if (e.code === "NOT_PAIRED") this.memberState = "not-paired";
+        return {
+          ok: false,
+          unreachable:
+            e.unreachable ||
+            e.code === "CERT_CHANGED" ||
+            e.code === "NOT_PAIRED",
+          message: e.message,
+        };
       }
-      return { ok: false, unreachable: false, message: 'The hub could not do that.' };
+      return {
+        ok: false,
+        unreachable: false,
+        message: "The hub could not do that.",
+      };
     }
   }
 
   private access(): ShareAccess | null {
-    if (this.saved.role === 'hub' && this.hub) {
+    if (this.saved.role === "hub" && this.hub) {
       const hub = this.hub;
       return {
-        submit: async (r) => hub.submit({ command: r.command, deviceId: HUB_SELF, userId: r.userId, capturedAt: r.capturedAt, localSeq: r.localSeq, strict: r.strict }),
+        submit: async (r) =>
+          hub.submit({
+            command: r.command,
+            deviceId: HUB_SELF,
+            userId: r.userId,
+            capturedAt: r.capturedAt,
+            localSeq: r.localSeq,
+            strict: r.strict,
+          }),
         since: async (after) => hub.since(after),
-        snapshot: async (state, asOf) => ({ accepted: hub.setSnapshot(state, asOf) }),
+        snapshot: async (state, asOf) => ({
+          accepted: hub.setSnapshot(state, asOf),
+        }),
+        state: async () => hub.state(),
+        confirm: async (ids, asOf) => hub.confirm(ids, asOf),
       };
     }
     const c = this.client;
-    if (this.saved.role === 'member' && c) {
-      return { submit: (r) => c.submit(r), since: (after) => c.since(after), snapshot: (state, asOf) => c.snapshot(state, asOf) };
+    if (this.saved.role === "member" && c) {
+      return {
+        submit: (r) => c.submit(r),
+        since: (after) => c.since(after),
+        snapshot: (state, asOf) => c.snapshot(state, asOf),
+        state: () => c.state(),
+        confirm: (ids, asOf) => c.confirm(ids, asOf),
+      };
     }
     return null;
   }
@@ -265,7 +390,17 @@ export class HubManager {
 }
 
 export interface ShareAccess {
-  submit(r: { command: DrawerCommand; userId: string; capturedAt: string; localSeq?: number; strict?: boolean }): Promise<SubmitResult>;
+  submit(r: {
+    command: DrawerCommand;
+    userId: string;
+    capturedAt: string;
+    localSeq?: number;
+    strict?: boolean;
+  }): Promise<SubmitResult>;
   since(after: number): Promise<StoredEntry[]>;
   snapshot(state: DayStateLike, asOf: string): Promise<{ accepted: boolean }>;
+  /** The server answer the hub counts from, with the entries after it. */
+  state(): Promise<{ snapshot: Snapshot | null; entries: StoredEntry[] }>;
+  /** The server has these commands, as of that server answer. */
+  confirm(ids: string[], asOf: string): Promise<{ confirmed: number }>;
 }

@@ -489,3 +489,167 @@ describe("days opened and closed with no connection", () => {
     });
   });
 });
+
+describe("one open day per branch (the hub)", () => {
+  const B = "b1";
+  const server: DayStateLike = {
+    day: {
+      id: "mon",
+      status: "open",
+      businessDate: "2026-11-09",
+      opening: { lines: { "100": 10 } },
+    },
+    balance: { "100": 10 },
+    appliedIds: ["mon"],
+    carryOver: { "100": 10 },
+  };
+  const close = (id: string, dayId: string, cash: Lines): DrawerCommand => ({
+    id,
+    type: "day.close",
+    payload: { dayId, branchId: B, declared: { cash } },
+  });
+  const open = (id: string, date: string, lines: Lines): DrawerCommand => ({
+    id,
+    type: "day.open",
+    payload: { id, branchId: B, businessDate: date, lines },
+  });
+  const buy = (id: string, n: number): DrawerCommand => ({
+    id,
+    type: "transaction.create",
+    payload: { branchId: B, payout: { lines: { "100": n } } },
+  });
+  const at = (command: DrawerCommand, seq: number): LogEntry => ({
+    command,
+    deviceId: "pc" + (seq % 2),
+    capturedAt: "2026-11-09T10:00:00Z",
+    seq,
+  });
+
+  it("a second opening is told the day is already open; an opening after the closing is fine", () => {
+    const v = projectDrawer(server, [], B);
+    expect(admit(v, open("tue", "2026-11-10", {}), B)).toMatchObject({
+      ok: false,
+      reason: "day-open",
+    });
+    const closed = projectDrawer(
+      server,
+      [close("c1", "mon", { "100": 10 })],
+      B,
+    );
+    expect(
+      admit(closed, open("tue", "2026-11-10", { "100": 10 }), B),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("a closing is accepted once; the second computer hears the day is no longer open", () => {
+    const v = projectDrawer(server, [], B);
+    expect(admit(v, close("c1", "mon", { "100": 10 }), B)).toMatchObject({
+      ok: true,
+    });
+    const closed = projectDrawer(
+      server,
+      [close("c1", "mon", { "100": 10 })],
+      B,
+    );
+    expect(admit(closed, close("c2", "mon", { "100": 9 }), B)).toMatchObject({
+      ok: false,
+      reason: "day-not-open",
+    });
+    expect(admit(v, close("c3", "some-other-day", {}), B)).toMatchObject({
+      ok: false,
+      reason: "day-not-open",
+    });
+  });
+
+  it("a closing under a merged id is for the open day", () => {
+    const v = projectDrawer(
+      server,
+      [open("mon2", "2026-11-09", { "100": 10 })],
+      B,
+    );
+    expect(v.aliases).toEqual({ mon2: "mon" });
+    expect(admit(v, close("c1", "mon2", { "100": 10 }), B)).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("another branch's opening or closing is none of this hub's business", () => {
+    const v = projectDrawer(server, [], B);
+    expect(
+      admit(
+        v,
+        {
+          id: "x",
+          type: "day.open",
+          payload: {
+            id: "x",
+            branchId: "b2",
+            businessDate: "2026-11-09",
+            lines: {},
+          },
+        },
+        B,
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("the shared log is replayed across days, in the order the hub gave", () => {
+    const log = [
+      at(buy("t1", 2), 1),
+      at(close("c1", "mon", { "100": 8 }), 2),
+      at(open("tue", "2026-11-10", { "100": 8 }), 3),
+      at(buy("t2", 5), 4),
+      at(buy("t3", 4), 5),
+    ];
+    const r = replayLog(server, [...log].reverse(), B);
+    expect(r.view).toMatchObject({
+      status: "open",
+      dayId: "tue",
+      balance: { "100": -1 },
+      negative: true,
+      local: true,
+      pendingCount: 5,
+    });
+    expect(r.steps.map((s) => s.covered)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(r.steps[4]!.short).toEqual({ "100": 1 });
+  });
+
+  it("a purchase logged while the day is closed does not touch the next day", () => {
+    const log = [
+      at(close("c1", "mon", { "100": 10 }), 1),
+      at(buy("late", 3), 2),
+      at(open("tue", "2026-11-10", { "100": 7 }), 3),
+    ];
+    expect(replayLog(server, log, B).view.balance).toEqual({ "100": 7 });
+  });
+
+  it("skips what the server already has", () => {
+    const tue: DayStateLike = {
+      day: {
+        id: "tue",
+        status: "open",
+        businessDate: "2026-11-10",
+        opening: { lines: { "100": 8 } },
+      },
+      balance: { "100": 3 },
+      appliedIds: ["tue", "t2"],
+      carryOver: { "100": 3 },
+    };
+    const log = [
+      at(open("tue", "2026-11-10", { "100": 8 }), 3),
+      at(buy("t2", 5), 4),
+      at(buy("t3", 1), 5),
+    ];
+    expect(replayLog(tue, log, B).view).toMatchObject({
+      balance: { "100": 2 },
+      pendingCount: 1,
+      local: false,
+    });
+  });
+});
