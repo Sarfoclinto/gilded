@@ -129,6 +129,30 @@ public class PeopleServiceTests
     }
 
     [Fact]
+    public async Task Search_only_covers_the_groups_and_branches_the_caller_may_see()
+    {
+        // someone with no permissions still searches the guide
+        await _svc.SearchAsync(new Ctx([]), "ama", null, null, default);
+        Assert.Contains("\"groups\":[\"guide\"]", _store.LastSearch);
+        Assert.Contains(Tarkwa.ToString(), _store.LastSearch);
+
+        // a teller: customers, purchases and mobile money, but not debts, users or branches
+        await _svc.SearchAsync(new Ctx([Permissions.TransactionsRead]), "  ama  ", null, null, default);
+        Assert.Contains("\"q\":\"ama\"", _store.LastSearch);
+        Assert.Contains("\"groups\":[\"customers\",\"purchases\",\"payments\",\"guide\"]", _store.LastSearch);
+
+        // more of one group: only a group the caller has, and the limit is kept within bounds
+        await Assert.ThrowsAsync<AppException>(() => _svc.SearchAsync(new Ctx([Permissions.TransactionsRead]), "ama", "users", null, default));
+        await _svc.SearchAsync(new Ctx([Permissions.TransactionsRead, Permissions.DebtsRead]), "ama", "debts", 5000, default);
+        Assert.Contains("\"group\":\"debts\"", _store.LastSearch);
+        Assert.Contains("\"limit\":50", _store.LastSearch);
+
+        // a very long question is cut, not refused
+        await _svc.SearchAsync(new Ctx([]), new string('x', 500), null, null, default);
+        Assert.DoesNotContain(new string('x', 81), _store.LastSearch);
+    }
+
+    [Fact]
     public async Task LiveAccount_needs_days_read_and_a_visible_branch()
     {
         await Assert.ThrowsAsync<AppException>(() => _svc.LiveAccountAsync(new Ctx([]), Tarkwa, default));
@@ -254,6 +278,8 @@ public class PeopleServiceTests
         public Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string f, CancellationToken ct) { LastAudit = f; LastAuditScope = scope; return Task.FromResult("{}"); }
         public Task<string> BranchOverviewAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> LiveAccountAsync(ICurrentContext me, Guid branchId, CancellationToken ct) { LastBranch = branchId; return Task.FromResult("{}"); }
+        public string? LastSearch;
+        public Task<string> GlobalSearchAsync(ICurrentContext me, string json, CancellationToken ct) { LastSearch = json; return Task.FromResult("{}"); }
         public Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
         public Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct) { LastScope = scope; LastBranch = branchId; return Task.FromResult("{}"); }
     }

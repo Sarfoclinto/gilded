@@ -16,6 +16,8 @@ import { UpdateBanner } from "./UpdateBanner";
 import { WarmCache } from "./WarmCache";
 import { DeviceRegistration } from "./DeviceRegistration";
 import { HubSync } from "./HubSync";
+import { SearchPalette } from "@/features/search/SearchPalette";
+import { SearchHotkeys } from "@/features/search/SearchButton";
 import { MobileTabBar } from "./MobileTabBar";
 import { DesktopSidebar, MenuDrawer } from "./Sidebar";
 
@@ -70,6 +72,8 @@ export default function AppLayout() {
         <WarmCache />
         <DeviceRegistration />
         <HubSync />
+        <SearchHotkeys />
+        <SearchPalette />
         {desktop ? <DesktopSidebar /> : <MenuDrawer />}
         <div className="flex min-w-0 flex-1 flex-col">
           <UpdateBanner />

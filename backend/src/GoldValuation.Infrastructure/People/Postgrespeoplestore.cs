@@ -73,6 +73,9 @@ public sealed class PostgresPeopleStore(NpgsqlDataSource dataSource, ILogger<Pos
     public async Task<string> LiveAccountAsync(ICurrentContext me, Guid branchId, CancellationToken ct) =>
         (await Scalar(me, "select gold.live_account_json($1)", ct, Uuid(branchId)))!;
 
+    public async Task<string> GlobalSearchAsync(ICurrentContext me, string json, CancellationToken ct) =>
+        (await Scalar(me, "select gold.global_search($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = json }))!;
+
     public async Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct) =>
         (await Scalar(me, "select gold.daily_accounts_json($1, $2, $3)", ct,
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = scope.ToArray() },

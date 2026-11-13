@@ -209,6 +209,45 @@ public sealed class PeopleService(IPeopleStore store, IPasswordHasher hasher)
         return store.LiveAccountAsync(me, branchId, ct);
     }
 
+    /// <summary>
+    /// What each group of the global search needs. A person searches only the groups they may see, in the branches they work in.
+    /// Customers are open to anyone who may look a customer up for a purchase; the guide is open to everyone.
+    /// </summary>
+    public static IReadOnlyList<string> SearchGroups(ICurrentContext me)
+    {
+        var g = new List<string>();
+        if (me.Has(Permissions.CustomersRead) || me.Has(Permissions.TransactionsRead)) g.Add("customers");
+        if (me.Has(Permissions.TransactionsRead)) g.Add("purchases");
+        if (me.Has(Permissions.DebtsRead)) { g.Add("debts"); g.Add("held"); }
+        if (me.Has(Permissions.TransfersRead)) g.Add("transfers");
+        if (me.Has(Permissions.PaymentsConfirm) || me.Has(Permissions.TransactionsRead)) g.Add("payments");
+        if (me.Has(Permissions.UsersManage)) g.Add("users");
+        if (me.Has(Permissions.BranchesManage)) g.Add("branches");
+        g.Add("guide");
+        return g;
+    }
+
+    /// <summary>
+    /// One question across everything the caller may see. <paramref name="group"/> asks for more of one group (up to 50);
+    /// without it each group returns its best few. Fewer than 2 characters finds nothing.
+    /// </summary>
+    public Task<string> SearchAsync(ICurrentContext me, string? q, string? group, int? limit, CancellationToken ct)
+    {
+        var text = (q ?? "").Trim();
+        if (text.Length > 80) text = text[..80];
+        var groups = SearchGroups(me);
+        if (!string.IsNullOrWhiteSpace(group) && !groups.Contains(group)) throw AppException.Forbidden();
+        var body = new JsonObject
+        {
+            ["q"] = text,
+            ["scope"] = new JsonArray(me.BranchIds.Select(b => (JsonNode)b.ToString()).ToArray()),
+            ["groups"] = new JsonArray(groups.Select(x => (JsonNode)x).ToArray()),
+        };
+        if (!string.IsNullOrWhiteSpace(group)) body["group"] = group;
+        if (limit is { } n) body["limit"] = Math.Clamp(n, 1, 50);
+        return store.GlobalSearchAsync(me, body.ToJsonString(), ct);
+    }
+
     private static readonly string[] AuditFilters = ["q", "category", "action", "actorId", "branchId", "from", "to", "minAmount", "sort", "page", "size"];
 
     /// <summary>

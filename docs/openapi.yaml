@@ -315,6 +315,25 @@ paths:
       responses:
         '200': { description: The settings after the change, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '403': { $ref: '#/components/responses/Error' }
+  /search:
+    get:
+      tags: [Search]
+      summary: Global search across everything the caller may see
+      description: |
+        `q` (2 to 80 characters). Every word must be found, in any order and any case. Phone numbers are compared by their digits
+        (`0244 123 456`, `+233244123456` and `244-123-456` are the same). A number is also tried as an amount. Customers are also found
+        when the name is slightly misspelt (`close: true`). Returns `{ q, groups: [ { key, total, items } ] }` with the groups
+        `customers`, `purchases`, `debts`, `held`, `transfers`, `payments`, `users`, `branches`, `guide`, each only when the caller's
+        permissions allow it and only for the branches they work in; groups with nothing found are left out. Each group returns its best 5
+        and how many there are in all. `group=<key>` asks for more of one group (`limit` up to 50, default 25); asking for a group the
+        caller may not search is refused (403). Fewer than 2 characters returns no groups.
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: group, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200': { description: The groups found, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /accounts/live:
     get:
       tags: [Days]
