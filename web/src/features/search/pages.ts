@@ -87,6 +87,8 @@ const MORE_WORDS: Record<string, string> = {
   [paths.review.cases.href]: "discrepancies shortage surplus variance",
   [paths.review.sync.href]: "offline entries held rejected sync",
   [paths.prices.href]: "price margin goldbod rate",
+  [paths.market.href]:
+    "world gold price chart spot xau usd ounce market history trend",
   [paths.priceFeed.href]: "goldbod feed automatic price",
   [paths.people.users.href]: "staff tellers accounts people",
   [paths.people.roles.href]: "permissions access",

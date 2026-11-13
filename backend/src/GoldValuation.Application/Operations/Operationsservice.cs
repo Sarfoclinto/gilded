@@ -25,6 +25,16 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
                ?? throw new AppException("PRICE_NOT_SET", "No price has been set for this branch yet.", 404);
     }
 
+    /// <summary>
+    /// The branch's price over the last <paramref name="days"/> days (1 to 730, default 30): every change, and what was bought each day.
+    /// Open to whoever may see the branch's price (anyone who works there), like the current price.
+    /// </summary>
+    public Task<string> PriceHistoryAsync(ICurrentContext me, Guid branchId, int? days, CancellationToken ct)
+    {
+        me.RequireBranch(branchId);
+        return store.PriceHistoryAsync(me, branchId, Math.Clamp(days ?? 30, 1, 730), ct);
+    }
+
     public async Task SetBasePriceAsync(ICurrentContext me, BasePriceCommand c, CancellationToken ct)
     {
         me.Require(Permissions.KumasiSetValue);

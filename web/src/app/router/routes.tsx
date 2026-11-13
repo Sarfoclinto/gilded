@@ -100,6 +100,9 @@ const PriceFeedPage = lazy(
   () => import("@/features/pricefeed/pages/PriceFeedPage"),
 );
 const PricesPage = lazy(() => import("@/features/prices/pages/PricesPage"));
+const GoldMarketPage = lazy(
+  () => import("@/features/market/pages/GoldMarketPage"),
+);
 const PendingPaymentsPage = lazy(
   () => import("@/features/payments/PendingPaymentsPage"),
 );
@@ -291,6 +294,11 @@ export const appRoutes: AppRoute[] = [
   {
     path: paths.prices.href,
     element: <PricesPage />,
+    access: { permission: PERMISSIONS.TRANSACTIONS_READ },
+  },
+  {
+    path: paths.market.href,
+    element: <GoldMarketPage />,
     access: { permission: PERMISSIONS.TRANSACTIONS_READ },
   },
 ];

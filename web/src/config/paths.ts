@@ -38,6 +38,8 @@ const paths = {
     exchange: { href: "/drawer/exchange", label: "Change notes" },
   },
   prices: { href: "/prices", label: "Prices" },
+  /** The world's live gold price, our own price over time and what we bought. */
+  market: { href: "/market", label: "Gold market" },
   priceFeed: { href: "/prices/feed", label: "Automatic price" },
   people: {
     customers: { href: "/people/customers", label: "Customers" },

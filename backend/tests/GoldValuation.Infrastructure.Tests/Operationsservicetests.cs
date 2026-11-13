@@ -25,6 +25,18 @@ public class OperationsServiceTests
         new DateTimeOffset(2026, 10, 23, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 10, 23, 9, 0, 0, TimeSpan.Zero), null);
 
     [Fact]
+    public async Task Price_history_is_for_a_branch_the_caller_works_in_and_the_period_is_kept_within_bounds()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _ops.PriceHistoryAsync(Teller(), Guid.NewGuid(), 30, default));
+        await _ops.PriceHistoryAsync(Teller(), Tarkwa, null, default);
+        Assert.Equal(30, _store.LastHistoryDays);
+        await _ops.PriceHistoryAsync(Teller(), Tarkwa, 100000, default);
+        Assert.Equal(730, _store.LastHistoryDays);
+        await _ops.PriceHistoryAsync(Teller(), Tarkwa, 0, default);
+        Assert.Equal(1, _store.LastHistoryDays);
+    }
+
+    [Fact]
     public async Task A_purchase_is_planned_and_handed_to_the_store()
     {
         var id = Guid.NewGuid();
@@ -329,6 +341,8 @@ public class OperationsServiceTests
 
         public Task<CalcConfig> GetCalcConfigAsync(ICurrentContext me, string v, CancellationToken ct) => Task.FromResult(CalcConfig.ExcelV1);
         public Task<string?> GetCurrentPriceAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult<string?>(null);
+        public int LastHistoryDays;
+        public Task<string> PriceHistoryAsync(ICurrentContext me, Guid b, int days, CancellationToken ct) { LastHistoryDays = days; return Task.FromResult("{}"); }
         public Task SetBasePriceAsync(ICurrentContext me, decimal p, DateTimeOffset? at, CancellationToken ct) { LastBasePrice = p; return Task.CompletedTask; }
         public Task<string> SetMarginAsync(ICurrentContext me, Guid b, decimal m, bool a, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> ApproveMarginAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult("{}");

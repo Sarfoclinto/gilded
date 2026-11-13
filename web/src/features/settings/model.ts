@@ -179,6 +179,19 @@ export const SECTIONS: Section[] = [
       },
     ],
   },
+  {
+    key: "market",
+    title: "Gold market",
+    blurb: "What the Gold market page and the tools panel show.",
+    fields: [
+      {
+        key: "market.worldChart",
+        kind: "toggle",
+        label: "Show the live world gold price chart",
+        help: "A live chart of the world price (US dollars per ounce) from TradingView, an outside service, with their name on it. It is for watching the market only and is never used to value gold. Off: only our own price history is shown, which needs no outside service. Our own charts are not affected.",
+      },
+    ],
+  },
 ];
 
 export type Draft = Partial<Settings>;

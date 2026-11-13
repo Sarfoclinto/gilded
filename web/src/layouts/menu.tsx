@@ -27,6 +27,7 @@ import {
   BookOpenIcon,
   PenLineIcon,
   CloudOffIcon,
+  LineChartIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -118,6 +119,20 @@ export const appMenu: AppMenuItem[] = [
         title: paths.people.customers.label,
         icon: <UsersIcon className={icon} />,
         permission: PERMISSIONS.CUSTOMERS_READ,
+      },
+    ],
+  },
+  {
+    key: "group-market",
+    type: "group",
+    label: "Market",
+    children: [
+      {
+        key: paths.market.href,
+        label: link(paths.market.href, paths.market.label),
+        title: paths.market.label,
+        icon: <LineChartIcon className={icon} />,
+        permission: PERMISSIONS.TRANSACTIONS_READ,
       },
     ],
   },

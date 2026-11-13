@@ -55,7 +55,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 ## Queued (agreed, not started)
 - **Town carat hints (steps 2-4 of the origin-town idea):** "usually 22 high here" on the transaction page and on the customer, a news/feed for new tellers, an "unusual for this town" flag, and a manager screen to rename/merge towns. Needs a few weeks of collected data; plain statistics first, ML only if they are not enough.
 - **General note exchange (drawer change):** a screen, separate from changing a customer's notes after a purchase, for a branch to swap notes for its own needs (smaller notes to give change, bigger notes to hand out fewer). Out must equal in, in and out must be different notes, it must be a drawer movement so the count stays right, and every one writes an audit entry. Builds on the existing `exchange` movement kind (0037), which today links to a purchase; this one has no purchase. Decided: it is a new permission that a manager can give to any role or person (not tied to days:manage); no reason is required; no second person needed for now (revisit if exchanges get large).
-- **World gold price chart (idea from Sherlock, like the NetDania screen):** a live chart of the world spot price, as an extra panel only.
+- **DONE in B55 (v1.8.0).** ~~World gold price chart (idea from Sherlock, like the NetDania screen):~~ a live chart of the world spot price, as an extra panel only.
   - **Widget:** TradingView's free "Advanced Real-Time Chart" embed (symbol `OANDA:XAUUSD` or `TVC:GOLD`, interval 60, timezone Africa/Accra, theme following the app). It brings its own data, so no price API. The default TradingView branding must stay on. In React: a small component that adds a `<script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js">` with the JSON config in `useEffect`.
   - **Not the "Advanced Charts" library:** that one is self-hosted and only free for public sites with attribution; Gilded is a paid app behind a login, so use the embed widget only.
   - **Offline:** the widget does not work offline. Hide the panel when the branch is offline; never put it on a screen people need to do their work.
@@ -75,7 +75,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - Town feature steps 3-4 (see "Queued" above).
 - Optional held-price expiry/escalation.
 - ESC/POS raw receipt printing.
-- World gold price chart (see "Queued" above).
+- ~~World gold price chart.~~ **Done in B55** (v1.8.0). Left: email TradingView to confirm the widget may be used in a paid app behind a login; check the chart loads inside the desktop app.
 - Before wide desktop rollout: a code-signing certificate for the Windows installer; real-hardware tests of hub failure; move the domain to the company account.
 - Hub: an entry kept for a manager's review and applied on a later day may be counted once more by the hub (B53 limit); trim the hub's log file.
 - ~~Global search.~~ **Done in B54** (v1.7.0). Possible later: search inside guide article text; a page of their own for a debt and for held gold so results open the exact record; measure speed on a large database.

@@ -178,6 +178,22 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { description: 'PRICE_NOT_SET - nothing has been published for this branch yet', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  /prices/history:
+    get:
+      tags: [Prices]
+      summary: A branch's price over time, and what it bought each day
+      description: |
+        `branchId`, `days` (1 to 730, default 30). Returns `{ branchId, days, from, asOf, points, daily }`. `points` are every change of the
+        branch's price in the period (`at`, `base` = the published reference price, `margin`, `price` = base + margin, `source`, `status`),
+        oldest first, preceded by the price that was in force when the period starts. `daily` is one row per calendar day of the branch with
+        purchases (`date`, `purchases`, `top`, `amount`, `avgPrice` = price per pound weighted by weight); cancelled purchases are left out.
+        Open to anyone who works in the branch, like the current price.
+      parameters:
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: days, schema: { type: integer, minimum: 1, maximum: 730 } }
+      responses:
+        '200': { description: The history, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
   /prices/base:
     post:
       tags: [Prices]

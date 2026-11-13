@@ -28,6 +28,8 @@ public static class OperationsEndpoints
         // ---- prices ----
         api.MapGet("/prices/current", async (Guid branchId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.CurrentPriceAsync(me, branchId, ct)));
+        api.MapGet("/prices/history", async (Guid branchId, int? days, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.PriceHistoryAsync(me, branchId, days, ct)));
         api.MapPost("/prices/base", async (BasePriceCommand body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
         {
             await ops.SetBasePriceAsync(me, body, ct);
