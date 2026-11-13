@@ -65,7 +65,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 
 ## Product backlog (candidates for the next major updates)
 - ~~Manager notice when entries are recorded short at a branch hub.~~ **Done in B50** (v1.3.0).
-- Offline day open/close. **Design agreed** (docs/OFFLINE-DAYS-DESIGN.md); build in 3 steps: server (**B51 done**, v1.4.0), screens (B52), hub (B53).
+- Offline day open/close. **Design agreed** (docs/OFFLINE-DAYS-DESIGN.md); build in 3 steps: server (**B51 done**, v1.4.0), screens (**B52 done**, v1.5.0, to be hand-tested), hub (B53).
 - Optional separate permission for branch computers.
 - Edit conflicts for users, branches and roles.
 - Branch overview showing the two-session status.

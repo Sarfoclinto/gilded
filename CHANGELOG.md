@@ -25,3 +25,7 @@
 
 ## v1.4.0
 - Nothing visible for staff yet (the server is ready for opening and closing the day with no internet).
+
+## v1.5.0
+- You can now open and close the day with no internet. The day opens or closes on the computer at once and is sent when the connection is back, in order. The page tells you when it is using this computer's own books.
+- If the server's books turn out different when an offline count arrives, the count is kept and the manager is told.

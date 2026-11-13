@@ -136,5 +136,10 @@ begin
         'confirmation', '%s'::jsonb))$q$, d4, b, conf));
   perform gold_test.assert(x = 'DAY_ALREADY_CLOSED', 'online, closing a closed day is still refused: ' || x);
   perform gold_test.assert((select count(*) from gold.audit_events where action in ('day.merged', 'day.second_close')) = 2, 'both audited');
+  -- B52: the day state carries the other book figures, and they agree with the closing preview's source
+  r := gold.day_state(b);
+  perform gold_test.assert(r->'books' ?& array['goodsTop','goodsDown','goodsValue','debt','payable','custodyTop'], 'day state has the books: ' || (r->'books')::text);
+  select (gold.branch_balance(b)).goods_value into n;
+  perform gold_test.assert((r#>>'{books,goodsValue}')::numeric = n and (r#>>'{books,payable}')::numeric = 0, 'and they are the branch balance');
   raise notice 'offline days ok';
 end $$;

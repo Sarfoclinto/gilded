@@ -3,7 +3,13 @@ import type {
   PayTransaction,
 } from "@/features/transactions/schemas";
 import type { Lines } from "@gold/core";
-import type { DayState, ExchangeCommand, MovementCommand } from "./schemas";
+import type {
+  CloseDayInput,
+  DayState,
+  ExchangeCommand,
+  MovementCommand,
+  OpenDayInput,
+} from "./schemas";
 
 /**
  * The drawer calculation now lives in @gold/core (core-ts/src/drawer.ts) so the screens and the branch hub use one copy of the rules.
@@ -27,6 +33,20 @@ export type Pending =
       id: string;
       type: "transaction.pay";
       payload: Pick<PayTransaction, "transactionId" | "branchId" | "lines">;
+    }
+  /** A day opened or closed on this device with no connection. */
+  | {
+      id: string;
+      type: "day.open";
+      payload: Pick<
+        OpenDayInput,
+        "id" | "branchId" | "businessDate" | "lines" | "afterClose"
+      >;
+    }
+  | {
+      id: string;
+      type: "day.close";
+      payload: Pick<CloseDayInput, "dayId" | "branchId" | "declared">;
     };
 
 /** Business date in the device's local time, "YYYY-MM-DD". */

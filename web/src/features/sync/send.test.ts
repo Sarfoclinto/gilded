@@ -13,7 +13,7 @@ vi.mock("./register", () => ({
   registerThisDevice: vi.fn(),
 }));
 
-import { reviewNotice, viaSync } from "./send";
+import { reviewNotice, viaSync, viaSyncOnly } from "./send";
 import { createOutbox } from "@/shared/offline/outbox";
 import { MemoryOutboxStore } from "@/shared/offline/outboxStore";
 
@@ -129,5 +129,69 @@ describe("outbox signing", () => {
     await box.enqueue("x", "t", { n: 1 });
     expect(box.getSnapshot()).toHaveLength(1);
     expect(box.getSnapshot()[0]!.signed).toBeUndefined();
+  });
+});
+
+describe("viaSyncOnly (openings and closings made with no connection)", () => {
+  const day = (over: Partial<OutboxEntry> = {}) =>
+    entry({ type: "day.close", ...over });
+
+  it("goes through sync when signed", async () => {
+    submit.mockResolvedValueOnce({
+      results: [{ id: "e1", status: "applied", flags: ["found-at-sync"] }],
+    });
+    const direct = vi.fn();
+    const out = await viaSyncOnly(direct)({} as never, day());
+    expect(direct).not.toHaveBeenCalled();
+    expect(out).toMatchObject({ via: "sync" });
+  });
+
+  it("does not fall back to the strict normal way when the key is the problem: it waits and tries again", async () => {
+    submit.mockResolvedValueOnce({
+      results: [{ id: "e1", status: "refused", code: "UNKNOWN_DEVICE" }],
+    });
+    const direct = vi.fn();
+    await expect(viaSyncOnly(direct)({} as never, day())).rejects.toMatchObject(
+      { kind: "network", retryable: true },
+    );
+    expect(direct).not.toHaveBeenCalled();
+  });
+
+  it("after several rounds it goes the normal way so the queue is not held up for ever", async () => {
+    submit.mockResolvedValueOnce({
+      results: [{ id: "e1", status: "refused", code: "BAD_SIGNATURE" }],
+    });
+    const direct = vi.fn().mockResolvedValue("ok");
+    const out = await viaSyncOnly(direct)({} as never, day({ attempts: 4 }));
+    expect(direct).toHaveBeenCalledTimes(1);
+    expect(out).toMatchObject({ via: "direct" });
+  });
+
+  it("a refusal that is not about the key fails the entry with the reason", async () => {
+    submit.mockResolvedValueOnce({
+      results: [
+        {
+          id: "e1",
+          status: "refused",
+          code: "FORBIDDEN",
+          message: "Not allowed",
+        },
+      ],
+    });
+    await expect(
+      viaSyncOnly(vi.fn())({} as never, day()),
+    ).rejects.toMatchObject({
+      kind: "http",
+      status: 403,
+      retryable: false,
+      message: "Not allowed",
+    });
+  });
+
+  it("an unsigned entry goes the normal way", async () => {
+    const direct = vi.fn().mockResolvedValue("ok");
+    expect(
+      await viaSyncOnly(direct)({} as never, day({ signed: undefined })),
+    ).toMatchObject({ via: "direct" });
   });
 });

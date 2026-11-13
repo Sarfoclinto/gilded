@@ -56,6 +56,59 @@ export function viaSync(direct: Handler): Handler {
   }) as Handler;
 }
 
+/**
+ * For openings and closings made with no connection. They must go through the sync endpoint, because only there does the server
+ * treat them as counts made without seeing its books (it records them and never refuses them for a missing reason). So unlike
+ * `viaSync` there is no "send it the normal way instead" when the device's key is the problem: the key is registered again and
+ * the entry waits for the next round (a few times, then it goes the normal way so it cannot hold up the queue for ever).
+ * An entry that was never signed (a device that cannot make keys) goes the normal way too.
+ */
+export function viaSyncOnly(direct: Handler): Handler {
+  return (async (payload: never, entry: OutboxEntry) => {
+    if (!entry.signed || !entry.userId)
+      return {
+        via: "direct",
+        data: await direct(payload, entry),
+      } satisfies SyncOutcome;
+    const { results } = await syncApi.submit([envelope(entry)]);
+    const r = results[0];
+    if (!r)
+      throw new ApiError({
+        kind: "bad-response",
+        message: "The server did not answer for this entry.",
+      });
+    if (r.status === "refused") {
+      if (r.code === "UNKNOWN_DEVICE" || r.code === "BAD_SIGNATURE") {
+        forgetRegistration(entry.userId);
+        try {
+          await registerThisDevice(entry.userId);
+        } catch {
+          /* tried again on the next round */
+        }
+        // After a few rounds the key is not the kind of problem that fixes itself (the entry was signed with a key that has since been
+        // replaced). Rather than hold up everything behind it, send it the normal way and let the server give its ordinary answer.
+        if (entry.attempts >= 4)
+          return {
+            via: "direct",
+            data: await direct(payload, entry),
+          } satisfies SyncOutcome;
+        throw new ApiError({
+          kind: "network",
+          message:
+            "This computer was registered with the server again. The entry will be sent in a moment.",
+        });
+      }
+      throw new ApiError({
+        kind: "http",
+        status: 403,
+        code: r.code ?? undefined,
+        message: r.message ?? "The server did not accept this entry.",
+      });
+    }
+    return { via: "sync", result: r } satisfies SyncOutcome;
+  }) as Handler;
+}
+
 /** What to tell the person when the server kept an entry for review instead of applying it. */
 export function reviewNotice(o: unknown): string | null {
   const r = (o as SyncOutcome | undefined)?.result;
