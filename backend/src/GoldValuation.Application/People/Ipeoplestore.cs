@@ -35,6 +35,8 @@ public interface IPeopleStore
     Task<string> AuditSearchAsync(ICurrentContext me, IReadOnlyCollection<Guid>? scope, string filtersJson, CancellationToken ct);
     /// <summary>The closing account of one branch as the books stand now ("if I closed now"). Read-only.</summary>
     Task<string> LiveAccountAsync(ICurrentContext me, Guid branchId, CancellationToken ct);
+    /// <summary>Global search (migration 0055). <paramref name="json"/>: { q, scope, groups, group?, limit? }.</summary>
+    Task<string> GlobalSearchAsync(ICurrentContext me, string json, CancellationToken ct);
     Task<string> DailyAccountsAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, DateOnly date, CancellationToken ct);
     Task<string> CashOverviewAsync(ICurrentContext me, IReadOnlyCollection<Guid> scope, Guid? branchId, CancellationToken ct);
 }

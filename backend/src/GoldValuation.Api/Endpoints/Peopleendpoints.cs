@@ -60,6 +60,9 @@ public static class PeopleEndpoints
             Data(await svc.BranchOverviewAsync(me, id, ct)));
         api.MapGet("/cash/overview", async (Guid? branchId, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Data(await svc.CashOverviewAsync(me, branchId, ct)));
+        // Global search: one question across everything the caller may see.
+        api.MapGet("/search", async (string? q, string? group, int? limit, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
+            Data(await svc.SearchAsync(me, q, group, limit, ct)));
         api.MapGet("/accounts/live", async (Guid branchId, ICurrentContext me, PeopleService svc, CancellationToken ct) =>
             Data(await svc.LiveAccountAsync(me, branchId, ct)));
         api.MapGet("/accounts/daily", async (Guid? branchId, string? date, ICurrentContext me, PeopleService svc, CancellationToken ct) =>

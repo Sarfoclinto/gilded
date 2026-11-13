@@ -28,6 +28,7 @@ import { ConnectionBadge } from "@/shared/ui/ConnectionBadge";
 import { BranchSwitcher } from "./BranchSwitcher";
 import { HubPill } from "./HubPill";
 import { NewPurchaseButton } from "./NewPurchaseButton";
+import { SearchButton } from "@/features/search/SearchButton";
 import { appMenu } from "./menu";
 import { crumbsFor, filterMenu } from "./menuFilter";
 
@@ -98,6 +99,7 @@ export function Header() {
         {!desktop ? <BranchSwitcher /> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        <SearchButton wide={desktop} />
         {desktop ? <NewPurchaseButton /> : null}
         {desktop ? <BranchSwitcher /> : null}
         <HubPill />

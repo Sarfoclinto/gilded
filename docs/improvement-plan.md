@@ -42,7 +42,7 @@ Ranked by my guess of value, highest first:
 9. **Notification centre improvements:** unread badges, "needs my action" list, optional push.
 10. **Session safety:** auto-lock after idle, quick PIN to unlock, shift handover note.
 11. **Mobile money reconciliation:** match provider statements to recorded payments.
-12. **Global search** (customer, receipt number, phone), keyboard shortcut.
+12. ~~**Global search** (customer, receipt number, phone), keyboard shortcut.~~ **Done in B54** (v1.7.0).
 13. **Backups/system status page** for directors (last backup, price feed health, version).
 14. **Installable app (PWA)** and clearer offline indicators ("3 waiting to sync").
 15. **Dark mode**, larger text option for counter use, optional Twi labels.
@@ -78,3 +78,4 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - World gold price chart (see "Queued" above).
 - Before wide desktop rollout: a code-signing certificate for the Windows installer; real-hardware tests of hub failure; move the domain to the company account.
 - Hub: an entry kept for a manager's review and applied on a later day may be counted once more by the hub (B53 limit); trim the hub's log file.
+- ~~Global search.~~ **Done in B54** (v1.7.0). Possible later: search inside guide article text; a page of their own for a debt and for held gold so results open the exact record; measure speed on a large database.

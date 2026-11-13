@@ -42,3 +42,7 @@
 
 - Branches with several computers: opening and closing the day with no internet now shows on every computer, and only one computer can open or close a day.
 - Fixed: on the second day of using a branch hub, the drawer on the computers could show too little (yesterday's payouts were taken off again)
+
+## v1.7.0
+
+- New: search everything from anywhere. Press Ctrl+K or tap the search button and type a name, a phone number, a receipt number or an amount. It also finds pages ("close the day"). On a customer, Shift+Enter (or the + button) starts a new purchase for them.

@@ -1,5 +1,6 @@
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { clearCustomerDirectory } from "@/features/customers/directory";
+import { clearRecentSearches } from "@/features/search/recent";
 import { clearTowns } from "@/features/towns/towns";
 import { ApiError, isApiError } from "@/shared/api/errors";
 import { useApiMutation } from "@/shared/api/hooks";
@@ -18,6 +19,7 @@ import type { LoginInput, SessionData, User } from "./schemas";
 function wipeStoredData(qc: QueryClient) {
   qc.clear();
   clearCustomerDirectory();
+  clearRecentSearches();
   clearTowns();
 }
 
