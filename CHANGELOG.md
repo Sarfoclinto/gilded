@@ -46,3 +46,8 @@
 ## v1.7.0
 
 - New: search everything from anywhere. Press Ctrl+K or tap the search button and type a name, a phone number, a receipt number or an amount. It also finds pages ("close the day"). On a customer, Shift+Enter (or the + button) starts a new purchase for them.
+
+## v1.8.0
+
+- New page "Gold market": the live world gold price, our own price over time, what we bought, and the price changes. Also a "Market" tab in the tools panel.
+- The world chart is for watching only. It is never the price we pay.

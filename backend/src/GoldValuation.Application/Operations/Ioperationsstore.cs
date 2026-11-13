@@ -13,6 +13,8 @@ public interface IOperationsStore
     Task<CalcConfig> GetCalcConfigAsync(ICurrentContext me, string formulaVersion, CancellationToken ct);
 
     Task<string?> GetCurrentPriceAsync(ICurrentContext me, Guid branchId, CancellationToken ct);
+    /// <summary>The price a branch has paid over time and what it bought each day (migration 0056).</summary>
+    Task<string> PriceHistoryAsync(ICurrentContext me, Guid branchId, int days, CancellationToken ct);
     Task SetBasePriceAsync(ICurrentContext me, decimal basePrice, DateTimeOffset? publishedAt, CancellationToken ct);
     Task<string> SetMarginAsync(ICurrentContext me, Guid branchId, decimal margin, bool approve, CancellationToken ct);
     Task<string> ApproveMarginAsync(ICurrentContext me, Guid branchId, CancellationToken ct);

@@ -39,6 +39,9 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
     public Task<string?> GetCurrentPriceAsync(ICurrentContext me, Guid branchId, CancellationToken ct) =>
         Scalar(me, "select gold.current_price($1)", ct, Uuid(branchId));
 
+    public async Task<string> PriceHistoryAsync(ICurrentContext me, Guid branchId, int days, CancellationToken ct) =>
+        (await Scalar(me, "select gold.price_history_json($1, $2)", ct, Uuid(branchId), new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, Value = days }))!;
+
     public async Task SetBasePriceAsync(ICurrentContext me, decimal basePrice, DateTimeOffset? publishedAt, CancellationToken ct) =>
         await Scalar(me, "select gold.set_base_price($1, $2)", ct,
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Numeric, Value = basePrice },

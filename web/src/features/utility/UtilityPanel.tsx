@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Drawer, Segmented } from "antd";
 import { Calculator, X } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
@@ -10,8 +10,16 @@ import { PayoutPanel } from "@/features/calculator/PayoutPanel";
 import { TextField } from "@/shared/ui/TextField";
 import { decimalOnly } from "@/shared/lib/numbers";
 import { ClosingStatus } from "./ClosingStatus";
+
 import { CustomerHistory } from "./CustomerHistory";
 import { useUtilityPanel, type UtilityTab } from "./store";
+
+// The charts are only fetched when the Market tab is first opened, so they do not weigh on every screen.
+const MarketQuick = lazy(() =>
+  import("@/features/market/MarketQuick").then((m) => ({
+    default: m.MarketQuick,
+  })),
+);
 
 /** Nominations: type an amount, see the notes to hand out. Uses the open drawer's notes when there is one. */
 function NominationsBody() {
@@ -43,8 +51,9 @@ export function UtilityContent() {
   const canSeeCash = useHasPermission(PERMISSIONS.DAYS_READ);
   return (
     <div className="space-y-4 p-4">
+      {/* Six tabs in a narrow panel: each takes the room its word needs (not equal widths), in smaller type, so no name is cut off. */}
       <Segmented
-        block
+        className="w-full [&_.ant-segmented-group]:justify-between [&_.ant-segmented-item-label]:!px-2 [&_.ant-segmented-item-label]:!text-xs"
         value={
           (tab === "cash" || tab === "closing") && !canSeeCash
             ? "calculator"
@@ -61,6 +70,7 @@ export function UtilityContent() {
                 { label: "Closing", value: "closing" },
               ]
             : []),
+          { label: "Market", value: "market" },
         ]}
       />
       {/* Both stay mounted so switching tabs keeps what was typed. */}
@@ -76,6 +86,16 @@ export function UtilityContent() {
       {tab === "cash" && canSeeCash && <CashBody />}
       {tab === "customer" && <CustomerHistory />}
       {tab === "closing" && canSeeCash && <ClosingStatus />}
+      {/* Mounted only while looked at: the world chart is an outside service and should not load in the background. */}
+      {tab === "market" && (
+        <Suspense
+          fallback={
+            <p className="text-sm text-muted-foreground">Loading the market…</p>
+          }
+        >
+          <MarketQuick />
+        </Suspense>
+      )}
     </div>
   );
 }
