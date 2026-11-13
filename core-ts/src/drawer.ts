@@ -42,6 +42,24 @@ export type DrawerCommand =
       id: string;
       type: "transaction.pay";
       payload: { transactionId: string; branchId: string; lines: Lines };
+    }
+  /** A day opened on a device with no connection. Its id is made on the device, and the server keeps it. */
+  | {
+      id: string;
+      type: "day.open";
+      payload: {
+        id: string;
+        branchId: string;
+        businessDate: string;
+        lines: Lines;
+        afterClose?: boolean;
+      };
+    }
+  /** A day closed on a device with no connection: the notes counted are what the next opening starts from. */
+  | {
+      id: string;
+      type: "day.close";
+      payload: { dayId: string; branchId: string; declared: { cash: Lines } };
     };
 
 /** The part of the server's day state the calculation needs. */
@@ -77,6 +95,8 @@ export interface DrawerView {
   negative: boolean;
   /** The note-by-note rule is off for this branch: tellers may hand out notes the books lack, but never more money than the drawer holds. */
   loose: boolean;
+  /** The day's state (open or closed) comes from an opening or closing made on a device that the server has not received yet. */
+  local: boolean;
 }
 
 /** The id under which the server will report this command as applied. A payout is counted under its purchase's id. */
@@ -113,6 +133,9 @@ export function drawerEffect(
     case "transaction.pay":
       if (c.payload.branchId !== ctx.branchId) return null;
       return { in: {}, out: c.payload.lines };
+    case "day.open":
+    case "day.close":
+      return null; // they change the day, not the notes (see projectDrawer)
   }
 }
 
@@ -124,6 +147,17 @@ function isNegative(balance: Lines | null, loose: boolean): boolean {
     : Object.values(balance).some((n) => n < 0);
 }
 
+const positive = (l: Lines): Lines =>
+  Object.fromEntries(Object.entries(l).filter(([, n]) => n > 0));
+
+/**
+ * The drawer as a device sees it. Commands are taken in the order given (the order they were made).
+ * Openings and closings made with no connection are followed too, so a device can close Monday, open Tuesday and keep
+ * working while the server still thinks it is Monday:
+ *  - a waiting opening makes the drawer open, with its own id and the notes that were counted;
+ *  - a waiting closing closes it, and the notes counted are what the next opening starts from;
+ *  - an opening for the date that is already open is the same day under a second id (the server merges them the same way).
+ */
 export function projectDrawer(
   state: DayStateLike | null,
   pending: DrawerCommand[],
@@ -131,36 +165,87 @@ export function projectDrawer(
   twoStep = false,
 ): DrawerView {
   const applied = new Set(state?.appliedIds ?? []);
-  const status: DrawerView["status"] = state
+  let status: DrawerView["status"] = state
     ? state.day
       ? (state.day.status as DrawerView["status"])
       : "none"
     : "unknown";
-  const dayId = state?.day?.id ?? null;
+  let dayId = state?.day?.id ?? null;
   let balance: Lines | null =
     state?.day?.status === "open" ? (state.balance ?? {}) : null;
+  let businessDate = state?.day?.businessDate ?? null;
+  let openingLines = state?.day?.opening.lines ?? null;
+  let closingLines = state?.day?.closing?.cash.counted ?? null;
+  let carryOver = state?.carryOver ?? null;
+  let local = false;
   let pendingCount = 0;
   const loose = !!state?.looseDenominations;
+  const alias = new Map<string, string>();
+  const real = (id: string) => alias.get(id) ?? id;
 
   for (const p of pending) {
+    if (p.type === "day.open") {
+      if (p.payload.branchId !== branchId) continue;
+      if (applied.has(p.id) || state?.day?.id === p.payload.id) continue; // the server has it
+      pendingCount++;
+      if (
+        status === "open" &&
+        dayId &&
+        businessDate === p.payload.businessDate &&
+        !p.payload.afterClose
+      ) {
+        alias.set(p.payload.id, dayId); // the same day, opened twice
+        continue;
+      }
+      status = "open";
+      dayId = p.payload.id;
+      businessDate = p.payload.businessDate;
+      openingLines = { ...p.payload.lines };
+      balance = { ...p.payload.lines };
+      closingLines = null;
+      local = true;
+      continue;
+    }
+    if (p.type === "day.close") {
+      if (p.payload.branchId !== branchId) continue;
+      const target = real(p.payload.dayId);
+      if (state?.day?.id === target && state.day.status === "closed") continue; // the server has it
+      pendingCount++;
+      if (status !== "open" || target !== dayId) continue; // for a day this device no longer has open
+      status = "closed";
+      closingLines = { ...p.payload.declared.cash };
+      carryOver = positive(p.payload.declared.cash);
+      balance = null;
+      local = true;
+      continue;
+    }
     if (applied.has(appliedKey(p))) continue;
     pendingCount++;
     if (!balance) continue;
-    const e = drawerEffect(p, { status, dayId, branchId, twoStep });
+    const c =
+      (p.type === "drawer.movement" || p.type === "drawer.exchange") &&
+      alias.has(p.payload.dayId)
+        ? ({
+            ...p,
+            payload: { ...p.payload, dayId: real(p.payload.dayId) },
+          } as DrawerCommand)
+        : p;
+    const e = drawerEffect(c, { status, dayId, branchId, twoStep });
     if (e) balance = subtractLines(addLines(balance, e.in), e.out);
   }
 
   return {
     status,
     dayId,
-    businessDate: state?.day?.businessDate ?? null,
+    businessDate,
     balance,
-    openingLines: state?.day?.opening.lines ?? null,
-    closingLines: state?.day?.closing?.cash.counted ?? null,
-    carryOver: state?.carryOver ?? null,
+    openingLines,
+    closingLines,
+    carryOver,
     pendingCount,
     negative: isNegative(balance, loose),
     loose,
+    local,
   };
 }
 

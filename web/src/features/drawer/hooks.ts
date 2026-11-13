@@ -14,6 +14,8 @@ const RELEVANT = new Set<string>([
   OUTBOX.MOVEMENT,
   OUTBOX.EXCHANGE,
   OUTBOX.PAY,
+  OUTBOX.DAY_OPEN,
+  OUTBOX.DAY_CLOSE,
   "transaction.create",
 ]);
 
@@ -32,7 +34,7 @@ export function useDrawer(branchId: string | null) {
   const peers = usePeers((s) => s.entries);
   const selfId = useHubState((s) => s.hub.selfId);
   // Commands saved on the other computers of this branch count against the drawer too, so nobody is offered notes a colleague just used.
-  const view = useMemo(() => {
+  const { view, waiting } = useMemo(() => {
     const own = entries.filter(
       (e) => e.status !== "failed" && RELEVANT.has(e.type),
     ) as unknown as Pending[];
@@ -45,21 +47,25 @@ export function useDrawer(branchId: string | null) {
           !mine.has(p.command.id),
       )
       .map((p) => p.command) as unknown as Pending[];
+    const all = [...own, ...others];
     const withPeers = projectDrawer(
       query.data ?? null,
-      [...own, ...others],
+      all,
       branchId ?? "",
       twoStep,
     );
     // "Not sent yet" counts what this computer holds, not what its colleagues' computers do.
     return {
-      ...withPeers,
-      pendingCount: projectDrawer(
-        query.data ?? null,
-        own,
-        branchId ?? "",
-        twoStep,
-      ).pendingCount,
+      view: {
+        ...withPeers,
+        pendingCount: projectDrawer(
+          query.data ?? null,
+          own,
+          branchId ?? "",
+          twoStep,
+        ).pendingCount,
+      },
+      waiting: all,
     };
   }, [query.data, entries, peers, selfId, branchId, twoStep]);
   // Give the hub the server's latest answer, so it counts from the same starting point.
@@ -68,7 +74,8 @@ export function useDrawer(branchId: string | null) {
   }, [query.data, query.isFetching]);
   /** False while an answer is still on its way, so a screen does not act on an old snapshot. */
   const settled = !query.isFetching;
-  return { view, state: query.data ?? null, query, settled };
+  /** `waiting`: everything not yet at the server that the drawer above already counts, in the order it was made. */
+  return { view, waiting, state: query.data ?? null, query, settled };
 }
 
 /** Same, for the branch the person is working in. */

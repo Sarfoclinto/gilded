@@ -3,8 +3,10 @@ import { transactionKeys, transactionsApi } from "@/features/transactions/api";
 import { dayKeys, daysApi } from "@/features/drawer/api";
 import {
   OUTBOX,
+  type CloseDayInput,
   type ExchangeCommand,
   type MovementCommand,
+  type OpenDayInput,
 } from "@/features/drawer/schemas";
 import { debtKeys, collateralKeys } from "@/features/debts/api";
 import { paymentKeys } from "@/features/payments/api";
@@ -12,7 +14,7 @@ import type {
   CreateTransaction,
   PayTransaction,
 } from "@/features/transactions/schemas";
-import { reviewNotice, viaSync } from "@/features/sync/send";
+import { reviewNotice, viaSync, viaSyncOnly } from "@/features/sync/send";
 import { syncKeys } from "@/features/sync/api";
 import { toast } from "@/shared/ui/toast";
 import type { Handler } from "@/shared/offline/outbox";
@@ -30,6 +32,11 @@ export const outboxHandlers: Record<string, Handler> = {
     daysApi.exchange(payload)) as Handler),
   [OUTBOX.PAY]: viaSync(((payload: PayTransaction) =>
     transactionsApi.pay(payload)) as Handler),
+  // A day opened or closed with no connection: the count is a fact, so it goes through sync, where it is never refused for a missing reason.
+  [OUTBOX.DAY_OPEN]: viaSyncOnly(((payload: OpenDayInput) =>
+    daysApi.open(payload)) as Handler),
+  [OUTBOX.DAY_CLOSE]: viaSyncOnly(((payload: CloseDayInput) =>
+    daysApi.close(payload)) as Handler),
 };
 
 /** After the server confirms a command, refresh what the screens show. */
@@ -52,7 +59,9 @@ export const makeOnSynced =
         void qc.invalidateQueries({ queryKey: key });
     } else if (
       entry.type === OUTBOX.MOVEMENT ||
-      entry.type === OUTBOX.EXCHANGE
+      entry.type === OUTBOX.EXCHANGE ||
+      entry.type === OUTBOX.DAY_OPEN ||
+      entry.type === OUTBOX.DAY_CLOSE
     ) {
       void qc.invalidateQueries({ queryKey: dayKeys.all });
     }

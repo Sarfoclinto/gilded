@@ -548,7 +548,8 @@ paths:
         Returns the open day if there is one, otherwise the most recent day (closed) or `day: null` if the branch never
         opened one. `balance` is what the drawer should hold according to the server (opening + top-ups - withdrawals -
         payouts applied to this day). `appliedIds` lists the ids of the commands already included, so a device that still
-        holds some of them in its offline queue does not subtract them twice. Needs `days:read`.
+        holds some of them in its offline queue does not subtract them twice. `books` (B52) is what the books hold besides cash
+        (`goodsTop`, `goodsDown`, `goodsValue`, `debt`, `payable`, `custodyTop`); devices keep it to work out a closing with no connection. Needs `days:read`.
       parameters:
         - in: query
           name: branchId

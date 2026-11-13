@@ -8,6 +8,7 @@ import {
   sortLog,
   type DayStateLike,
   type DrawerCommand,
+  type Lines,
   type LogEntry,
 } from "../src";
 
@@ -270,5 +271,221 @@ describe("branches with the note rule off (loose)", () => {
     ];
     const r = replayLog(day(true), log, "b");
     expect(r.steps.map((s) => s.covered)).toEqual([true, false]); // GHS 120 then 120 more: the second exceeds the GHS 200
+  });
+});
+
+describe("days opened and closed with no connection", () => {
+  const B = "b1";
+  const server: DayStateLike = {
+    day: {
+      id: "mon",
+      status: "open",
+      businessDate: "2026-11-09",
+      opening: { lines: { "100": 10 } },
+    },
+    balance: { "100": 10 },
+    appliedIds: ["mon"],
+    carryOver: { "100": 10 },
+  };
+  const close = (id: string, dayId: string, cash: Lines): DrawerCommand => ({
+    id,
+    type: "day.close",
+    payload: { dayId, branchId: B, declared: { cash } },
+  });
+  const open = (
+    id: string,
+    date: string,
+    lines: Lines,
+    extra: object = {},
+  ): DrawerCommand => ({
+    id,
+    type: "day.open",
+    payload: { id, branchId: B, businessDate: date, lines, ...extra },
+  });
+  const buy = (id: string, n: number): DrawerCommand => ({
+    id,
+    type: "transaction.create",
+    payload: { branchId: B, payout: { lines: { "100": n } } },
+  });
+  const move = (id: string, dayId: string, n: number): DrawerCommand => ({
+    id,
+    type: "drawer.movement",
+    payload: { dayId, kind: "topup", lines: { "100": n } },
+  });
+
+  it("a waiting closing closes the drawer; the count is what the next day starts from", () => {
+    const v = projectDrawer(
+      server,
+      [buy("t1", 2), close("c1", "mon", { "100": 8, "50": 0 })],
+      B,
+    );
+    expect(v).toMatchObject({
+      status: "closed",
+      balance: null,
+      closingLines: { "100": 8, "50": 0 },
+      carryOver: { "100": 8 },
+      local: true,
+      pendingCount: 2,
+    });
+  });
+
+  it("close Monday, open Tuesday, trade: all on the device", () => {
+    const v = projectDrawer(
+      server,
+      [
+        buy("t1", 2),
+        close("c1", "mon", { "100": 8 }),
+        open("tue", "2026-11-10", { "100": 8 }),
+        buy("t2", 3),
+        move("m1", "tue", 1),
+      ],
+      B,
+    );
+    expect(v).toMatchObject({
+      status: "open",
+      dayId: "tue",
+      businessDate: "2026-11-10",
+      openingLines: { "100": 8 },
+      balance: { "100": 6 },
+      local: true,
+      pendingCount: 5,
+    });
+  });
+
+  it("a movement for the old day does not touch the new day", () => {
+    const v = projectDrawer(
+      server,
+      [
+        close("c1", "mon", { "100": 10 }),
+        open("tue", "2026-11-10", { "100": 10 }),
+        move("m0", "mon", 5),
+      ],
+      B,
+    );
+    expect(v.balance).toEqual({ "100": 10 });
+  });
+
+  it("once the server has the opening, it is not counted again", () => {
+    const later: DayStateLike = {
+      day: {
+        id: "tue",
+        status: "open",
+        businessDate: "2026-11-10",
+        opening: { lines: { "100": 8 } },
+      },
+      balance: { "100": 5 },
+      appliedIds: ["tue", "t2"],
+      carryOver: { "100": 5 },
+    };
+    const v = projectDrawer(
+      later,
+      [open("tue", "2026-11-10", { "100": 8 }), buy("t2", 3), buy("t3", 1)],
+      B,
+    );
+    expect(v).toMatchObject({
+      status: "open",
+      dayId: "tue",
+      balance: { "100": 4 },
+      local: false,
+      pendingCount: 1,
+    });
+  });
+
+  it("once the server has the closing, it is not counted again", () => {
+    const closed: DayStateLike = {
+      day: {
+        id: "mon",
+        status: "closed",
+        businessDate: "2026-11-09",
+        opening: { lines: {} },
+        closing: { cash: { counted: { "100": 8 } } },
+      },
+      balance: null,
+      appliedIds: ["mon"],
+      carryOver: { "100": 8 },
+    };
+    const v = projectDrawer(closed, [close("c1", "mon", { "100": 8 })], B);
+    expect(v).toMatchObject({
+      status: "closed",
+      local: false,
+      pendingCount: 0,
+    });
+  });
+
+  it("an opening for the date already open is the same day under a second id", () => {
+    const v = projectDrawer(
+      server,
+      [
+        open("mon2", "2026-11-09", { "100": 9 }),
+        move("m1", "mon2", 2),
+        close("c1", "mon2", { "100": 12 }),
+      ],
+      B,
+    );
+    expect(v).toMatchObject({
+      status: "closed",
+      dayId: "mon",
+      closingLines: { "100": 12 },
+    });
+    const mid = projectDrawer(
+      server,
+      [open("mon2", "2026-11-09", { "100": 9 }), move("m1", "mon2", 2)],
+      B,
+    );
+    expect(mid).toMatchObject({
+      status: "open",
+      dayId: "mon",
+      balance: { "100": 12 },
+      local: false,
+    });
+  });
+
+  it("a second session after closing (same date) is a new opening", () => {
+    const v = projectDrawer(
+      server,
+      [
+        close("c1", "mon", { "100": 10 }),
+        open("mon-b", "2026-11-09", { "100": 10 }, { afterClose: true }),
+        buy("t", 1),
+      ],
+      B,
+    );
+    expect(v).toMatchObject({
+      status: "open",
+      dayId: "mon-b",
+      balance: { "100": 9 },
+    });
+  });
+
+  it("with no day at the server yet, the first opening can be made offline too", () => {
+    const none: DayStateLike = {
+      day: null,
+      balance: null,
+      appliedIds: [],
+      carryOver: null,
+    };
+    const v = projectDrawer(
+      none,
+      [open("first", "2026-11-09", { "50": 4 })],
+      B,
+    );
+    expect(v).toMatchObject({
+      status: "open",
+      dayId: "first",
+      balance: { "50": 4 },
+      local: true,
+    });
+  });
+
+  it("ignores another branch's openings and closings", () => {
+    const other: DrawerCommand = {
+      id: "x",
+      type: "day.close",
+      payload: { dayId: "mon", branchId: "b2", declared: { cash: {} } },
+    };
+    expect(projectDrawer(server, [other], B)).toMatchObject({
+      status: "open",
+      pendingCount: 0,
+    });
   });
 });

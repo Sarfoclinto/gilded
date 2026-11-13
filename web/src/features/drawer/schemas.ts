@@ -94,6 +94,17 @@ export const dayStateSchema = z.object({
   carryOver: linesSchema.nullable(),
   /** This branch has the note-by-note rule off: only the total money in the drawer is enforced, and counts at opening/closing match on the total. */
   looseDenominations: z.boolean().optional(),
+  /** What the books hold besides cash. Kept on the device so a closing can be worked out with no connection. */
+  books: z
+    .object({
+      goodsTop: z.string(),
+      goodsDown: z.string(),
+      goodsValue: z.string(),
+      debt: z.string(),
+      payable: z.string(),
+      custodyTop: z.string(),
+    })
+    .optional(),
   asOf: z.string(),
 });
 export type DayState = z.infer<typeof dayStateSchema>;
@@ -117,7 +128,20 @@ export const closingPreviewSchema = z.object({
 });
 export type ClosingPreview = z.infer<typeof closingPreviewSchema>;
 
-/** Opening a day needs the server (it compares the count with the books), so it is sent straight away, not queued. */
+/** The figures a device showed the person while they counted with no connection, so the server knows what they compared against. */
+export interface CountBasis {
+  cash: Record<string, number>;
+  goodsTop?: string;
+  goodsDown?: string;
+  goodsValue?: string;
+  debt?: string;
+  payable?: string;
+  custodyTop?: string;
+  /** When the device last heard the books from the server. */
+  asOf?: string;
+}
+
+/** Opening a day. Sent straight away when there is a connection; with none it is queued and the day opens on the device first. */
 export interface OpenDayInput {
   id: string;
   branchId: string;
@@ -128,6 +152,7 @@ export interface OpenDayInput {
   explanation?: string | null;
   /** A customer came after the day was closed: a second session on the same date, with the reason in `explanation`. */
   afterClose?: boolean;
+  basis?: CountBasis;
 }
 
 export interface CloseDayInput {
@@ -144,8 +169,10 @@ export interface CloseDayInput {
     custodyTop: string;
   };
   explanations: Partial<Record<Figure, string>>;
-  confirmation: { accepted: boolean; version: string };
+  /** `text`: the wording the person ticked, sent with a closing made with no connection. */
+  confirmation: { accepted: boolean; version: string; text?: string };
   capturedAt: string;
+  basis?: CountBasis;
 }
 
 /** Cash in or out of the drawer. Safe to queue: it never needs an answer to continue. */
@@ -196,6 +223,8 @@ export const OUTBOX = {
   MOVEMENT: "drawer.movement",
   EXCHANGE: "drawer.exchange",
   PAY: "transaction.pay",
+  DAY_OPEN: "day.open",
+  DAY_CLOSE: "day.close",
 } as const;
 
 /** GET /days/{id}/activity: one day's own movements, apart from the running totals. */
