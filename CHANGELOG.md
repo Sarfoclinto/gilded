@@ -51,3 +51,14 @@
 
 - New page "Gold market": the live world gold price, our own price over time, what we bought, and the price changes. Also a "Market" tab in the tools panel.
 - The world chart is for watching only. It is never the price we pay.
+
+## v0.3.0 (desktop app)
+
+- Updated desktop functionality since v1.2.1:
+  - Added offline opening and closing of the day, with automatic syncing when the connection returns.
+  - Shared offline opening and closing status across computers at a branch, while ensuring only one computer can perform each action.
+  - Added manager notifications for offline drawer shortages and mismatched offline counts.
+  - Added global search for customers, phone numbers, receipts, amounts, and pages (Ctrl+K).
+  - Added quick access to a customer's latest purchases and the ability to start a new purchase for that customer.
+  - Added the Gold market page and Market tools tab with world gold prices, purchase history, and price changes.
+  - Improved phone navigation, drawer cash-in/cash-out controls, calculator layouts, and pop-up window styling.
