@@ -5,6 +5,8 @@ import { cedis } from "@/features/calculator/format";
 import { NoteCountInput } from "@/features/drawer/NoteCountInput";
 import { TextField } from "@/shared/ui/TextField";
 import { useReleaseTransfer } from "./api";
+import { scaleCheck } from "./model";
+import { ScaleReading } from "./ScaleReading";
 import type { Transfer } from "./schemas";
 
 function Form({
@@ -22,13 +24,34 @@ function Form({
     (s, l) => s + Number(l.releasedTop),
     0,
   );
+  const goodsDown = transfer.lines.reduce(
+    (s, l) => s + Number(l.releasedDown),
+    0,
+  );
   const goodsValue = transfer.lines.reduce(
     (s, l) => s + Number(l.releasedValue),
     0,
   );
+  const [scaleTop, setScaleTop] = useState("");
+  const [scaleDown, setScaleDown] = useState("");
+  const typed =
+    scaleTop.trim() !== "" &&
+    scaleDown.trim() !== "" &&
+    Number.isFinite(Number(scaleTop)) &&
+    Number.isFinite(Number(scaleDown)) &&
+    Number(scaleTop) >= 0 &&
+    Number(scaleDown) >= 0;
+  const check = typed
+    ? scaleCheck(
+        Number(scaleTop) - goodsTop,
+        Number(scaleDown) - goodsDown,
+        goodsTop,
+        transfer.lines.length,
+      )
+    : null;
   const ok =
     !release.isPending &&
-    (cash ? lineTotal(lines) > 0 : transfer.lines.length > 0) &&
+    (cash ? lineTotal(lines) > 0 : transfer.lines.length > 0 && typed) &&
     !!transfer.collector;
   return (
     <div className="space-y-4">
@@ -51,10 +74,50 @@ function Form({
           <NoteCountInput value={lines} onChange={setLines} />
         </div>
       ) : (
-        <p className="tnum rounded-lg bg-muted p-3 text-sm">
-          {transfer.lines.length} piece{transfer.lines.length === 1 ? "" : "s"}{" "}
-          · top {goodsTop.toFixed(2)} g · worth {cedis(goodsValue)}
-        </p>
+        <div className="space-y-3">
+          <p className="tnum rounded-lg bg-muted p-3 text-sm">
+            {transfer.lines.length} piece
+            {transfer.lines.length === 1 ? "" : "s"} · books: top{" "}
+            <strong>{goodsTop.toFixed(2)} g</strong> · down{" "}
+            <strong>{goodsDown.toFixed(2)} g</strong> · worth{" "}
+            {cedis(goodsValue)}
+          </p>
+          <div>
+            <p className="mb-1 text-sm font-medium">
+              Put all the pieces on the scale together
+            </p>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Enter what the scale shows. It is recorded next to the books; a
+              difference does not stop the transfer, but it is shown and a big
+              one tells the reviewers.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <TextField
+                label="Scaled top (g)"
+                inputMode="decimal"
+                placeholder={goodsTop.toFixed(2)}
+                value={scaleTop}
+                onChange={(e) => setScaleTop(e.target.value)}
+              />
+              <TextField
+                label="Scaled down (g)"
+                inputMode="decimal"
+                placeholder={goodsDown.toFixed(2)}
+                value={scaleDown}
+                onChange={(e) => setScaleDown(e.target.value)}
+              />
+            </div>
+          </div>
+          {check ? (
+            <ScaleReading
+              booksTop={goodsTop}
+              booksDown={goodsDown}
+              scaleTop={Number(scaleTop)}
+              scaleDown={Number(scaleDown)}
+              {...check}
+            />
+          ) : null}
+        </div>
       )}
       <TextField
         label="Note (optional)"
@@ -70,7 +133,9 @@ function Form({
             {
               id: transfer.id,
               ...(note.trim() ? { note: note.trim() } : {}),
-              ...(cash ? { lines } : {}),
+              ...(cash
+                ? { lines }
+                : { scaledTop: scaleTop.trim(), scaledDown: scaleDown.trim() }),
             },
             { onSuccess: onClose },
           )

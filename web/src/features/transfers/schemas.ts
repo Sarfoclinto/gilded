@@ -81,6 +81,20 @@ const lineSchema = z.object({
 });
 export type TransferLine = z.infer<typeof lineSchema>;
 
+export const scaleLevelSchema = z.enum(["ok", "notice", "alert", "critical"]);
+export type ScaleLevel = z.infer<typeof scaleLevelSchema>;
+/** What the sender's scale said when the gold was handed over, set against the books (B57). */
+export const scaledSchema = z.object({
+  top: text,
+  down: text,
+  topDifference: text,
+  downDifference: text,
+  topLevel: scaleLevelSchema,
+  downLevel: scaleLevelSchema,
+  level: scaleLevelSchema,
+  downAllowance: text,
+});
+
 const totalsSchema = z.object({
   top: text,
   down: text,
@@ -112,6 +126,7 @@ export const transferSchema = z.object({
     .nullable()
     .optional(),
   declared: totalsSchema.nullable().optional(),
+  scaled: scaledSchema.nullable().optional(),
   receipt: totalsSchema
     .extend({
       by: personSchema.nullable().optional(),

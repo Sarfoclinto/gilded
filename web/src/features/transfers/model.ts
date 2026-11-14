@@ -1,4 +1,5 @@
 import type {
+  ScaleLevel,
   TransferableItem,
   TransferRow,
   Transfer,
@@ -161,4 +162,79 @@ export function filterItems(
       v.toLowerCase().includes(t),
     ),
   );
+}
+
+// ---------------------------------------------------------------- the sender's scale against the books (B57)
+// Mirrors gold.scale_check in migration 0058; the server's grade is the one recorded, this one only previews it.
+const RANK: Record<ScaleLevel, number> = {
+  ok: 0,
+  notice: 1,
+  alert: 2,
+  critical: 3,
+};
+const worst = (a: ScaleLevel, b: ScaleLevel): ScaleLevel =>
+  RANK[a] >= RANK[b] ? a : b;
+
+export interface ScaleCheck {
+  topLevel: ScaleLevel;
+  downLevel: ScaleLevel;
+  level: ScaleLevel;
+  downAllowance: number;
+}
+
+/** Top: any gap is yellow up to 0.10 g, orange up to 0.50 g, red beyond. Down: the allowance grows with pieces and weight, never above 0.50 g. */
+export function scaleCheck(
+  topDiff: number,
+  downDiff: number,
+  booksTop: number,
+  pieces: number,
+): ScaleCheck {
+  const allow = Math.min(
+    0.5,
+    0.02 + 0.01 * Math.max(pieces, 0) + 0.001 * Math.max(booksTop, 0),
+  );
+  const r = (n: number) => Math.round(n * 10_000) / 10_000;
+  const t = r(Math.abs(topDiff)),
+    d = r(Math.abs(downDiff));
+  const topLevel: ScaleLevel =
+    t === 0 ? "ok" : t <= 0.1 ? "notice" : t <= 0.5 ? "alert" : "critical";
+  const downLevel: ScaleLevel =
+    d <= allow / 2
+      ? "ok"
+      : d <= allow
+        ? "notice"
+        : d <= 0.5
+          ? "alert"
+          : "critical";
+  return {
+    topLevel,
+    downLevel,
+    level: worst(topLevel, downLevel),
+    downAllowance: Math.round(allow * 1000) / 1000,
+  };
+}
+
+export const SCALE_TEXT: Record<ScaleLevel, string> = {
+  ok: "Matches the books",
+  notice: "A small difference",
+  alert: "Check the weighing",
+  critical: "Too far from the books",
+};
+
+/** Classes for a level: a plain match, yellow, orange and a strong red. */
+export const SCALE_TONE: Record<ScaleLevel, string> = {
+  ok: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  notice:
+    "border-yellow-500/60 bg-yellow-400/20 text-yellow-800 dark:text-yellow-200",
+  alert:
+    "border-orange-500/70 bg-orange-500/15 text-orange-800 dark:text-orange-200",
+  critical: "border-red-600 bg-red-600/15 text-red-700 dark:text-red-300",
+};
+
+/** A signed gram figure: +0.05 g, -0.30 g, or "no difference". */
+export function signedGrams(n: number): string {
+  const v = Math.round(n * 100) / 100;
+  return v === 0
+    ? "no difference"
+    : `${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(2)} g`;
 }

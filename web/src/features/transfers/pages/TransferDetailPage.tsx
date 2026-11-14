@@ -32,7 +32,16 @@ import {
   purposeLabel,
   StatusChip,
 } from "../labels";
-import { differenceOf, roadAge, STAGES, stageOf } from "../model";
+import {
+  differenceOf,
+  roadAge,
+  SCALE_TEXT,
+  SCALE_TONE,
+  signedGrams,
+  STAGES,
+  stageOf,
+} from "../model";
+import { ScaleReading } from "../ScaleReading";
 import type { Transfer } from "../schemas";
 
 type Dialog =
@@ -288,6 +297,24 @@ export default function TransferDetailPage() {
           description="The sending branch's books went down by what was sent; the receiving branch booked what it found. The difference stays open as a case until someone settles it."
         />
       ) : null}
+      {t.scaled && t.declared && t.scaled.level !== "ok" ? (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <p className="mb-2 text-sm font-semibold">
+            At the handover, the scale and the books did not agree:{" "}
+            {SCALE_TEXT[t.scaled.level].toLowerCase()}
+          </p>
+          <ScaleReading
+            booksTop={Number(t.declared.top)}
+            booksDown={Number(t.declared.down)}
+            scaleTop={Number(t.scaled.top)}
+            scaleDown={Number(t.scaled.down)}
+            topLevel={t.scaled.topLevel}
+            downLevel={t.scaled.downLevel}
+            level={t.scaled.level}
+            downAllowance={Number(t.scaled.downAllowance)}
+          />
+        </div>
+      ) : null}
       {t.cancellation ? (
         <Alert
           type="info"
@@ -348,6 +375,15 @@ export default function TransferDetailPage() {
                 : "Counted at handover"}
             </div>
           )}
+          {t.scaled && t.declared ? (
+            <div
+              className={`mt-2 rounded-md border px-2 py-1 text-xs ${SCALE_TONE[t.scaled.level]}`}
+            >
+              Scale: top {t.scaled.top} g (
+              {signedGrams(Number(t.scaled.topDifference))}) · down{" "}
+              {t.scaled.down} g ({signedGrams(Number(t.scaled.downDifference))})
+            </div>
+          ) : null}
           {t.release ? (
             <div className="mt-1 text-xs text-muted-foreground">
               {when(t.release.at)} · {t.release.by?.displayName}

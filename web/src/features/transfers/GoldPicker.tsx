@@ -111,19 +111,58 @@ export function GoldPicker({
           })}
         </ul>
       )}
-      <p className="tnum text-sm text-muted-foreground" aria-live="polite">
+      <div
+        className="rounded-xl border border-border bg-card p-3"
+        aria-live="polite"
+      >
         {totals.count ? (
           <>
-            <strong className="text-foreground">{totals.count}</strong> selected
-            · top{" "}
-            {totals.top.toLocaleString("en-GH", { maximumFractionDigits: 2 })} g
-            · worth{" "}
-            <strong className="text-foreground">{cedis(totals.value)}</strong>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="text-[11px] uppercase text-muted-foreground">
+                  Total top
+                </div>
+                <div className="tnum text-lg font-bold">
+                  {totals.top.toLocaleString("en-GH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  g
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-muted-foreground">
+                  Total down
+                </div>
+                <div className="tnum text-lg font-bold">
+                  {totals.down.toLocaleString("en-GH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  g
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-muted-foreground">
+                  Worth
+                </div>
+                <div className="tnum text-lg font-bold">
+                  {cedis(totals.value)}
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              {totals.count} piece{totals.count === 1 ? "" : "s"} chosen, by the
+              books. When you hand them over you weigh them all together and
+              enter what the scale shows.
+            </p>
           </>
         ) : (
-          `${rows.length} piece${rows.length === 1 ? "" : "s"} available`
+          <p className="text-center text-sm text-muted-foreground">
+            {rows.length} piece{rows.length === 1 ? "" : "s"} available
+          </p>
         )}
-      </p>
+      </div>
     </div>
   );
 }

@@ -66,3 +66,7 @@
 ## v1.9.0
 
 - A manager or director can cancel a purchase saved by mistake. The books are reversed, the cash returns to today's drawer, and the purchase stays listed as cancelled.
+
+## v1.10.0
+
+- Gold transfers record the scale reading against the books, coloured by how far apart they are; a large gap notifies reviewers.
