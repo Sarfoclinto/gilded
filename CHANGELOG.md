@@ -74,3 +74,11 @@
 ## v1.11.0
 
 - The dashboard shows each branch's purchases over time as lines (cedis, weight or count, 7 days to 12 months); tellers see their own branch. Dates across the app now show the weekday.
+
+## v0.4.0 (desktop app)
+
+- Updated desktop functionality since v0.3.0 (includes web v1.9.0 to v1.11.0):
+  - A manager or director can cancel a purchase saved by mistake: the books are reversed, the cash returns to today's drawer, and the purchase stays listed as cancelled.
+  - Gold transfers show totals while choosing and record the scale reading against the books, coloured by how far apart they are; a large gap notifies reviewers.
+  - The dashboard shows each branch's purchases over time as lines (cedis, weight or count, 7 days to 12 months); tellers see their own branch.
+  - Dates across the app now show the weekday.
