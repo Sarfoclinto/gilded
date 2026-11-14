@@ -62,3 +62,7 @@
   - Added quick access to a customer's latest purchases and the ability to start a new purchase for that customer.
   - Added the Gold market page and Market tools tab with world gold prices, purchase history, and price changes.
   - Improved phone navigation, drawer cash-in/cash-out controls, calculator layouts, and pop-up window styling.
+
+## v1.9.0
+
+- A manager or director can cancel a purchase saved by mistake. The books are reversed, the cash returns to today's drawer, and the purchase stays listed as cancelled.

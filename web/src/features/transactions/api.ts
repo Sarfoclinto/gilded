@@ -9,6 +9,12 @@ import {
 
 export const transactionKeys = createKeys("transactions");
 
+/** The purchase after cancelling, with what came back. */
+export const cancelResultSchema = z.object({
+  data: transactionSchema,
+  entriesReversed: z.number().optional(),
+  cashBack: z.string().optional(),
+});
 export const searchResultSchema = z.object({
   items: z.array(transactionSchema),
   total: z.number(),
@@ -66,6 +72,12 @@ export const transactionsApi = {
         },
       },
       transactionSchema,
+    ),
+  /** Cancel a wrongly saved purchase (needs transactions:cancel). The books are put back by new entries; the purchase stays, marked cancelled. */
+  cancel: (id: string, reason: string) =>
+    request(
+      { method: "post", url: `/transactions/${id}/cancel`, data: { reason } },
+      cancelResultSchema,
     ),
   create: (cmd: CreateTransaction) =>
     request(

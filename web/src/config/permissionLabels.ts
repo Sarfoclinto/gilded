@@ -23,6 +23,8 @@ export const permissionLabels: Record<Permission, string> = {
   "transfers:create": "Prepare, send and pay for transfers (sending end)",
   "discrepancies:review":
     "Work the inbox of differences (take, note, resolve, reopen)",
+  "transactions:cancel":
+    "Cancel a wrongly saved purchase, with a reason: the gold and the cash are put back; the original is kept",
   "notes:exchange":
     "Change notes for the branch itself: smaller notes for change, bigger notes to hand out fewer",
   "sync:review":

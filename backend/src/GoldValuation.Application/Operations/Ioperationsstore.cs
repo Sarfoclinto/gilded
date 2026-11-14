@@ -38,6 +38,8 @@ public interface IOperationsStore
     Task<string> DashboardAsync(ICurrentContext me, string filterJson, CancellationToken ct);
     Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<string> ResolvePaymentAsync(ICurrentContext me, Guid paymentId, string outcome, string? replacementsJson, CancellationToken ct);
+    /// <summary>Cancels a purchase and puts back what it did (migration 0057). <paramref name="json"/>: { id, reason }.</summary>
+    Task<string> CancelTransactionAsync(ICurrentContext me, string json, CancellationToken ct);
 
     Task<DbResult> PayTransactionAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     /// <summary>Purchases of a branch waiting to be paid out, newest first; the search matches number, name or phone.</summary>

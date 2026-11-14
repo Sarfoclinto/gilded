@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
   ArrowLeftRightIcon,
+  BanIcon,
   CheckIcon,
   CopyIcon,
   PrinterIcon,
@@ -18,6 +19,7 @@ import { useBranchNames } from "@/features/branches/api";
 import { cedis, percent } from "@/features/calculator/format";
 import { StackBar } from "@/features/dashboard/charts";
 import { PayModal } from "../PayModal";
+import { CancelModal } from "../CancelModal";
 import {
   ResolvePaymentModal,
   type ResolveTarget,
@@ -88,6 +90,8 @@ export default function TransactionDetailPage() {
   const [exchanging, setExchanging] = useState(false);
   const [paying, setPaying] = useState(false);
   const canManageDay = useHasPermission(PERMISSIONS.DAYS_MANAGE);
+  const canCancel = useHasPermission(PERMISSIONS.TRANSACTIONS_CANCEL);
+  const [cancelling, setCancelling] = useState(false);
   const { view: drawer } = useActiveDrawer();
   const activeBranch = useAuth((st) => st.activeBranchId);
 
@@ -238,6 +242,21 @@ export default function TransactionDetailPage() {
               Receipt
             </Button>
           </Link>
+          {/* Cancelling needs the server (it puts the books back), so not while the purchase itself is still waiting to be sent. */}
+          {canCancel &&
+          !cancelled &&
+          t.branchId === activeBranch &&
+          t.sync !== "waiting" &&
+          t.sync !== "failed" ? (
+            <Button
+              variant="secondary"
+              onClick={() => setCancelling(true)}
+              className="border-red-500/40 text-red-700 hover:bg-red-500/10 dark:text-red-300"
+            >
+              <BanIcon className="mr-1.5 size-4" aria-hidden />
+              Cancel purchase
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -570,6 +589,9 @@ export default function TransactionDetailPage() {
         </div>
       </div>
       {paying ? <PayModal t={t} open onClose={() => setPaying(false)} /> : null}
+      {cancelling ? (
+        <CancelModal t={t} open onClose={() => setCancelling(false)} />
+      ) : null}
       {drawer.dayId && activeBranch ? (
         <ExchangeModal
           open={exchanging}

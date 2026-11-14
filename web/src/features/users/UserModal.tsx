@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Alert, Modal, Segmented } from "antd";
-import { allPermissions, permissionLabels } from "@/config/permissionLables";
+import { allPermissions, permissionLabels } from "@/config/permissionLabels";
 import type { Permission } from "@/config/permissions";
 import { useBranchNames } from "@/features/branches/api";
 import { Button } from "@/shared/ui/Button";
