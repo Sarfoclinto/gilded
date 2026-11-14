@@ -1,4 +1,4 @@
-import { permissionLabels } from "@/config/permissionLables";
+import { permissionLabels } from "@/config/permissionLabels";
 import { PERMISSIONS as P, type Permission } from "@/config/permissions";
 
 export type Risk = "high" | "medium";
@@ -16,6 +16,7 @@ export const GROUPS: {
       P.CALCULATOR_USE,
       P.TRANSACTIONS_READ,
       P.TRANSACTIONS_CREATE,
+      P.TRANSACTIONS_CANCEL,
       P.CUSTOMERS_READ,
       P.CUSTOMERS_MANAGE,
     ],
@@ -79,11 +80,13 @@ export const RISK: Partial<Record<Permission, Risk>> = {
   [P.PAYMENTS_CONFIRM]: "medium",
   [P.BRANCHES_ALL]: "medium",
   [P.CUSTOMERS_MANAGE]: "medium",
+  [P.TRANSACTIONS_CANCEL]: "high",
 };
 
 /** A permission that is of little use without another one. Offered as "add it" in the editor. */
 export const NEEDS: Partial<Record<Permission, Permission>> = {
   [P.TRANSACTIONS_CREATE]: P.TRANSACTIONS_READ,
+  [P.TRANSACTIONS_CANCEL]: P.TRANSACTIONS_READ,
   [P.DAYS_MANAGE]: P.DAYS_READ,
   [P.NOTES_EXCHANGE]: P.DAYS_READ,
   [P.DAYS_SIGNOFF]: P.DAYS_READ,

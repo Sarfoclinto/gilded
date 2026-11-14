@@ -292,6 +292,20 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return InScope(me, json) ?? throw AppException.NotFound("Transaction");
     }
 
+    /// <summary>
+    /// Cancels a wrongly saved purchase. Needs transactions:cancel and a purchase of a branch the caller works in; the reason is kept with it.
+    /// The database puts back the gold, the cash and anything else the purchase did, by new entries; nothing is edited.
+    /// </summary>
+    public async Task<string> CancelTransactionAsync(ICurrentContext me, Guid id, CancelTransactionCommand? c, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsCancel);
+        var reason = c?.Reason?.Trim();
+        if (string.IsNullOrEmpty(reason) || reason.Length < 5) throw AppException.Invalid("Say why the purchase is cancelled (at least 5 characters).", new Dictionary<string, string[]> { ["reason"] = ["At least 5 characters."] });
+        if (reason.Length > 500) throw AppException.Invalid("The reason is too long (500 characters at most).");
+        _ = InScope(me, await store.GetTransactionAsync(me, id, ct)) ?? throw AppException.NotFound("Transaction");
+        return await store.CancelTransactionAsync(me, new JsonObject { ["id"] = id, ["reason"] = reason }.ToJsonString(), ct);
+    }
+
     /// <summary>Someone at the sending branch confirms the mobile money arrived, or marks it failed and covers it another way.</summary>
     public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid paymentId, bool confirmed, ResolvePaymentCommand? c, CancellationToken ct)
     {

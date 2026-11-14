@@ -78,6 +78,9 @@ public static class OperationsEndpoints
             Data(await ops.ToPayAsync(me, branchId, q, ct)));
         api.MapPost("/transactions/{id:guid}/pay", async (Guid id, PayTransactionCommand body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Created(await ops.PayTransactionAsync(me, id, body, ct)));
+        // Cancel a wrongly saved purchase (a manager, with a reason). The books are put back by new entries; the purchase stays, marked cancelled.
+        api.MapPost("/transactions/{id:guid}/cancel", async (Guid id, CancelTransactionCommand? body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.CancelTransactionAsync(me, id, body, ct)));
         api.MapGet("/settings", async (ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.GetSettingsAsync(me, ct)));
         api.MapPut("/settings", async (JsonObject body, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

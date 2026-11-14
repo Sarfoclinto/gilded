@@ -54,6 +54,8 @@ public static class Permissions
     public const string SyncReview = "sync:review";
     /// <summary>Change notes for the branch itself (smaller notes for change, bigger notes to hand out fewer), without a purchase.</summary>
     public const string NotesExchange = "notes:exchange";
+    /// <summary>Cancel a wrongly saved purchase, with a reason: the gold and the cash are put back by new entries; the original is kept.</summary>
+    public const string TransactionsCancel = "transactions:cancel";
 
     /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
     public static IReadOnlySet<string> All { get; } = typeof(Permissions)
@@ -67,7 +69,7 @@ public static class Permissions
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage, GuideManage];

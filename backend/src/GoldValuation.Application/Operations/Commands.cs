@@ -53,6 +53,9 @@ public sealed record BasePriceCommand(string? BasePrice, DateTimeOffset? Publish
 
 public sealed record MarginCommand(string? Margin, bool Approve);
 
+/// <summary>Cancel a purchase: why (at least 5 characters).</summary>
+public sealed record CancelTransactionCommand(string? Reason);
+
 public sealed record ResolvePaymentCommand(List<SplitCommand>? Replacements, List<CashReplacement>? CashReplacements);
 
 /// <summary>A replacement for a failed mobile-money part, paid in cash.</summary>

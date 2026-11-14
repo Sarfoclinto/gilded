@@ -37,6 +37,23 @@ public class OperationsServiceTests
     }
 
     [Fact]
+    public async Task Cancelling_needs_the_permission_a_reason_and_a_purchase_of_the_callers_branch()
+    {
+        var id = Guid.NewGuid();
+        _store.StoredTransaction = $"{{\"id\":\"{id}\",\"branchId\":\"{Tarkwa}\"}}";
+        var canceller = new Ctx([.. Teller().Permissions, Permissions.TransactionsCancel], [Tarkwa]);
+        await Assert.ThrowsAsync<AppException>(() => _ops.CancelTransactionAsync(Teller(), id, new CancelTransactionCommand("Wrong customer"), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.CancelTransactionAsync(canceller, id, new CancelTransactionCommand("oops"), default));
+        await Assert.ThrowsAsync<AppException>(() => _ops.CancelTransactionAsync(canceller, id, null, default));
+        _store.StoredTransaction = $"{{\"id\":\"{id}\",\"branchId\":\"{Kumasi}\"}}";
+        await Assert.ThrowsAsync<AppException>(() => _ops.CancelTransactionAsync(canceller, id, new CancelTransactionCommand("Wrong customer"), default));
+        _store.StoredTransaction = $"{{\"id\":\"{id}\",\"branchId\":\"{Tarkwa}\"}}";
+        await _ops.CancelTransactionAsync(canceller, id, new CancelTransactionCommand("  Wrong customer  "), default);
+        Assert.Contains("\"reason\":\"Wrong customer\"", _store.LastCancel);
+        Assert.Contains(id.ToString(), _store.LastCancel);
+    }
+
+    [Fact]
     public async Task A_purchase_is_planned_and_handed_to_the_store()
     {
         var id = Guid.NewGuid();
@@ -373,6 +390,8 @@ public class OperationsServiceTests
         public string? LastDashboard;
         public Task<string> DashboardAsync(ICurrentContext me, string filterJson, CancellationToken ct) { LastDashboard = filterJson; return Task.FromResult("{\"today\":{},\"tellers\":[],\"topCustomers\":[],\"cashDifferences\":{},\"series\":[]}"); }
         public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult(StoredTransaction);
+        public string? LastCancel;
+        public Task<string> CancelTransactionAsync(ICurrentContext me, string json, CancellationToken ct) { LastCancel = json; return Task.FromResult("{}"); }
         public Task<string> ResolvePaymentAsync(ICurrentContext me, Guid id, string o, string? r, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> PendingPaymentsAsync(ICurrentContext me, Guid b, string role, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> ExpectationsAsync(ICurrentContext me, Guid? t, Guid? c, CancellationToken ct) => Task.FromResult("{}");
