@@ -16,7 +16,7 @@ public sealed class TransfersService(ITransfersStore store)
     private static readonly string[] Statuses = ["draft", "released", "received", "received_with_discrepancy", "cancelled"];
     private static readonly string[] CreateFields = ["id", "kind", "originBranchId", "destinationBranchId", "purpose", "purposeNote", "method", "expectedArrivalAt", "itemIds", "collector"];
     private static readonly string[] EditFields = ["addItemIds", "removeLineIds", "collector", "purpose", "purposeNote", "method", "expectedArrivalAt"];
-    private static readonly string[] ReleaseFields = ["note", "collectedAt", "lines"];
+    private static readonly string[] ReleaseFields = ["note", "collectedAt", "lines", "scaledTop", "scaledDown"];
     private static readonly string[] PaymentFields = ["id", "branchId", "direction", "amount", "method", "purpose", "externalRef", "note", "lines"];
     private static readonly string[] ReceiveFields = ["note", "lines"];
 

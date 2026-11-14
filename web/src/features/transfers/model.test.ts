@@ -5,6 +5,8 @@ import {
   matches,
   pickedTotals,
   roadAge,
+  scaleCheck,
+  signedGrams,
   stageOf,
   summarize,
 } from "./model";
@@ -187,5 +189,30 @@ describe("difference on receipt", () => {
         receipt: { cash: "1000", at: "" },
       })?.cash,
     ).toBe(0);
+  });
+});
+
+describe("the scale against the books (B57)", () => {
+  it("grades the top: yellow to 0.1, orange to 0.5, red beyond, either direction", () => {
+    expect(scaleCheck(0, 0, 15.54, 2).topLevel).toBe("ok");
+    expect(scaleCheck(0.03, 0, 15.54, 2).topLevel).toBe("notice");
+    expect(scaleCheck(-0.1, 0, 15.54, 2).topLevel).toBe("notice");
+    expect(scaleCheck(0.11, 0, 15.54, 2).topLevel).toBe("alert");
+    expect(scaleCheck(-0.5, 0, 15.54, 2).topLevel).toBe("alert");
+    expect(scaleCheck(0.51, 0, 15.54, 2).level).toBe("critical");
+  });
+  it("lets the down differ more for more pieces, but never past 0.5", () => {
+    expect(scaleCheck(0, 0.2, 15.54, 2).downLevel).toBe("alert");
+    expect(["ok", "notice"]).toContain(scaleCheck(0, 0.2, 400, 60).downLevel);
+    expect(scaleCheck(0, 0, 400, 60).downAllowance).toBe(0.5);
+    expect(scaleCheck(0, 0.6, 400, 60).level).toBe("critical");
+  });
+  it("takes the worse of the two", () => {
+    expect(scaleCheck(0.03, 0.2, 15.54, 2).level).toBe("alert");
+  });
+  it("writes a signed gram figure", () => {
+    expect(signedGrams(0)).toBe("no difference");
+    expect(signedGrams(0.054)).toBe("+0.05 g");
+    expect(signedGrams(-0.3)).toBe("−0.30 g");
   });
 });
