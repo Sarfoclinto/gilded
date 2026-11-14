@@ -36,6 +36,7 @@ public interface IOperationsStore
     /// <summary>Filtered, sorted, paged purchases as { items, total, sumPayable } (database function transactions_search). The filter is JSON.</summary>
     Task<string> SearchTransactionsAsync(ICurrentContext me, string filterJson, CancellationToken ct);
     Task<string> DashboardAsync(ICurrentContext me, string filterJson, CancellationToken ct);
+    Task<string> BranchPerformanceAsync(ICurrentContext me, string filterJson, CancellationToken ct);
     Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<string> ResolvePaymentAsync(ICurrentContext me, Guid paymentId, string outcome, string? replacementsJson, CancellationToken ct);
     /// <summary>Cancels a purchase and puts back what it did (migration 0057). <paramref name="json"/>: { id, reason }.</summary>

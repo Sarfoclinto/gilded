@@ -24,6 +24,7 @@ import {
   money,
   pounds,
 } from "./charts";
+import { PerformancePanel } from "@/features/performance/PerformancePanel";
 import { useDashboard, type Dashboard } from "./api";
 import {
   attention,
@@ -75,8 +76,6 @@ export default function OversightHome({ view }: { view: HomeView }) {
     month: "long",
   });
   const branchIds = user?.branchIds ?? [];
-  console.log("dashboard data: ", dash.data);
-  console.log("dashboard error: ", dash.error);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-3 sm:p-4">
@@ -265,6 +264,8 @@ function Body({
           </>
         )}
       </Panel>
+
+      <PerformancePanel />
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Panel

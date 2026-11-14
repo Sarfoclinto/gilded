@@ -5,6 +5,7 @@ import { useAuth } from "@/features/auth/store";
 import { Can } from "@/features/auth/useHasPermission";
 import { Button } from "@/shared/ui/Button";
 import { Delta, Kpi, Panel, TrendChart, money, pounds } from "./charts";
+import { PerformancePanel } from "@/features/performance/PerformancePanel";
 import { useDashboard } from "./api";
 import { change, num } from "./model";
 import { DebtTile, DrawerTile, HeldTile, MoneyTile, PriceTile } from "./tiles";
@@ -141,6 +142,11 @@ export default function TellerHome() {
           )}
         </Panel>
       </div>
+
+      <PerformancePanel
+        onlyBranchId={branchId}
+        title="How this branch is doing"
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <MoneyTile />

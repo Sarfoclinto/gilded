@@ -37,6 +37,18 @@ public class OperationsServiceTests
     }
 
     [Fact]
+    public async Task Branch_performance_is_only_for_branches_the_caller_works_in_and_the_period_is_kept_within_bounds()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _ops.BranchPerformanceAsync(Teller(), [Kumasi], 30, default));
+        await _ops.BranchPerformanceAsync(Teller(), [], null, default);
+        Assert.Contains("\"days\":30", _store.LastPerformance);
+        Assert.Contains("\"branchIds\":[]", _store.LastPerformance);
+        await _ops.BranchPerformanceAsync(Teller(), [Tarkwa], 5000, default);
+        Assert.Contains("\"days\":366", _store.LastPerformance);
+        Assert.Contains(Tarkwa.ToString(), _store.LastPerformance);
+    }
+
+    [Fact]
     public async Task Cancelling_needs_the_permission_a_reason_and_a_purchase_of_the_callers_branch()
     {
         var id = Guid.NewGuid();
@@ -360,6 +372,8 @@ public class OperationsServiceTests
         public Task<string?> GetCurrentPriceAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult<string?>(null);
         public int LastHistoryDays;
         public Task<string> PriceHistoryAsync(ICurrentContext me, Guid b, int days, CancellationToken ct) { LastHistoryDays = days; return Task.FromResult("{}"); }
+        public string LastPerformance = "";
+        public Task<string> BranchPerformanceAsync(ICurrentContext me, string filterJson, CancellationToken ct) { LastPerformance = filterJson; return Task.FromResult("{}"); }
         public Task SetBasePriceAsync(ICurrentContext me, decimal p, DateTimeOffset? at, CancellationToken ct) { LastBasePrice = p; return Task.CompletedTask; }
         public Task<string> SetMarginAsync(ICurrentContext me, Guid b, decimal m, bool a, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> ApproveMarginAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult("{}");
