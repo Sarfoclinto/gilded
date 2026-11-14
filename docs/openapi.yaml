@@ -614,6 +614,48 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+  /dashboard/performance:
+    get:
+      tags: [Transactions]
+      summary: Each branch's purchases over time, for the performance chart (B58)
+      description: |
+        Needs `transactions:read`. One series per branch the caller works in (or the `branchIds` asked for, all of which must be
+        theirs), in branch-code order so each keeps its colour. `grain` is `day` up to 31 days, `week` (Mondays) up to 182, `month`
+        beyond; `buckets` is the shared x axis and every branch has one point per bucket. Each branch also carries `total`,
+        `previous` (the same length of time before) and `best`. Cancelled purchases never count.
+      parameters:
+        - { in: query, name: branchIds, schema: { type: string }, description: Comma-separated branch ids; empty means all the caller's branches. }
+        - { in: query, name: days, schema: { type: integer, minimum: 7, maximum: 366, default: 30 } }
+      responses:
+        '200':
+          description: The series
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      asOf: { type: string, format: date-time }
+                      days: { type: integer }
+                      grain: { type: string, enum: [day, week, month] }
+                      from: { type: string, format: date }
+                      to: { type: string, format: date }
+                      buckets: { type: array, items: { type: string, format: date } }
+                      branches:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            branchId: { type: string, format: uuid }
+                            name: { type: string }
+                            code: { type: string }
+                            points: { type: array, items: { type: object, properties: { date: { type: string }, count: { type: integer }, paid: { type: string }, pounds: { type: string }, top: { type: string } } } }
+                            total: { type: object }
+                            previous: { type: object }
+                            best: { type: object, nullable: true }
+        '403': { $ref: '#/components/responses/Error' }
   /days/current:
     get:
       tags: [Cash drawer]

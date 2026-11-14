@@ -170,10 +170,11 @@ export function attention(
   return out.sort((a, b) => rank[a.tone] - rank[b.tone]);
 }
 
-/** "2026-10-20" -> "20 Oct". */
+/** "2026-10-20" -> "Tue 20 Oct". */
 export function shortDate(iso: string): string {
   const [y, m, day] = iso.split("-").map(Number);
   return new Date(Date.UTC(y!, m! - 1, day!)).toLocaleDateString("en-GB", {
+    weekday: "short",
     day: "numeric",
     month: "short",
     timeZone: "UTC",

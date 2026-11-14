@@ -68,6 +68,16 @@ public static class OperationsEndpoints
             Data(await ops.ListTransactionsAsync(me, branchId, limit, ct)));
         api.MapGet("/transactions/search", async ([AsParameters] TransactionSearch s, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.SearchTransactionsAsync(me, s, ct)));
+        api.MapGet("/dashboard/performance", async (string? branchIds, int? days, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+        {
+            var ids = new List<Guid>();
+            foreach (var part in (branchIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!Guid.TryParse(part, out var g)) throw AppException.Invalid("branchIds must be a comma-separated list of ids.");
+                ids.Add(g);
+            }
+            return Data(await ops.BranchPerformanceAsync(me, ids, days, ct));
+        });
         api.MapGet("/dashboard", async (Guid? branchId, int? days, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.DashboardAsync(me, branchId, days, ct)));
         api.MapPost("/transactions", async (CreateTransactionCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

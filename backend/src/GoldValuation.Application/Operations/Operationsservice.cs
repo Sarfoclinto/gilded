@@ -278,6 +278,23 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return node.ToJsonString();
     }
 
+    /// <summary>
+    /// B58: each branch's purchases over time, one line per branch. Anyone who may see transactions; branches are kept to the
+    /// caller's own (a teller sees only their branch because that is all they have), and asking for another is refused.
+    /// </summary>
+    public Task<string> BranchPerformanceAsync(ICurrentContext me, IReadOnlyList<Guid> branchIds, int? days, CancellationToken ct)
+    {
+        me.Require(Permissions.TransactionsRead);
+        foreach (var b in branchIds) me.RequireBranch(b);
+        var filter = new System.Text.Json.Nodes.JsonObject
+        {
+            ["scope"] = new System.Text.Json.Nodes.JsonArray(me.BranchIds.Select(x => (System.Text.Json.Nodes.JsonNode?)x.ToString()).ToArray()),
+            ["branchIds"] = new System.Text.Json.Nodes.JsonArray(branchIds.Select(x => (System.Text.Json.Nodes.JsonNode?)x.ToString()).ToArray()),
+            ["days"] = Math.Clamp(days ?? 30, 7, 366),
+        };
+        return store.BranchPerformanceAsync(me, filter.ToJsonString(), ct);
+    }
+
     public Task<string> ListTransactionsAsync(ICurrentContext me, Guid branchId, int? limit, CancellationToken ct)
     {
         me.Require(Permissions.TransactionsRead);

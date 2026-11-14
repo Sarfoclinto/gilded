@@ -106,6 +106,9 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
     public async Task<string> DashboardAsync(ICurrentContext me, string filterJson, CancellationToken ct) =>
         (await Scalar(me, "select gold.dashboard_json($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = filterJson }))!;
 
+    public async Task<string> BranchPerformanceAsync(ICurrentContext me, string filterJson, CancellationToken ct) =>
+        (await Scalar(me, "select gold.branch_performance_json($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = filterJson }))!;
+
     public Task<string?> GetTransactionAsync(ICurrentContext me, Guid id, CancellationToken ct) =>
         Scalar(me, "select gold.transaction_json($1)", ct, Uuid(id));
 

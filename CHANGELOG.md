@@ -70,3 +70,7 @@
 ## v1.10.0
 
 - Gold transfers record the scale reading against the books, coloured by how far apart they are; a large gap notifies reviewers.
+
+## v1.11.0
+
+- The dashboard shows each branch's purchases over time as lines (cedis, weight or count, 7 days to 12 months); tellers see their own branch. Dates across the app now show the weekday.
