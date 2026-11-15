@@ -122,6 +122,12 @@ export const sendPhoto: Sender = async (
     if (axios.isAxiosError(e)) {
       if (!e.response || e.code === "ECONNABORTED" || e.code === "ETIMEDOUT")
         throw new NetworkError();
+      // the day or loan it belongs to may not have reached the server yet (made with no connection): wait for it, for up to three days
+      if (
+        e.response.status === 404 &&
+        Date.now() - record.createdAt < 3 * 24 * 3600 * 1000
+      )
+        throw new NetworkError("Waiting for the record to reach the server");
       const msg = (
         e.response.data as { error?: { message?: string } } | undefined
       )?.error?.message;

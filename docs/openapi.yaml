@@ -1449,7 +1449,7 @@ paths:
       summary: Send a photo
       description: |
         One multipart request: `file` (the photo, JPEG, up to 8 MB), `thumb` (its small preview, JPEG, up to 512 KB, optional) and `meta` (JSON text:
-        `id` (chosen by the phone, so sending twice stores it once), `entityType` (`transfer` or `user`), `entityId`, `slot` (`release`, `receive`, `other`; `profile` for a person),
+        `id` (chosen by the phone, so sending twice stores it once), `entityType` (`transfer`, `user`, `day` or `collateral`), `entityId`, `slot` (`release`, `receive`, `other`; `profile` for a person; `closing`, `opening` for a day; `collateral` for held gold),
         `fileName`, `width`, `height`, `takenAt`, `source` (`camera`, `native`, `library`), `stamped`). A transfer photo needs `transfers:create` or `transfers:receive` and a
         branch on that transfer; a profile photo is always your own. 201 when stored, 200 when that id was already stored. No photo is ever required by any other call.
       requestBody:
@@ -1465,7 +1465,7 @@ paths:
       summary: The photos of one thing
       description: Oldest first; removed photos are left out. For a transfer, needs `transfers:read` and a branch on the transfer.
       parameters:
-        - { in: query, name: entityType, required: true, schema: { type: string, enum: [transfer, user] } }
+        - { in: query, name: entityType, required: true, schema: { type: string, enum: [transfer, user, day, collateral] } }
         - { in: query, name: entityId, required: true, schema: { type: string, format: uuid } }
       responses:
         '200': { description: Photos, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }

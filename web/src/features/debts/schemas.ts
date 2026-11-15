@@ -61,6 +61,7 @@ export const collateralSchema = z.object({
   convertedTransactionId: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
   closeNote: z.string().nullable().optional(),
+  photos: z.number().nullable().optional(),
 });
 export type Collateral = z.infer<typeof collateralSchema>;
 

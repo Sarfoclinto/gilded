@@ -98,7 +98,11 @@ const paths = {
   },
   changePassword: { href: "/change-password", label: "Choose a new password" },
   payments: { href: "/payments", label: "Mobile money" },
-  debts: { href: "/debts", label: "Debts and loans" },
+  debts: {
+    href: "/debts",
+    label: "Debts and loans",
+    newLoan: { href: "/debts/new-loan", label: "Give a loan" },
+  },
   collateral: { href: "/collateral", label: "Held gold" },
   unauthorized: {
     href: "/unauthorized",
