@@ -44,7 +44,10 @@ services:
       Auth__DefaultCompany: ${COMPANY_SLUG:?set COMPANY_SLUG in .env}
       Auth__CookieSecure: ${COOKIE_SECURE:-false}
       Swagger__Enabled: "false"
+      Photos__Path: /data/photos
       TZ: Africa/Accra
+    volumes:
+      - photos:/data/photos
     depends_on:
       migrate: { condition: service_completed_successfully }
 
@@ -64,4 +67,5 @@ services:
 
 volumes:
   dbdata:
+  photos:
   caddydata:

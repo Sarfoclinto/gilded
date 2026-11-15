@@ -24,8 +24,13 @@ Legend: (fix) a defect, (imp) improvement or UI update, (new) predicted need, no
 - 10 Transfer pages (list, new, detail).
 - 11 Open/close day screens.
 
-## Photos (planned, awaiting decisions)
-- **Photos inside the app, as smooth as WhatsApp or better.** Design and phased plan in `docs/PHOTOS-DESIGN.md`: a shared camera sheet, background upload queue and viewer; first uses are the transfer scale photo, the closing-day photo and the profile photo; then purchases, customer IDs and a Photos library page; then evidence rules (stamp, camera-only, reuse detection). A short spike (B60a, a try-out page at `/photos-lab`) to be tested on real devices comes first. Decided: files on a Hetzner volume; photos never required or blocking, a missing one is flagged to the reviewer; iPhones first, then Android, tablets, webcams.
+## Photos (in progress)
+- **Photos inside the app, as smooth as WhatsApp or better.** Design and phased plan in `docs/PHOTOS-DESIGN.md`. Decided: files on a Hetzner volume; photos never required or blocking, a missing one is flagged to the reviewer; iPhones first, then Android, tablets, webcams.
+  - [x] B60a spike: camera sheet, shrinking, background upload queue, viewer (`/photos-lab`), tested on real devices ("feels good as WhatsApp").
+  - [x] B60 foundation: photos table facts + server volume, upload/list/serve/remove, transfer hand-over and receipt photos with the "no photo" flag, profile pictures, `attachments:remove`, backups include photos.
+  - [ ] B61 closing-day photo (scaled accumulated gold), including the offline day-close path.
+  - [ ] B62 Photos library page; purchase and customer ID photos.
+  - [ ] B63 evidence rules: late-photo and "no photo" alerts to reviewers/dashboard, camera-only option, reuse detection, retention/archive, Share to WhatsApp.
 
 ## Dashboards (item 1)
 - **Teller:** today's purchases (count, grams, GHS), drawer balance and float, current price and when it changed, pending items (offline queue, transfers to receive), quick actions.

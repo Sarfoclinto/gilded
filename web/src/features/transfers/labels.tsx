@@ -48,7 +48,8 @@ export const eventLabel: Record<string, string> = {
   discrepancy_flagged: "Difference flagged",
   note_added: "Note",
   cancelled: "Cancelled",
-  attachment_added: "File added",
+  attachment_added: "Photo added",
+  attachment_removed: "Photo removed",
   recalled: "Recalled",
 };
 

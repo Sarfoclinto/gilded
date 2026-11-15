@@ -49,6 +49,7 @@ export const GROUPS: {
       P.DISCREPANCIES_REVIEW,
       P.AUDIT_READ,
       P.BRANCHES_ALL,
+      P.ATTACHMENTS_REMOVE,
     ],
   },
   {
@@ -81,6 +82,7 @@ export const RISK: Partial<Record<Permission, Risk>> = {
   [P.BRANCHES_ALL]: "medium",
   [P.CUSTOMERS_MANAGE]: "medium",
   [P.TRANSACTIONS_CANCEL]: "high",
+  [P.ATTACHMENTS_REMOVE]: "medium",
 };
 
 /** A permission that is of little use without another one. Offered as "add it" in the editor. */

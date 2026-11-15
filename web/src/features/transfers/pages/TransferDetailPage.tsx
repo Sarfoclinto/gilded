@@ -4,6 +4,7 @@ import { Alert, Modal, Timeline } from "antd";
 import { ArrowRightIcon } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import { useAuth } from "@/features/auth/store";
 import { useHasPermission } from "@/features/auth/useHasPermission";
 import { cedis } from "@/features/calculator/format";
@@ -426,6 +427,53 @@ export default function TransferDetailPage() {
           )}
         </Card>
       </div>
+
+      {t.status !== "cancelled" ? (
+        <Card className="space-y-3">
+          <h2 className="font-semibold">Photos</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <PhotoAttach
+              target={{
+                entityType: "transfer",
+                entityId: t.id,
+                slot: "release",
+              }}
+              title={`At handover · ${t.originBranchName}`}
+              hint={
+                t.status === "draft"
+                  ? "Add them when you hand it over."
+                  : undefined
+              }
+              branchName={t.originBranchName}
+              reference={t.reference}
+              readOnly={!atOrigin}
+              emptyText={
+                t.status === "draft"
+                  ? undefined
+                  : "No photo was attached at handover. Photos are not required; this only lets the reviewer know there is none."
+              }
+            />
+            {t.status !== "draft" ? (
+              <PhotoAttach
+                target={{
+                  entityType: "transfer",
+                  entityId: t.id,
+                  slot: "receive",
+                }}
+                title={`At receipt · ${t.destinationBranchName}`}
+                branchName={t.destinationBranchName}
+                reference={t.reference}
+                readOnly={!atDestination}
+                emptyText={
+                  t.status === "released"
+                    ? undefined
+                    : "No photo was attached at receipt. Photos are not required; this only lets the reviewer know there is none."
+                }
+              />
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
 
       {goods ? (
         <Card className="p-0">

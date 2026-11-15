@@ -44,6 +44,7 @@ api.MapMe();
 api.MapOperations();
 api.MapPeople();
 api.MapTransfers();
+api.MapAttachments();
 api.MapReview();
 api.MapImports();
 api.MapPriceFeed();

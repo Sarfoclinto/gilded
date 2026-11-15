@@ -92,7 +92,8 @@ export const scaledSchema = z.object({
   topLevel: scaleLevelSchema,
   downLevel: scaleLevelSchema,
   level: scaleLevelSchema,
-  downAllowance: text,
+  // the server sends this one as a number (0.085); every other weight is text
+  downAllowance: z.union([z.number(), z.string()]).nullable().optional(),
 });
 
 const totalsSchema = z.object({
@@ -141,6 +142,10 @@ export const transferSchema = z.object({
       at: z.string(),
       reason: z.string(),
     })
+    .nullable()
+    .optional(),
+  photos: z
+    .object({ release: z.number(), receive: z.number(), other: z.number() })
     .nullable()
     .optional(),
   lines: z.array(lineSchema),

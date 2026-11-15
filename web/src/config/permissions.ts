@@ -29,6 +29,7 @@ export const PERMISSIONS = {
   SETTINGS_MANAGE: "settings:manage",
   NOTES_EXCHANGE: "notes:exchange",
   TRANSACTIONS_CANCEL: "transactions:cancel",
+  ATTACHMENTS_REMOVE: "attachments:remove",
   GUIDE_MANAGE: "guide:manage",
   SYNC_REVIEW: "sync:review",
 } as const;

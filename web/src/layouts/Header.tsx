@@ -25,21 +25,13 @@ import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { ConnectionBadge } from "@/shared/ui/ConnectionBadge";
+import { Avatar } from "@/features/photos/Avatar";
 import { BranchSwitcher } from "./BranchSwitcher";
 import { HubPill } from "./HubPill";
 import { NewPurchaseButton } from "./NewPurchaseButton";
 import { SearchButton } from "@/features/search/SearchButton";
 import { appMenu } from "./menu";
 import { crumbsFor, filterMenu } from "./menuFilter";
-
-const initials = (name?: string) =>
-  (name ?? "?")
-    .split(/[^\p{L}]+/u)
-    .filter(Boolean)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
 /**
  * One slim bar. Desktop: where you are (section > page) on the left, then branch, connection, notifications and the account.
@@ -112,9 +104,7 @@ export function Header() {
               aria-label="Account"
               className="flex h-10 items-center gap-2 rounded-full border border-border bg-background pl-1 pr-2 md:pr-3"
             >
-              <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#E8C97A] text-xs font-bold text-[#0D1B2E]">
-                {initials(user?.displayName)}
-              </span>
+              <Avatar userId={user?.id} name={user?.displayName} />
               <span className="hidden text-left leading-tight md:block">
                 <span className="block max-w-32 truncate text-sm font-semibold">
                   {user?.displayName}

@@ -75,54 +75,109 @@ function ZoomImage({ src, fallback }: { src: string; fallback?: string }) {
   );
 }
 
-/** Loads the full picture from the device (or shows the thumbnail while it loads, or when only the thumbnail is kept). */
-function Slide({ record, queue }: { record: PhotoRecord; queue: PhotoQueue }) {
+/** A picture's address on screen. `dispose` frees it when the viewer lets go (for pictures made from a local file). */
+export interface Loaded {
+  url: string;
+  dispose?: () => void;
+}
+
+/** One picture in the viewer, wherever it lives: on this device waiting to be sent, or on the server. */
+export interface PhotoView {
+  id: string;
+  caption: string;
+  /** Whether the person looking may take it off the screen. */
+  removable: boolean;
+  thumb?: () => Promise<Loaded | undefined>;
+  full: () => Promise<Loaded | undefined>;
+}
+
+/** Shows the small version at once, then the full picture when it has loaded. */
+function Slide({ item }: { item: PhotoView }) {
   const [full, setFull] = useState("");
   const [thumb, setThumb] = useState("");
   useEffect(() => {
-    let a = "",
-      b = "",
-      alive = true;
-    const th = queue.thumb(record.id);
-    if (th) {
-      b = URL.createObjectURL(th);
-      setThumb(b);
-    }
-    void queue.file(record.id).then((f) => {
-      if (alive && f) {
-        a = URL.createObjectURL(f);
-        setFull(a);
+    let alive = true;
+    const held: Loaded[] = [];
+    const keep = (l: Loaded | undefined, set: (u: string) => void) => {
+      if (!l) return;
+      if (!alive) {
+        l.dispose?.();
+        return;
       }
-    });
+      held.push(l);
+      set(l.url);
+    };
+    void item
+      .thumb?.()
+      .then((l) => keep(l, setThumb))
+      .catch(() => undefined);
+    void item
+      .full()
+      .then((l) => keep(l, setFull))
+      .catch(() => undefined);
     return () => {
       alive = false;
-      if (a) URL.revokeObjectURL(a);
-      if (b) URL.revokeObjectURL(b);
+      held.forEach((l) => l.dispose?.());
     };
-  }, [record.id, queue]);
+    // the same picture keeps its slide; a new list of views must not reload it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id]);
   return <ZoomImage src={full} fallback={thumb} />;
 }
 
+/** Views of pictures that are only on this device (waiting to be sent), from the queue. */
+export function viewsFromRecords(
+  records: readonly PhotoRecord[],
+  queue: PhotoQueue,
+): PhotoView[] {
+  const blobLoad =
+    (get: () => Blob | undefined | Promise<Blob | undefined>) =>
+    async (): Promise<Loaded | undefined> => {
+      const b = await get();
+      if (!b) return undefined;
+      const url = URL.createObjectURL(b);
+      return { url, dispose: () => URL.revokeObjectURL(url) };
+    };
+  return records.map((r) => ({
+    id: r.id,
+    removable: true,
+    caption: `${r.width}×${r.height} · ${formatBytes(r.size)} (was ${formatBytes(r.originalSize)}) · ${r.source} · ${whenText(r.takenAt)}${r.stamped ? " · stamped" : ""}`,
+    thumb: blobLoad(() => queue.thumb(r.id)),
+    full: blobLoad(() => queue.file(r.id)),
+  }));
+}
+
+export const whenText = (iso: string) =>
+  new Date(iso)
+    .toLocaleString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace(/,/g, "");
+
 /** Full-screen viewer: swipe or arrow keys between pictures, pinch or double-tap to zoom, details underneath. */
 export function PhotoViewer({
-  records,
+  items,
   start,
-  queue,
   onClose,
   onRemove,
 }: {
-  records: readonly PhotoRecord[];
+  items: readonly PhotoView[];
   start: number;
-  queue: PhotoQueue;
   onClose: () => void;
-  onRemove?: (r: PhotoRecord) => void;
+  onRemove?: (item: PhotoView) => void | Promise<void>;
 }) {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const [i, setI] = useState(start);
   const go = (n: number) => {
     const el = scroller.current;
     if (!el) return;
-    const k = Math.min(Math.max(n, 0), records.length - 1);
+    const k = Math.min(Math.max(n, 0), items.length - 1);
     el.scrollTo({ left: k * el.clientWidth, behavior: "smooth" });
   };
   useEffect(() => {
@@ -143,19 +198,10 @@ export function PhotoViewer({
       document.body.style.overflow = prev;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [i, records.length]);
+  }, [i, items.length]);
 
-  const r = records[Math.min(i, records.length - 1)];
+  const r = items[Math.min(i, items.length - 1)];
   if (!r) return null;
-  const when = new Date(r.takenAt)
-    .toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    .replace(/,/g, "");
   return createPortal(
     <div
       className="fixed inset-0 z-[1100] flex flex-col bg-black text-white"
@@ -173,12 +219,12 @@ export function PhotoViewer({
           <XIcon className="size-5" />
         </button>
         <span className="text-sm font-semibold">
-          {i + 1} of {records.length}
+          {i + 1} of {items.length}
         </span>
-        {onRemove ? (
+        {onRemove && r.removable ? (
           <button
             type="button"
-            onClick={() => onRemove(r)}
+            onClick={() => setAsking(true)}
             className="flex size-11 items-center justify-center rounded-full hover:bg-white/10"
             aria-label="Remove this photo"
           >
@@ -201,9 +247,9 @@ export function PhotoViewer({
             )
           }
         >
-          {records.map((x) => (
+          {items.map((x) => (
             <div key={x.id} className="size-full shrink-0 snap-center">
-              <Slide record={x} queue={queue} />
+              <Slide item={x} />
             </div>
           ))}
         </div>
@@ -217,7 +263,7 @@ export function PhotoViewer({
             <ChevronLeftIcon className="size-6" />
           </button>
         ) : null}
-        {i < records.length - 1 ? (
+        {i < items.length - 1 ? (
           <button
             type="button"
             onClick={() => go(i + 1)}
@@ -228,10 +274,44 @@ export function PhotoViewer({
           </button>
         ) : null}
       </div>
+      {asking && onRemove ? (
+        <div
+          className="absolute inset-x-0 bottom-0 z-10 space-y-3 rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-black shadow-2xl"
+          role="alertdialog"
+          aria-label="Remove this photo?"
+        >
+          <p className="font-semibold">Remove this photo?</p>
+          <p className="text-sm text-black/70">
+            It will no longer show. A record that it was taken, and who removed
+            it, is kept.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setAsking(false)}
+              className="min-h-11 rounded-lg border border-black/20 font-medium"
+            >
+              Keep it
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void Promise.resolve(onRemove(r)).finally(() => {
+                  setBusy(false);
+                  setAsking(false);
+                });
+              }}
+              className="min-h-11 rounded-lg bg-red-600 font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Removing…" : "Remove"}
+            </button>
+          </div>
+        </div>
+      ) : null}
       <p className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 text-center text-xs text-white/70">
-        {r.width}×{r.height} · {formatBytes(r.size)} (was{" "}
-        {formatBytes(r.originalSize)}) · {r.source} · {when}
-        {r.stamped ? " · stamped" : ""}
+        {r.caption}
       </p>
     </div>,
     document.body,

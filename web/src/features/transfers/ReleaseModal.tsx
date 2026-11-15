@@ -7,6 +7,7 @@ import { TextField } from "@/shared/ui/TextField";
 import { useReleaseTransfer } from "./api";
 import { scaleCheck } from "./model";
 import { ScaleReading } from "./ScaleReading";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import type { Transfer } from "./schemas";
 
 function Form({
@@ -119,6 +120,21 @@ function Form({
           ) : null}
         </div>
       )}
+      <PhotoAttach
+        target={{
+          entityType: "transfer",
+          entityId: transfer.id,
+          slot: "release",
+        }}
+        title={
+          cash
+            ? "Photo of the notes (optional)"
+            : "Photo of the gold on the scale (optional)"
+        }
+        hint="Nothing is blocked if you skip it. It shows the reviewers what left the branch."
+        branchName={transfer.originBranchName}
+        reference={transfer.reference}
+      />
       <TextField
         label="Note (optional)"
         placeholder="e.g. sealed bag, number 14"
