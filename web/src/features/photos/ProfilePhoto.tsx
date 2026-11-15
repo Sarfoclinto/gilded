@@ -10,7 +10,11 @@ import { usePhotoQueue, useQueuedPhotos } from "./PhotoProvider";
 import { preparePhoto } from "./process";
 
 /** Your own profile picture: take one or choose one. It shows beside your name everywhere once it has been sent. */
-export function ProfilePhoto() {
+export function ProfilePhoto({
+  onDark = false,
+}: {
+  /** Drawn on the navy banner: a bigger picture and light buttons. */ onDark?: boolean;
+}) {
   const user = useAuth((s) => s.user);
   const queue = usePhotoQueue();
   const queued = useQueuedPhotos(queue);
@@ -47,16 +51,29 @@ export function ProfilePhoto() {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div
+      className={`flex items-center gap-3 ${onDark ? "flex-col sm:flex-row sm:gap-5" : ""}`}
+    >
       <Avatar
         userId={user?.id}
         name={user?.displayName}
-        className="size-16 text-xl"
+        className={
+          onDark
+            ? "size-24 text-3xl ring-4 ring-gold/70 ring-offset-2 ring-offset-navy"
+            : "size-16 text-xl"
+        }
       />
-      <div className="space-y-1">
-        <div className="flex flex-wrap gap-2">
+      <div className={`space-y-1 ${onDark ? "text-center sm:text-left" : ""}`}>
+        <div
+          className={`flex flex-wrap gap-2 ${onDark ? "justify-center sm:justify-start" : ""}`}
+        >
           <Button
             variant="secondary"
+            className={
+              onDark
+                ? "!border-white/20 !bg-white/10 !text-white hover:!bg-white/20"
+                : ""
+            }
             disabled={!queue}
             onClick={() => setSheet(true)}
           >
@@ -66,6 +83,7 @@ export function ProfilePhoto() {
           {current ? (
             <Button
               variant="ghost"
+              className={onDark ? "!text-white/80 hover:!bg-white/10" : ""}
               disabled={remove.isPending}
               onClick={() =>
                 remove.mutate({ id: current.id }, { onSuccess: bump })
@@ -77,12 +95,18 @@ export function ProfilePhoto() {
           ) : null}
         </div>
         {sending ? (
-          <p className="text-xs text-muted-foreground" role="status">
+          <p
+            className={`text-xs ${onDark ? "text-white/70" : "text-muted-foreground"}`}
+            role="status"
+          >
             Sending your photo…
           </p>
         ) : null}
         {error ? (
-          <p role="alert" className="text-xs text-red-700">
+          <p
+            role="alert"
+            className={`text-xs ${onDark ? "text-red-300" : "text-red-700"}`}
+          >
             {error}
           </p>
         ) : null}

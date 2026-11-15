@@ -96,24 +96,31 @@ export function FieldRow({
     }
   })();
 
+  const inline = field.kind === "toggle";
   return (
     <div
-      className={`flex flex-col gap-2 border-b border-border py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 ${disabled ? "opacity-60" : ""}`}
+      className={`flex gap-3 px-4 py-4 transition-opacity sm:px-5 ${inline ? "items-center justify-between gap-6" : "flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-8"} ${disabled ? "opacity-60" : ""}`}
     >
       <div className="min-w-0 sm:max-w-md">
         <label htmlFor={id} className="text-sm font-semibold">
           {field.label}
         </label>
         {field.help ? (
-          <p className="mt-0.5 text-sm text-muted-foreground">{field.help}</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+            {field.help}
+          </p>
         ) : null}
         {disabled && field.needs ? (
-          <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
+          <p className="mt-1 text-xs font-medium text-amber-800">
             Turn on two-step payout first.
           </p>
         ) : null}
       </div>
-      <div className="shrink-0">{control}</div>
+      <div
+        className={`shrink-0 ${inline ? "" : "w-full sm:w-auto [&_.ant-segmented]:w-full sm:[&_.ant-segmented]:w-auto"}`}
+      >
+        {control}
+      </div>
     </div>
   );
 }
