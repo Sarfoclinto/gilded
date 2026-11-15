@@ -13,7 +13,7 @@ public sealed record Upload(JsonObject Meta, byte[] File, byte[]? Thumb);
 public sealed record Served(Stream Content, string ContentType, string Etag, string FileName);
 
 /// <summary>
-/// Pictures on transfers and people. No picture is ever required: this only stores, lists and serves them.
+/// Pictures on transfers, closing days, held gold and people. No picture is ever required: this only stores, lists and serves them.
 /// Taking one needs the permission for the thing it is attached to (the sending end acts with transfers:create, the receiving end with
 /// transfers:receive); a profile picture is always your own. Seeing one follows the database: the branches of the transfer, or everyone for a profile.
 /// </summary>
@@ -21,8 +21,8 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
 {
     public const int MaxFileBytes = 8 * 1024 * 1024;
     public const int MaxThumbBytes = 512 * 1024;
-    private static readonly string[] Types = ["transfer", "user"];
-    private static readonly string[] Slots = ["release", "receive", "other", "profile"];
+    private static readonly string[] Types = ["transfer", "user", "day", "collateral"];
+    private static readonly string[] Slots = ["release", "receive", "other", "profile", "closing", "opening", "collateral"];
 
     public async Task<(bool Replayed, string DataJson)> UploadAsync(ICurrentContext me, Upload u, CancellationToken ct)
     {
@@ -30,6 +30,8 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
         var type = (string?)m["entityType"];
         if (type is null || !Types.Contains(type)) throw AppException.Invalid("Pictures cannot be attached to that.");
         if (type == "transfer" && !me.Has(Permissions.TransfersCreate) && !me.Has(Permissions.TransfersReceive)) throw AppException.Forbidden();
+        if (type == "day" && !me.Has(Permissions.DaysManage)) throw AppException.Forbidden();
+        if (type == "collateral" && !me.Has(Permissions.DebtsManage)) throw AppException.Forbidden();
         if (!Guid.TryParse((string?)m["id"], out var id)) throw AppException.Invalid("The picture needs an id.");
         if (!Guid.TryParse((string?)m["entityId"], out _)) throw AppException.Invalid("Say what the picture belongs to.");
         var slot = (string?)m["slot"] ?? (type == "user" ? "profile" : "other");
@@ -62,6 +64,8 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
     {
         if (!Types.Contains(entityType)) throw AppException.Invalid("Pictures are not kept for that.");
         if (entityType == "transfer") me.Require(Permissions.TransfersRead);
+        if (entityType == "day") me.Require(Permissions.DaysRead);
+        if (entityType == "collateral") me.Require(Permissions.DebtsRead);
         return store.ListAsync(me, entityType, entityId, ct);
     }
 

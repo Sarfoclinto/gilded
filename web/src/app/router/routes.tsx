@@ -110,6 +110,7 @@ const PendingPaymentsPage = lazy(
   () => import("@/features/payments/PendingPaymentsPage"),
 );
 const DebtsPage = lazy(() => import("@/features/debts/pages/DebtsPage"));
+const LoanPage = lazy(() => import("@/features/debts/pages/LoanPage"));
 const CollateralPage = lazy(
   () => import("@/features/debts/pages/CollateralPage"),
 );
@@ -189,6 +190,11 @@ export const appRoutes: AppRoute[] = [
     path: paths.debts.href,
     element: <DebtsPage />,
     access: { permission: PERMISSIONS.DEBTS_READ },
+  },
+  {
+    path: paths.debts.newLoan.href,
+    element: <LoanPage />,
+    access: { permission: PERMISSIONS.DEBTS_MANAGE },
   },
   {
     path: paths.collateral.href,

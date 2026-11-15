@@ -16,7 +16,6 @@ import { Chip } from "@/shared/ui/Chip";
 import { EmptyState } from "@/shared/ui/DataTable";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { useDebts } from "../api";
-import { LoanModal } from "../LoanModal";
 import { byUrgency, dueOf, matches, repaidShare, summarize } from "../model";
 import { RepayModal } from "../RepayModal";
 import type { Debt } from "../schemas";
@@ -168,7 +167,6 @@ export default function DebtsPage() {
     openOnly: true,
   });
   const weOwe = useDebts({ branchId, direction: "payable", openOnly: true });
-  const [loan, setLoan] = useState(false);
   const [repay, setRepay] = useState<Debt | null>(null);
   const a = useMemo(() => summarize(owedToUs.data ?? []), [owedToUs.data]);
   const b = useMemo(() => summarize(weOwe.data ?? []), [weOwe.data]);
@@ -184,7 +182,9 @@ export default function DebtsPage() {
         subtitle="Money customers owe this branch, and money this branch owes them."
         actions={
           <Can permission={PERMISSIONS.DEBTS_MANAGE}>
-            <Button onClick={() => setLoan(true)}>Give a loan</Button>
+            <Link to={paths.debts.newLoan.href}>
+              <Button>Give a loan</Button>
+            </Link>
           </Can>
         }
       />
@@ -321,7 +321,6 @@ export default function DebtsPage() {
         ))}
       </ul>
 
-      <LoanModal open={loan} onClose={() => setLoan(false)} />
       <RepayModal debt={repay} onClose={() => setRepay(null)} />
     </div>
   );

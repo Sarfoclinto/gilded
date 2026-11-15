@@ -67,6 +67,11 @@ export const daySchema = z.object({
   openedBy: personSchema,
   closing: closingSchema.nullable(),
   flags: z.array(z.string()),
+  /** How many photos the day has. Zero blocks nothing; it is only shown so a reviewer knows. */
+  photos: z
+    .object({ opening: z.number(), closing: z.number(), other: z.number() })
+    .nullable()
+    .optional(),
 });
 export type Day = z.infer<typeof daySchema>;
 

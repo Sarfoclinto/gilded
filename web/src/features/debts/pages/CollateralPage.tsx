@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/features/auth/store";
 import { Can } from "@/features/auth/useHasPermission";
 import { cedis } from "@/features/calculator/format";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import { Kpi } from "@/features/dashboard/charts";
 import { when } from "@/features/transactions/format";
 import { errorMessage } from "@/shared/api/errors";
@@ -51,6 +52,7 @@ function HeldCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{c.customer.name}</span>
+            {c.photos === 0 ? <Chip tone="amber">No photo</Chip> : null}
             {c.status === "converted" ? (
               <Chip tone="green">Refined and bought</Chip>
             ) : c.status === "returned" ? (
@@ -74,6 +76,19 @@ function HeldCard({
           <div className="tnum text-2xl font-bold">{grams(c.topWeight)}</div>
         </div>
       </div>
+
+      <PhotoAttach
+        target={{
+          entityType: "collateral",
+          entityId: c.id,
+          slot: "collateral",
+        }}
+        title="Photo of the gold"
+        branchName="Branch"
+        reference={`Held · ${c.customer.name}`}
+        emptyText="No photo"
+        readOnly={!held}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted p-3 text-sm">
         <span className="text-muted-foreground">

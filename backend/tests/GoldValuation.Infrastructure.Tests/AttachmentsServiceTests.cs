@@ -32,6 +32,18 @@ public class AttachmentsServiceTests
     }
 
     [Fact]
+    public async Task Closing_day_and_held_gold_photos_need_their_own_permissions()
+    {
+        var teller = new Ctx([Permissions.TransfersCreate], [Tarkwa]);
+        await Assert.ThrowsAsync<AppException>(() => _svc.UploadAsync(teller, new Upload(Meta(type: "day", slot: "closing"), Jpeg, null), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.UploadAsync(teller, new Upload(Meta(type: "collateral", slot: "collateral"), Jpeg, null), default));
+        await _svc.UploadAsync(new Ctx([Permissions.DaysManage], [Tarkwa]), new Upload(Meta(type: "day", slot: "closing"), Jpeg, null), default);
+        await _svc.UploadAsync(new Ctx([Permissions.DebtsManage], [Tarkwa]), new Upload(Meta(type: "collateral", slot: "collateral"), Jpeg, null), default);
+        await Assert.ThrowsAsync<AppException>(() => _svc.ListAsync(teller, "day", Guid.NewGuid(), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ListAsync(teller, "collateral", Guid.NewGuid(), default));
+    }
+
+    [Fact]
     public async Task Only_real_photos_of_a_sensible_size_are_kept()
     {
         await Assert.ThrowsAsync<AppException>(() => _svc.UploadAsync(Sender(), new Upload(Meta(), [1, 2, 3, 4, 5, 6], null), default));

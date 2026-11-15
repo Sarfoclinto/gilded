@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/features/auth/store";
 import { useHasPermission } from "@/features/auth/useHasPermission";
 import { cedis } from "@/features/calculator/format";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import { Kpi } from "@/features/dashboard/charts";
 import { errorMessage } from "@/shared/api/errors";
 import { useApiMutation } from "@/shared/api/hooks";
@@ -63,6 +64,13 @@ function Detail({ day }: { day: Day }) {
     );
   return (
     <div className="space-y-3">
+      <PhotoAttach
+        target={{ entityType: "day", entityId: day.id, slot: "closing" }}
+        title="Photo of the scaled gold"
+        branchName="Branch"
+        reference={`Closing ${day.businessDate}`}
+        emptyText="No closing photo"
+      />
       <div className="grid gap-2 sm:grid-cols-2">
         {c.figures.map((f) => (
           <div
@@ -294,6 +302,9 @@ export default function DayHistoryPage() {
                           {signoffText[status ?? "not_required"]}
                         </Chip>
                       )}
+                      {d.closing && d.photos?.closing === 0 ? (
+                        <Chip tone="amber">No closing photo</Chip>
+                      ) : null}
                       {d.flags.map((f) => (
                         <Chip key={f} tone="amber">
                           {dayFlagText[f] ?? f}
