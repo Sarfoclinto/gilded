@@ -102,3 +102,7 @@
 ## v1.15.0
 
 - Camera-only setting, reused-picture flag, missing-photos list, share
+
+## v1.15.1
+
+- New login page and logo; redesigned My settings, Company settings and Change password.

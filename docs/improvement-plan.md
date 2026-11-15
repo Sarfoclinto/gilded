@@ -96,5 +96,6 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - **A customer who already owes asks for more.** Allowed today with no warning and no limit: each loan is its own debt. To decide: show what the customer already owes when lending, and optionally a company limit per customer or a manager's approval above it.
 
 ## Asked for on 15 Nov 2026 (not started)
-- **Modernize the personal settings page (My settings).** Make it look nicer and more current: profile header with the picture, grouped cards (password, sign-in, device, preferences), better spacing on phones.
-- **Login page refresh.** Make it nicer, and replace the plain `G` in a box with the real Gilded logo (also check the favicon, the header and the installer use the same mark).
+- ✅ **Done in B64 (v1.15.1). Modernize the personal settings page (My settings).** Make it look nicer and more current: profile header with the picture, grouped cards (password, sign-in, device, preferences), better spacing on phones.
+- ✅ **Done in B64 (v1.15.1). Login page refresh.** (Company settings and Change password got the same look in B64.) Make it nicer, and replace the plain `G` in a box with the real Gilded logo (also check the favicon, the header and the installer use the same mark).
+  - Left from the login item: the printed receipt still has a plain `G`; it needs a one-colour version of the mark.
