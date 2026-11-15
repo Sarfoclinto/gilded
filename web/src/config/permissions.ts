@@ -30,6 +30,8 @@ export const PERMISSIONS = {
   NOTES_EXCHANGE: "notes:exchange",
   TRANSACTIONS_CANCEL: "transactions:cancel",
   ATTACHMENTS_REMOVE: "attachments:remove",
+  ATTACHMENTS_LIBRARY: "attachments:library",
+  ATTACHMENTS_IDS: "attachments:ids",
   GUIDE_MANAGE: "guide:manage",
   SYNC_REVIEW: "sync:review",
 } as const;

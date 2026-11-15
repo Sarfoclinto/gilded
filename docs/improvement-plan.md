@@ -28,8 +28,8 @@ Legend: (fix) a defect, (imp) improvement or UI update, (new) predicted need, no
 - **Photos inside the app, as smooth as WhatsApp or better.** Design and phased plan in `docs/PHOTOS-DESIGN.md`. Decided: files on a Hetzner volume; photos never required or blocking, a missing one is flagged to the reviewer; iPhones first, then Android, tablets, webcams.
   - [x] B60a spike: camera sheet, shrinking, background upload queue, viewer (`/photos-lab`), tested on real devices ("feels good as WhatsApp").
   - [x] B60 foundation: photos table facts + server volume, upload/list/serve/remove, transfer hand-over and receipt photos with the "no photo" flag, profile pictures, `attachments:remove`, backups include photos.
-  - [ ] B61 closing-day photo (scaled accumulated gold), including the offline day-close path.
-  - [ ] B62 Photos library page; purchase and customer ID photos.
+  - [x] B61 closing-day photo (scaled accumulated gold), including the offline day-close path.
+  - [x] B62 Photos library page; purchase and customer ID photos (v1.14.0). Left: Share to WhatsApp, uploader filter in the UI.
   - [ ] B63 evidence rules: late-photo and "no photo" alerts to reviewers/dashboard, camera-only option, reuse detection, retention/archive, Share to WhatsApp.
 
 ## Dashboards (item 1)
@@ -94,3 +94,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - ✅ **Done in B58 (feat-branch-performance). Branch performance over time (line chart).** Directors/admins: one line per branch in its own colour, over a chosen period, to compare branches. Tellers: only their own branch. To decide: what "performance" is drawn (cedis paid for gold, weight bought, number of purchases), with a switch between them. Done: `GET /dashboard/performance`, panel on both homes with Paid out / Weight / Purchases and 7 days to 12 months, chips to hide or single out a branch, read-out, table. Dates across the app now carry the weekday (`when`, `day`, dashboard dates). Open: weight in pounds or grams; weekday text in narrow columns.
 - ✅ **Done in B56 (feat-cancel-purchase). Cancel a wrongly saved purchase.** Not possible today for staff (only an import can be undone). Needs: a reason, who may do it (manager approval), the cash and the gold put back by new ledger entries (the original is never edited), the receipt marked cancelled, the day's count explained. Done: permission `transactions:cancel` (manager/director), reversal by new entries, cash back into today's drawer, refused if gold moved / mobile money confirmed / no open day.
 - **A customer who already owes asks for more.** Allowed today with no warning and no limit: each loan is its own debt. To decide: show what the customer already owes when lending, and optionally a company limit per customer or a manager's approval above it.
+
+## Asked for on 15 Nov 2026 (not started)
+- **Modernize the personal settings page (My settings).** Make it look nicer and more current: profile header with the picture, grouped cards (password, sign-in, device, preferences), better spacing on phones.
+- **Login page refresh.** Make it nicer, and replace the plain `G` in a box with the real Gilded logo (also check the favicon, the header and the installer use the same mark).

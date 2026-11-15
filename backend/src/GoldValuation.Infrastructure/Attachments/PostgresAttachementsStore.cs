@@ -20,11 +20,14 @@ public sealed class PostgresAttachmentsStore(NpgsqlDataSource dataSource, ILogge
         return new DbResult(doc.RootElement.GetProperty("replayed").GetBoolean(), doc.RootElement.GetProperty("data").GetRawText());
     }
 
-    public async Task<string> ListAsync(ICurrentContext me, string entityType, Guid entityId, CancellationToken ct) =>
-        (await Scalar(me, "select gold.attachments_json($1, $2, $3)", ct, Text(entityType), Uuid(entityId), Scope(me)))!;
+    public async Task<string> ListAsync(ICurrentContext me, string entityType, Guid entityId, bool canSeeIds, CancellationToken ct) =>
+        (await Scalar(me, "select gold.attachments_json($1, $2, $3, $4)", ct, Text(entityType), Uuid(entityId), Scope(me), Bool(canSeeIds)))!;
 
-    public Task<string?> FileAsync(ICurrentContext me, Guid id, CancellationToken ct) =>
-        Scalar(me, "select gold.attachment_file($1, $2)", ct, Uuid(id), Scope(me));
+    public Task<string?> FileAsync(ICurrentContext me, Guid id, bool canSeeIds, CancellationToken ct) =>
+        Scalar(me, "select gold.attachment_open($1, $2, $3)", ct, Uuid(id), Scope(me), Bool(canSeeIds));
+
+    public async Task<string> LibraryAsync(ICurrentContext me, string filtersJson, bool canSeeIds, CancellationToken ct) =>
+        (await Scalar(me, "select gold.photo_library($1, $2, $3)", ct, Json(filtersJson), Scope(me), Bool(canSeeIds)))!;
 
     public async Task<Guid?> ProfilePictureAsync(ICurrentContext me, Guid userId, CancellationToken ct)
     {
@@ -43,9 +46,8 @@ public sealed class PostgresAttachmentsStore(NpgsqlDataSource dataSource, ILogge
         }
     }
 
-    public async Task<string> RemoveAsync(ICurrentContext me, Guid id, string? reason, bool canRemoveAny, CancellationToken ct) =>
-        (await Scalar(me, "select gold.remove_attachment($1, $2, $3, $4)", ct, Uuid(id), Text(reason),
-            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Boolean, Value = canRemoveAny }, Scope(me)))!;
+    public async Task<string> RemoveAsync(ICurrentContext me, Guid id, string? reason, bool canRemoveAny, bool canSeeIds, CancellationToken ct) =>
+        (await Scalar(me, "select gold.remove_attachment($1, $2, $3, $4, $5)", ct, Uuid(id), Text(reason), Bool(canRemoveAny), Scope(me), Bool(canSeeIds)))!;
 
     private async Task<string?> Scalar(ICurrentContext me, string sql, CancellationToken ct, params NpgsqlParameter[] args)
     {
@@ -64,6 +66,7 @@ public sealed class PostgresAttachmentsStore(NpgsqlDataSource dataSource, ILogge
         }
     }
 
+    private static NpgsqlParameter Bool(bool v) => new() { NpgsqlDbType = NpgsqlDbType.Boolean, Value = v };
     private static NpgsqlParameter Uuid(Guid id) => new() { NpgsqlDbType = NpgsqlDbType.Uuid, Value = id };
     private static NpgsqlParameter Json(string json) => new() { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = json };
     private static NpgsqlParameter Text(string? text) => new() { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)text ?? DBNull.Value };

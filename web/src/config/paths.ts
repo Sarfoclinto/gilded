@@ -104,6 +104,7 @@ const paths = {
     newLoan: { href: "/debts/new-loan", label: "Give a loan" },
   },
   collateral: { href: "/collateral", label: "Held gold" },
+  photos: { href: "/photos", label: "Photos" },
   unauthorized: {
     href: "/unauthorized",
     redirect: (reason: string) =>

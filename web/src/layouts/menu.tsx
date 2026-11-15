@@ -28,6 +28,7 @@ import {
   PenLineIcon,
   CloudOffIcon,
   LineChartIcon,
+  ImageIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -263,6 +264,13 @@ export const appMenu: AppMenuItem[] = [
         title: paths.collateral.label,
         icon: <CoinsIcon className={icon} />,
         permission: PERMISSIONS.DEBTS_READ,
+      },
+      {
+        key: paths.photos.href,
+        label: link(paths.photos.href, paths.photos.label),
+        title: paths.photos.label,
+        icon: <ImageIcon className={icon} />,
+        permission: PERMISSIONS.ATTACHMENTS_LIBRARY,
       },
     ],
   },

@@ -25,6 +25,9 @@ public static class AttachmentsEndpoints
             return Data(r.DataJson, r.Replayed ? 200 : 201);
         });
 
+        api.MapGet("/attachments/library", async (HttpContext http, ICurrentContext me, AttachmentsService svc, CancellationToken ct) =>
+            Data(await svc.LibraryAsync(me, http.Request.Query.ToDictionary(k => k.Key, k => (string?)k.Value.ToString()), ct)));
+
         api.MapGet("/attachments", async (string entityType, Guid entityId, ICurrentContext me, AttachmentsService svc, CancellationToken ct) =>
             Data(await svc.ListAsync(me, entityType, entityId, ct)));
 

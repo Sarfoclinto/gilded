@@ -21,8 +21,8 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
 {
     public const int MaxFileBytes = 8 * 1024 * 1024;
     public const int MaxThumbBytes = 512 * 1024;
-    private static readonly string[] Types = ["transfer", "user", "day", "collateral"];
-    private static readonly string[] Slots = ["release", "receive", "other", "profile", "closing", "opening", "collateral"];
+    private static readonly string[] Types = ["transfer", "user", "day", "collateral", "transaction", "customer"];
+    private static readonly string[] Slots = ["release", "receive", "other", "profile", "closing", "opening", "collateral", "goods", "id"];
 
     public async Task<(bool Replayed, string DataJson)> UploadAsync(ICurrentContext me, Upload u, CancellationToken ct)
     {
@@ -32,6 +32,7 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
         if (type == "transfer" && !me.Has(Permissions.TransfersCreate) && !me.Has(Permissions.TransfersReceive)) throw AppException.Forbidden();
         if (type == "day" && !me.Has(Permissions.DaysManage)) throw AppException.Forbidden();
         if (type == "collateral" && !me.Has(Permissions.DebtsManage)) throw AppException.Forbidden();
+        if ((type is "transaction" or "customer") && !me.Has(Permissions.TransactionsCreate)) throw AppException.Forbidden();
         if (!Guid.TryParse((string?)m["id"], out var id)) throw AppException.Invalid("The picture needs an id.");
         if (!Guid.TryParse((string?)m["entityId"], out _)) throw AppException.Invalid("Say what the picture belongs to.");
         var slot = (string?)m["slot"] ?? (type == "user" ? "profile" : "other");
@@ -66,12 +67,24 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
         if (entityType == "transfer") me.Require(Permissions.TransfersRead);
         if (entityType == "day") me.Require(Permissions.DaysRead);
         if (entityType == "collateral") me.Require(Permissions.DebtsRead);
-        return store.ListAsync(me, entityType, entityId, ct);
+        if (entityType == "transaction") me.Require(Permissions.TransactionsRead);
+        if (entityType == "customer") me.Require(Permissions.AttachmentsIds);   // IDs are personal data
+        return store.ListAsync(me, entityType, entityId, me.Has(Permissions.AttachmentsIds), ct);
+    }
+
+    /// <summary>One page of the library. Only the filters the database knows are passed on; customer IDs appear only for people who may see them.</summary>
+    public Task<string> LibraryAsync(ICurrentContext me, IReadOnlyDictionary<string, string?> q, CancellationToken ct)
+    {
+        me.Require(Permissions.AttachmentsLibrary);
+        var f = new JsonObject();
+        foreach (var k in new[] { "branchId", "type", "from", "to", "uploaderId", "q", "page", "size" })
+            if (q.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v)) f[k] = v.Length > 80 ? v[..80] : v;
+        return store.LibraryAsync(me, f.ToJsonString(), me.Has(Permissions.AttachmentsIds), ct);
     }
 
     public async Task<Served?> OpenAsync(ICurrentContext me, Guid id, bool thumb, CancellationToken ct)
     {
-        var json = await store.FileAsync(me, id, ct);
+        var json = await store.FileAsync(me, id, me.Has(Permissions.AttachmentsIds), ct);
         return json is null ? null : Open(json, thumb);
     }
 
@@ -83,7 +96,7 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
     }
 
     public Task<string> RemoveAsync(ICurrentContext me, Guid id, string? reason, CancellationToken ct) =>
-        store.RemoveAsync(me, id, Clean(reason, 300), me.Has(Permissions.AttachmentsRemove), ct);
+        store.RemoveAsync(me, id, Clean(reason, 300), me.Has(Permissions.AttachmentsRemove), me.Has(Permissions.AttachmentsIds), ct);
 
     private Served? Open(string json, bool thumb)
     {

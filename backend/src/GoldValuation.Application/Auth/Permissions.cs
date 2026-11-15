@@ -58,6 +58,10 @@ public static class Permissions
     public const string TransactionsCancel = "transactions:cancel";
     /// <summary>Take someone else's photo off the screen (the person who took a photo can always remove their own). The record of it is kept.</summary>
     public const string AttachmentsRemove = "attachments:remove";
+    /// <summary>Open the Photos library: every picture from the branches the person can see, with filters.</summary>
+    public const string AttachmentsLibrary = "attachments:library";
+    /// <summary>See customers' ID pictures. Every time one is opened the audit trail records who and when.</summary>
+    public const string AttachmentsIds = "attachments:ids";
 
     /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
     public static IReadOnlySet<string> All { get; } = typeof(Permissions)
@@ -71,7 +75,7 @@ public static class Permissions
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel, AttachmentsRemove];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel, AttachmentsRemove, AttachmentsLibrary, AttachmentsIds];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage, GuideManage];

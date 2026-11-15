@@ -11,6 +11,8 @@ import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
 import { Can } from "@/features/auth/useHasPermission";
 import { useBranchNames } from "@/features/branches/api";
+import { useAuth } from "@/features/auth/store";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import { cedis } from "@/features/calculator/format";
 import { Kpi, Panel } from "@/features/dashboard/charts";
 import {
@@ -47,6 +49,7 @@ export default function CustomerDetailPage() {
   const detail = useCustomerDetail(id);
   const c = detail.data;
   const branchNames = useBranchNames();
+  const activeBranch = useAuth((s) => s.activeBranchId);
   const [editing, setEditing] = useState(false);
   const [merging, setMerging] = useState(false);
 
@@ -141,6 +144,20 @@ export default function CustomerDetailPage() {
           </div>
         </Can>
       </div>
+
+      <Can permission={PERMISSIONS.ATTACHMENTS_IDS}>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <PhotoAttach
+            target={{ entityType: "customer", entityId: c.id, slot: "id" }}
+            title="ID pictures"
+            hint="Private. Each time one is opened, the audit trail records who and when. Nothing is required."
+            branchName={branchNames[activeBranch ?? ""] ?? "Branch"}
+            reference={`ID · ${c.name}`}
+            emptyText="No ID picture yet"
+            max={3}
+          />
+        </div>
+      </Can>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         <Kpi
