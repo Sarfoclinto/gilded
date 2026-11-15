@@ -106,3 +106,13 @@
 ## v1.15.1
 
 - New login page and logo; redesigned My settings, Company settings and Change password.
+
+## v0.5.0 (desktop app)
+
+- Updated desktop functionality since v0.4.0 (includes web v1.11.1 to v1.15.1):
+  - Photos: attach photos to gold transfers (hand-over and receipt), closing-day counts and loan security; profile pictures for users.
+  - Purchase and customer ID photos, and a Photos library to browse them.
+  - Camera-only setting, a flag when the same picture is reused, a list of missing photos, and sharing photos.
+  - Photos upload in the background and wait for the connection when offline.
+  - Give a loan is now its own page.
+  - New login page and logo; redesigned My settings, Company settings and Change password.
