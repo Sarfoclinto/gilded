@@ -24,6 +24,8 @@ export const settingsSchema = z.object({
   "allowance.perPerson": z.number().default(100),
   /** Show the live world gold price chart (an outside service, TradingView) on the Gold market page and in the tools panel. */
   "market.worldChart": z.boolean().default(true),
+  /** Only pictures taken with the camera are kept; none can be chosen from the library. */
+  "photos.cameraOnly": z.boolean().default(false),
   "receipt.printer": z.boolean().default(false),
   "receipt.paper": z.enum(["80", "58", "a4"]).default("80"),
   "receipt.businessName": z.string().default(""),

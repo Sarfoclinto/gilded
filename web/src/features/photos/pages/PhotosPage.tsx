@@ -10,9 +10,11 @@ import { useBranchNames } from "@/features/branches/api";
 import { errorMessage } from "@/shared/api/errors";
 import { EmptyState, Pager } from "@/shared/ui/DataTable";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import type { Gap } from "../api";
 import {
   fetchPicture,
   pictureUrl,
+  useGaps,
   useLibrary,
   useRemoveAttachment,
   type LibraryItem,
@@ -27,6 +29,7 @@ const KINDS: { value: string; label: string }[] = [
   { value: "transaction", label: "Purchases" },
   { value: "collateral", label: "Held gold" },
   { value: "customer", label: "Customer IDs" },
+  { value: "missing", label: "Missing photos" },
 ];
 const KIND_NAME: Record<string, string> = {
   transfer: "Transfer",
@@ -64,6 +67,52 @@ function recordLink(a: LibraryItem): string | undefined {
   }
 }
 
+function gapLink(g: Gap): string {
+  return g.kind === "transfer"
+    ? paths.transfers.detail.to(g.id)
+    : g.kind === "day"
+      ? paths.drawer.history.href
+      : paths.collateral.href;
+}
+
+/** Records that should have a picture and have none: what a reviewer chases instead of asking in a group. */
+function Missing() {
+  const gaps = useGaps(true);
+  const rows = gaps.data ?? [];
+  if (gaps.error)
+    return <Alert type="error" showIcon title={errorMessage(gaps.error)} />;
+  if (rows.length === 0 && !gaps.isLoading)
+    return (
+      <EmptyState
+        title="Nothing is missing"
+        hint="Every closed day, hand-over and held gold in your branches has a picture. Pictures are never required; this list only shows the gaps."
+      />
+    );
+  return (
+    <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+      {rows.map((g) => (
+        <li
+          key={`${g.kind}-${g.id}`}
+          className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
+        >
+          <div className="min-w-0">
+            <Link to={gapLink(g)} className="font-semibold underline">
+              {g.label ?? KIND_NAME[g.kind]}
+            </Link>
+            <div className="text-xs text-muted-foreground">
+              {KIND_NAME[g.kind] ?? g.kind} · {g.branchName ?? ""} ·{" "}
+              {whenText(g.at)}
+            </div>
+          </div>
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900">
+            No {g.missing}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Tile({ a, onOpen }: { a: LibraryItem; onOpen: () => void }) {
   const [url, setUrl] = useState<string>();
   // load the small preview when the tile is first drawn
@@ -97,6 +146,11 @@ function Tile({ a, onOpen }: { a: LibraryItem; onOpen: () => void }) {
         ) : (
           <span className="absolute inset-0 animate-pulse bg-muted" />
         )}
+        {a.reused ? (
+          <span className="absolute bottom-1.5 left-1.5 rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-black">
+            Used before
+          </span>
+        ) : null}
         {a.entityType === "customer" ? (
           <span className="absolute left-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-black/60 text-white">
             <LockIcon className="size-3.5" aria-label="Customer ID" />
@@ -152,7 +206,11 @@ export default function PhotosPage() {
     page,
     size,
   };
-  const query = useLibrary(filters);
+  const missing = type === "missing";
+  const query = useLibrary({
+    ...filters,
+    type: missing ? undefined : filters.type,
+  });
   const remove = useRemoveAttachment();
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
@@ -168,7 +226,8 @@ export default function PhotosPage() {
       items.map((a) => ({
         id: a.id,
         removable: canRemoveAny || a.by?.id === user?.id,
-        caption: `${a.label ?? KIND_NAME[a.entityType] ?? ""} · ${SLOT_NAME[a.slot] ?? a.slot} · ${a.width ?? "?"}×${a.height ?? "?"} · ${formatBytes(a.size)} · ${whenText(a.takenAt)}${a.by ? ` · ${a.by.displayName}` : ""}`,
+        noShare: a.entityType === "customer",
+        caption: `${a.label ?? KIND_NAME[a.entityType] ?? ""} · ${SLOT_NAME[a.slot] ?? a.slot} · ${a.width ?? "?"}×${a.height ?? "?"} · ${formatBytes(a.size)} · ${whenText(a.takenAt)}${a.by ? ` · ${a.by.displayName}` : ""}${a.reused ? " · used before on another record" : ""}`,
         thumb: async () => ({
           url: await fetchPicture(pictureUrl(a.id, true)),
         }),
@@ -203,7 +262,10 @@ export default function PhotosPage() {
           </button>
         ))}
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      {missing ? <Missing /> : null}
+      <div
+        className={`grid gap-2 sm:grid-cols-2 lg:grid-cols-4 ${missing ? "hidden" : ""}`}
+      >
         <Input
           allowClear
           placeholder="Search a name, number or reference"
@@ -247,7 +309,7 @@ export default function PhotosPage() {
       {query.error ? (
         <Alert type="error" showIcon title={errorMessage(query.error)} />
       ) : null}
-      {items.length === 0 && !query.isLoading ? (
+      {missing ? null : items.length === 0 && !query.isLoading ? (
         <EmptyState
           title="No pictures here"
           hint="Try another kind, branch or date."
@@ -259,12 +321,14 @@ export default function PhotosPage() {
           ))}
         </ul>
       )}
-      <Pager
-        text={`${total} picture${total === 1 ? "" : "s"}`}
-        page={page}
-        pages={Math.ceil(total / size)}
-        onPage={setPage}
-      />
+      {missing ? null : (
+        <Pager
+          text={`${total} picture${total === 1 ? "" : "s"}`}
+          page={page}
+          pages={Math.ceil(total / size)}
+          onPage={setPage}
+        />
+      )}
       {view !== null ? (
         <PhotoViewer
           items={views}

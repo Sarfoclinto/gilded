@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  Share2Icon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -87,6 +88,8 @@ export interface PhotoView {
   caption: string;
   /** Whether the person looking may take it off the screen. */
   removable: boolean;
+  /** Keep this one inside the app (customer IDs): no Share button. */
+  noShare?: boolean;
   thumb?: () => Promise<Loaded | undefined>;
   full: () => Promise<Loaded | undefined>;
 }
@@ -158,6 +161,29 @@ export const whenText = (iso: string) =>
     })
     .replace(/,/g, "");
 
+/** Hands the picture to the phone's share sheet (WhatsApp is one of its choices). Where the browser cannot share files, the picture is saved instead. */
+async function share(r: PhotoView) {
+  try {
+    const l = await r.full();
+    if (!l) return;
+    const blob = await (await fetch(l.url)).blob();
+    const file = new File([blob], `gilded-${r.id.slice(0, 8)}.jpg`, {
+      type: "image/jpeg",
+    });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], text: r.caption });
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  } catch {
+    /* the person closed the share sheet */
+  }
+}
+
 /** Full-screen viewer: swipe or arrow keys between pictures, pinch or double-tap to zoom, details underneath. */
 export function PhotoViewer({
   items,
@@ -221,18 +247,30 @@ export function PhotoViewer({
         <span className="text-sm font-semibold">
           {i + 1} of {items.length}
         </span>
-        {onRemove && r.removable ? (
-          <button
-            type="button"
-            onClick={() => setAsking(true)}
-            className="flex size-11 items-center justify-center rounded-full hover:bg-white/10"
-            aria-label="Remove this photo"
-          >
-            <Trash2Icon className="size-5" />
-          </button>
-        ) : (
-          <span className="size-11" />
-        )}
+        <div className="flex items-center">
+          {r.noShare ? null : (
+            <button
+              type="button"
+              onClick={() => void share(r)}
+              className="flex size-11 items-center justify-center rounded-full hover:bg-white/10"
+              aria-label="Share this photo"
+            >
+              <Share2Icon className="size-5" />
+            </button>
+          )}
+          {onRemove && r.removable ? (
+            <button
+              type="button"
+              onClick={() => setAsking(true)}
+              className="flex size-11 items-center justify-center rounded-full hover:bg-white/10"
+              aria-label="Remove this photo"
+            >
+              <Trash2Icon className="size-5" />
+            </button>
+          ) : (
+            <span className="size-11" />
+          )}
+        </div>
       </div>
       <div className="relative min-h-0 flex-1">
         <div

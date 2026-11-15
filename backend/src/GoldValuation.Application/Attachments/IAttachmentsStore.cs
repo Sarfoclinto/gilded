@@ -11,6 +11,8 @@ public interface IAttachmentsStore
     /// <summary>Storage keys and content type of a picture the caller may see, or null when there is none (or it was removed).</summary>
     Task<string?> FileAsync(ICurrentContext me, Guid id, bool canSeeIds, CancellationToken ct);
     /// <summary>The library: one page of pictures the caller may see, as JSON { items, total, page, size }.</summary>
+    /// <summary>Records that should have a picture and have none, as a JSON list.</summary>
+    Task<string> GapsAsync(ICurrentContext me, string filtersJson, CancellationToken ct);
     Task<string> LibraryAsync(ICurrentContext me, string filtersJson, bool canSeeIds, CancellationToken ct);
     Task<Guid?> ProfilePictureAsync(ICurrentContext me, Guid userId, CancellationToken ct);
     Task<string> RemoveAsync(ICurrentContext me, Guid id, string? reason, bool canRemoveAny, bool canSeeIds, CancellationToken ct);

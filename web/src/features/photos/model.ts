@@ -38,6 +38,8 @@ export interface PhotoRecord {
   /** Bytes of the picture as it came from the camera or the library. */
   originalSize: number;
   sha256: string;
+  /** Fingerprint of the file the picture was made from, so the same picture used on two records can be noticed. */
+  originalSha256?: string;
   source: PhotoSource;
   /** When it was taken: now for the camera, the file's own date for the library. */
   takenAt: string;

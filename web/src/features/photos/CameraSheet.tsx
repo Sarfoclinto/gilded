@@ -9,6 +9,7 @@ import {
   ZapIcon,
   ZapOffIcon,
 } from "lucide-react";
+import { useSettings } from "@/features/settings/api";
 import { isPictureFile, type PhotoSource } from "./model";
 
 export interface Shot {
@@ -54,9 +55,12 @@ export function CameraSheet({
   open,
   mode,
   title = "Photos",
+  allowLibrary = false,
   onClose,
   onDone,
 }: {
+  /** Profile pictures may come from the library even when the company keeps evidence pictures to the camera. */
+  allowLibrary?: boolean;
   open: boolean;
   mode: "camera" | "native";
   title?: string;
@@ -229,7 +233,9 @@ export function CameraSheet({
     setDeviceId(next);
   }
 
+  const cameraOnly = useSettings()["photos.cameraOnly"] && !allowLibrary;
   const take = (files: FileList | null, source: PhotoSource) => {
+    if (cameraOnly && (source === "library" || source === "paste")) return;
     for (const f of Array.from(files ?? []))
       if (isPictureFile(f)) add(f, source);
   };
@@ -328,8 +334,9 @@ export function CameraSheet({
                 <p className="text-sm text-white/80">{error}</p>
               ) : (
                 <p className="text-sm text-white/80">
-                  Take the picture with the phone’s own camera, or choose from
-                  your library.
+                  {cameraOnly
+                    ? "Take the picture with the phone’s own camera."
+                    : "Take the picture with the phone’s own camera, or choose from your library."}
                 </p>
               )}
               <button
@@ -396,14 +403,16 @@ export function CameraSheet({
 
       <div className="flex items-center justify-between gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
         <div className="flex w-24 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => libraryRef.current?.click()}
-            className="flex size-12 items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
-            aria-label="Choose from the library"
-          >
-            <ImageIcon className="size-5" aria-hidden />
-          </button>
+          {cameraOnly ? null : (
+            <button
+              type="button"
+              onClick={() => libraryRef.current?.click()}
+              className="flex size-12 items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
+              aria-label="Choose from the library"
+            >
+              <ImageIcon className="size-5" aria-hidden />
+            </button>
+          )}
           {mode === "camera" ? (
             <button
               type="button"

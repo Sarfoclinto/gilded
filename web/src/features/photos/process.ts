@@ -136,6 +136,7 @@ export async function preparePhoto(
     );
     const thumb = await toBlob(tc, 0.7);
     const hash = await sha256(blob);
+    const originalSha256 = await sha256(input); // the file we started from: the same picture sent twice has the same one even after stamping
     const lastModified =
       input instanceof File && input.lastModified
         ? input.lastModified
@@ -151,6 +152,7 @@ export async function preparePhoto(
         size: blob.size,
         originalSize: input.size,
         sha256: hash,
+        originalSha256,
         source: o.source,
         takenAt: new Date(
           o.source === "library" ? lastModified : Date.now(),

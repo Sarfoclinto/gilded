@@ -51,7 +51,7 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
             ["id"] = id.ToString(), ["entityType"] = type, ["entityId"] = (string?)m["entityId"], ["slot"] = slot,
             ["fileName"] = Clean((string?)m["fileName"], 120), ["contentType"] = "image/jpeg", ["size"] = u.File.Length,
             ["sha256"] = Convert.ToHexString(SHA256.HashData(u.File)).ToLowerInvariant(), ["storageKey"] = key, ["thumbKey"] = thumbKey,
-            ["width"] = Int(m["width"]), ["height"] = Int(m["height"]), ["takenAt"] = (string?)m["takenAt"],
+            ["originalSha"] = Hex64((string?)m["originalSha"]), ["width"] = Int(m["width"]), ["height"] = Int(m["height"]), ["takenAt"] = (string?)m["takenAt"],
             ["source"] = ((string?)m["source"] is "camera" or "library" or "native") ? (string?)m["source"] : null, ["stamped"] = (bool?)m["stamped"] ?? false,
         };
         // The database decides first (who, which transfer, a used id); the bytes follow. Sending the same picture again just writes the same bytes.
@@ -82,6 +82,15 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
         return store.LibraryAsync(me, f.ToJsonString(), me.Has(Permissions.AttachmentsIds), ct);
     }
 
+    /// <summary>What reviewers have not been sent: closed days, hand-overs and held gold with no picture.</summary>
+    public Task<string> GapsAsync(ICurrentContext me, string? days, CancellationToken ct)
+    {
+        me.Require(Permissions.AttachmentsLibrary);
+        var f = new JsonObject();
+        if (int.TryParse(days, out var d)) f["days"] = d;
+        return store.GapsAsync(me, f.ToJsonString(), ct);
+    }
+
     public async Task<Served?> OpenAsync(ICurrentContext me, Guid id, bool thumb, CancellationToken ct)
     {
         var json = await store.FileAsync(me, id, me.Has(Permissions.AttachmentsIds), ct);
@@ -107,6 +116,7 @@ public sealed class AttachmentsService(IAttachmentsStore store, IBlobStore blobs
         return stream is null ? null : new Served(stream, "image/jpeg", root.GetProperty("sha256").GetString() + (thumb ? "-t" : ""), root.GetProperty("fileName").GetString() ?? "photo.jpg");
     }
 
+    private static string? Hex64(string? s) => s is { Length: 64 } && s.All(Uri.IsHexDigit) ? s.ToLowerInvariant() : null;
     private static bool IsJpeg(byte[] b) => b.Length > 4 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF;
     private static int? Int(JsonNode? n) => n is JsonValue v && v.TryGetValue<int>(out var i) && i is > 0 and < 20000 ? i : null;
     private static string? Clean(string? s, int max) => string.IsNullOrWhiteSpace(s) ? null : (s.Trim().Length > max ? s.Trim()[..max] : s.Trim());

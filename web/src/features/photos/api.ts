@@ -28,6 +28,8 @@ export const attachmentSchema = z.object({
   takenAt: z.string(),
   source: z.string().nullable().optional(),
   stamped: z.boolean(),
+  /** An earlier picture on another record came from the same file. */
+  reused: z.boolean().optional(),
   uploadedAt: z.string(),
   by: personSchema,
 });
@@ -56,7 +58,23 @@ export interface LibraryFilters {
   size?: number;
 }
 
+export const gapSchema = z.object({
+  kind: z.string(),
+  id: z.string(),
+  label: z.string().nullable().optional(),
+  branchId: z.string().nullable().optional(),
+  branchName: z.string().nullable().optional(),
+  at: z.string(),
+  missing: z.string(),
+});
+export type Gap = z.infer<typeof gapSchema>;
+
 export const photosApi = {
+  gaps: (signal?: AbortSignal) =>
+    request(
+      { method: "get", url: "/attachments/gaps", signal },
+      z.array(gapSchema),
+    ),
   library: (f: LibraryFilters, signal?: AbortSignal) =>
     request(
       {
@@ -89,6 +107,15 @@ export const photosApi = {
       z.object({ id: z.string(), removed: z.boolean() }),
     ),
 };
+
+export function useGaps(enabled: boolean) {
+  return useApiQuery({
+    queryKey: photoKeys.custom("gaps", {}),
+    queryFn: ({ signal }) => photosApi.gaps(signal),
+    enabled,
+    staleTime: 20_000,
+  });
+}
 
 export function useLibrary(f: LibraryFilters) {
   return useApiQuery({
@@ -140,6 +167,7 @@ export const sendPhoto: Sender = async (
     "meta",
     JSON.stringify({
       id: record.id,
+      originalSha: record.originalSha256,
       entityType: t.entityType,
       entityId: t.entityId,
       slot: t.slot,

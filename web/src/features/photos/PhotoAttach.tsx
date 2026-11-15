@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/features/auth/store";
 import { useHasPermission } from "@/features/auth/useHasPermission";
 import { PERMISSIONS } from "@/config/permissions";
+import { useSettings } from "@/features/settings/api";
 import { CameraSheet } from "./CameraSheet";
 import {
   fetchPicture,
@@ -152,6 +153,7 @@ export function PhotoAttach({
   max?: number;
 }) {
   const user = useAuth((s) => s.user);
+  const cameraOnly = useSettings()["photos.cameraOnly"];
   const canRemoveAny = useHasPermission(PERMISSIONS.ATTACHMENTS_REMOVE);
   const queue = usePhotoQueue();
   const queued = useQueuedPhotos(queue);
@@ -187,7 +189,8 @@ export function PhotoAttach({
     const fromServer: PhotoView[] = serverItems.map((a) => ({
       id: a.id,
       removable: canRemoveAny || mine(a),
-      caption: `${a.width ?? "?"}×${a.height ?? "?"} · ${formatBytes(a.size)} · ${a.source ?? "photo"} · ${whenText(a.takenAt)}${a.by ? ` · ${a.by.displayName}` : ""}${a.stamped ? " · stamped" : ""}`,
+      noShare: a.slot === "id",
+      caption: `${a.width ?? "?"}×${a.height ?? "?"} · ${formatBytes(a.size)} · ${a.source ?? "photo"} · ${whenText(a.takenAt)}${a.by ? ` · ${a.by.displayName}` : ""}${a.stamped ? " · stamped" : ""}${a.reused ? " · used before on another record" : ""}`,
       thumb: async () => ({ url: await fetchPicture(pictureUrl(a.id, true)) }),
       full: async () => ({ url: await fetchPicture(pictureUrl(a.id, false)) }),
     }));
@@ -297,7 +300,9 @@ export function PhotoAttach({
           className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-brand disabled:opacity-50"
         >
           <SmartphoneIcon className="size-3.5" aria-hidden />
-          Use the phone’s own camera app or choose from the library
+          {cameraOnly
+            ? "Use the phone’s own camera app"
+            : "Use the phone’s own camera app or choose from the library"}
         </button>
       ) : null}
       <CameraSheet

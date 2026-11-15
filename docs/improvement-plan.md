@@ -30,7 +30,7 @@ Legend: (fix) a defect, (imp) improvement or UI update, (new) predicted need, no
   - [x] B60 foundation: photos table facts + server volume, upload/list/serve/remove, transfer hand-over and receipt photos with the "no photo" flag, profile pictures, `attachments:remove`, backups include photos.
   - [x] B61 closing-day photo (scaled accumulated gold), including the offline day-close path.
   - [x] B62 Photos library page; purchase and customer ID photos (v1.14.0). Left: Share to WhatsApp, uploader filter in the UI.
-  - [ ] B63 evidence rules: late-photo and "no photo" alerts to reviewers/dashboard, camera-only option, reuse detection, retention/archive, Share to WhatsApp.
+  - [x] B63 evidence rules (v1.15.0): camera-only setting, reuse detection, Missing photos list, Share. Left: late-photo alerts, retention/archive (company decision), a "no photo" flag on purchases, perceptual (look-alike) reuse detection.
 
 ## Dashboards (item 1)
 - **Teller:** today's purchases (count, grams, GHS), drawer balance and float, current price and when it changed, pending items (offline queue, transfers to receive), quick actions.
