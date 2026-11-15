@@ -40,6 +40,8 @@ const paths = {
   prices: { href: "/prices", label: "Prices" },
   /** The world's live gold price, our own price over time and what we bought. */
   market: { href: "/market", label: "Gold market" },
+  /** A try-out page for the camera and photo sending (B60 spike). Not in the menu. */
+  photosLab: { href: "/photos-lab", label: "Photos lab" },
   priceFeed: { href: "/prices/feed", label: "Automatic price" },
   people: {
     customers: { href: "/people/customers", label: "Customers" },
