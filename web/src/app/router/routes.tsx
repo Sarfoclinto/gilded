@@ -103,6 +103,9 @@ const PricesPage = lazy(() => import("@/features/prices/pages/PricesPage"));
 const GoldMarketPage = lazy(
   () => import("@/features/market/pages/GoldMarketPage"),
 );
+const PhotosLabPage = lazy(
+  () => import("@/features/photos/pages/PhotosLabPage"),
+);
 const PendingPaymentsPage = lazy(
   () => import("@/features/payments/PendingPaymentsPage"),
 );
@@ -301,6 +304,7 @@ export const appRoutes: AppRoute[] = [
     element: <GoldMarketPage />,
     access: { permission: PERMISSIONS.TRANSACTIONS_READ },
   },
+  { path: paths.photosLab.href, element: <PhotosLabPage /> },
 ];
 
 /** Outside the app layout on purpose (no menu, no header). */
