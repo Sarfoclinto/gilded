@@ -56,6 +56,8 @@ public static class Permissions
     public const string NotesExchange = "notes:exchange";
     /// <summary>Cancel a wrongly saved purchase, with a reason: the gold and the cash are put back by new entries; the original is kept.</summary>
     public const string TransactionsCancel = "transactions:cancel";
+    /// <summary>Take someone else's photo off the screen (the person who took a photo can always remove their own). The record of it is kept.</summary>
+    public const string AttachmentsRemove = "attachments:remove";
 
     /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
     public static IReadOnlySet<string> All { get; } = typeof(Permissions)
@@ -69,7 +71,7 @@ public static class Permissions
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel, AttachmentsRemove];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage, GuideManage];

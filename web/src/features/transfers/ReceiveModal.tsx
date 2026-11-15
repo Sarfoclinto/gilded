@@ -4,6 +4,7 @@ import { lineTotal, type Lines } from "@gold/core";
 import { cedis } from "@/features/calculator/format";
 import { NoteCountInput } from "@/features/drawer/NoteCountInput";
 import { TextField } from "@/shared/ui/TextField";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import { useReceiveTransfer } from "./api";
 import type { ReceiveLineInput, Transfer } from "./schemas";
 
@@ -240,11 +241,24 @@ export function ReceiveModal({
       width={620}
     >
       {transfer ? (
-        transfer.kind === "goods" ? (
-          <GoodsForm transfer={transfer} onClose={onClose} />
-        ) : (
-          <CashForm transfer={transfer} onClose={onClose} />
-        )
+        <div className="space-y-4">
+          <PhotoAttach
+            target={{
+              entityType: "transfer",
+              entityId: transfer.id,
+              slot: "receive",
+            }}
+            title="Photo of what arrived (optional)"
+            hint="Nothing is blocked if you skip it. It shows the reviewers what you received."
+            branchName={transfer.destinationBranchName}
+            reference={transfer.reference}
+          />
+          {transfer.kind === "goods" ? (
+            <GoodsForm transfer={transfer} onClose={onClose} />
+          ) : (
+            <CashForm transfer={transfer} onClose={onClose} />
+          )}
+        </div>
       ) : null}
     </Modal>
   );

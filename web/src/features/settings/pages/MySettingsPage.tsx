@@ -14,6 +14,7 @@ import { useUI } from "@/store/ui";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { ProfilePhoto } from "@/features/photos/ProfilePhoto";
 import { DesktopRows } from "../DesktopRows";
 import { LayoutSwitch } from "@/features/transactions/focus/LayoutSwitch";
 import { useSettings } from "../api";
@@ -67,7 +68,8 @@ export default function MySettingsPage() {
       />
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
+        <ProfilePhoto />
+        <div className="min-w-0 flex-1">
           <p className="text-base font-semibold">{user?.displayName}</p>
           <p className="text-sm capitalize text-muted-foreground">
             {user?.role}

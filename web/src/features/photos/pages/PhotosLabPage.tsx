@@ -19,7 +19,7 @@ import {
 import { useAuth } from "@/features/auth/store";
 import { useBranchNames } from "@/features/branches/api";
 import { CameraSheet } from "../CameraSheet";
-import { PhotoViewer } from "../PhotoViewer";
+import { PhotoViewer, viewsFromRecords } from "../PhotoViewer";
 import {
   formatBytes,
   isPictureFile,
@@ -496,9 +496,8 @@ export default function PhotosLabPage() {
       />
       {queue && view !== null ? (
         <PhotoViewer
-          records={records}
+          items={viewsFromRecords(records, queue)}
           start={view}
-          queue={queue}
           onClose={() => setView(null)}
           onRemove={(r) => {
             void queue.remove(r.id);

@@ -10,6 +10,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /out .
 ENV ASPNETCORE_URLS=http://+:8080
+# The photos volume is mounted here; it must belong to the app user or uploads fail.
+RUN mkdir -p /data/photos && chown -R app /data
 EXPOSE 8080
 USER app
 ENTRYPOINT ["dotnet", "GoldValuation.Api.dll"]

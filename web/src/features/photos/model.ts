@@ -6,6 +6,13 @@ export const JPEG_QUALITY = 0.82;
 export type PhotoSource = "camera" | "native" | "library" | "paste";
 export type PhotoStatus = "queued" | "sending" | "sent" | "failed";
 
+/** What a picture belongs to once it is sent. A picture with no target (the lab) is only kept on the device. */
+export interface PhotoTarget {
+  entityType: "transfer" | "user";
+  entityId: string;
+  slot: "release" | "receive" | "other" | "profile";
+}
+
 export interface PhotoRecord {
   id: string;
   name: string;
@@ -29,6 +36,9 @@ export interface PhotoRecord {
   nextAttemptAt: number;
   error?: string;
   createdAt: number;
+  target?: PhotoTarget;
+  /** The person who took it. A picture waits if somebody else is signed in on the device, and goes when its owner is back. */
+  owner?: string;
 }
 
 /** Shrink to fit inside `max` on the longer side, never enlarging. */

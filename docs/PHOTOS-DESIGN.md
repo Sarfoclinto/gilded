@@ -1,5 +1,7 @@
 # Photos in Gilded — design and plan (draft for decision)
 
+> **Status (B60 delivered):** foundation, transfers and profile pictures are built; the closing-day photo (B61), library page (B62) and evidence rules (B63) are next.
+
 Goal: everything staff used to post in WhatsApp groups (the scale showing the gold, the gold itself, the closing weigh-in, IDs, slips) is taken, kept and found **inside Gilded, attached to the record it proves**, and taking a photo is **as smooth as WhatsApp or better**.
 
 ## 1. What I think

@@ -1,10 +1,15 @@
-import { backoffMs, MAX_ATTEMPTS, type PhotoRecord } from "./model";
+import {
+  backoffMs,
+  MAX_ATTEMPTS,
+  type PhotoRecord,
+  type PhotoTarget,
+} from "./model";
 import type { PhotoStore } from "./store";
 import type { Prepared } from "./process";
 
 /** Sends one picture. Reports progress from 0 to 1. Throws `NetworkError` when the server cannot be reached (try again later, not a failure). */
 export type Sender = (
-  p: { record: PhotoRecord; file: Blob },
+  p: { record: PhotoRecord; file: Blob; thumb?: Blob },
   onProgress: (fraction: number) => void,
   signal: AbortSignal,
 ) => Promise<void>;
@@ -108,7 +113,7 @@ export function createPhotoQueue(opts: PhotoQueueOptions) {
     emit();
     try {
       await opts.send(
-        { record: r, file },
+        { record: r, file, thumb: thumbs.get(r.id) },
         (f) => {
           const cur = records.get(r.id);
           if (cur && cur.status === "sending") {
@@ -213,10 +218,16 @@ export function createPhotoQueue(opts: PhotoQueueOptions) {
     /** Start: read what the last session left, then send what is waiting. */
     start: pump,
     /** Save a prepared picture and send it in the background. Returns as soon as it is safe on the device. */
-    async add(p: Prepared): Promise<PhotoRecord> {
+    async add(
+      p: Prepared,
+      target?: PhotoTarget,
+      owner?: string,
+    ): Promise<PhotoRecord> {
       await load();
       const r: PhotoRecord = {
         ...p.record,
+        ...(target ? { target } : {}),
+        ...(owner ? { owner } : {}),
         status: "queued",
         progress: 0,
         attempts: 0,

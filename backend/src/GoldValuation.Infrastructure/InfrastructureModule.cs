@@ -1,4 +1,5 @@
 using GoldValuation.Application.Abstractions;
+using GoldValuation.Application.Attachments;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Imports;
 using GoldValuation.Application.PriceFeed;
@@ -9,6 +10,7 @@ using GoldValuation.Application.Sync;
 using GoldValuation.Application.Notifications;
 using GoldValuation.Application.Review;
 using GoldValuation.Application.Transfers;
+using GoldValuation.Infrastructure.Attachments;
 using GoldValuation.Infrastructure.Auth;
 using GoldValuation.Infrastructure.Imports;
 using GoldValuation.Infrastructure.PriceFeed;
@@ -63,6 +65,11 @@ public static class InfrastructureModule
         services.AddSingleton<ISyncStore, PostgresSyncStore>();
         services.AddSingleton<ICommandVerifier, EcdsaCommandVerifier>();
         services.AddScoped<SyncService>();
+        services.AddSingleton<IAttachmentsStore, PostgresAttachmentsStore>();
+        // Pictures live as files under one folder: the photos volume in production (see deploy/docker-compose.yml).
+        var photos = configuration["Photos:Path"] ?? Path.Combine(AppContext.BaseDirectory, "photos");
+        services.AddSingleton<IBlobStore>(_ => new FileBlobStore(photos));
+        services.AddScoped<AttachmentsService>();
         return services;
     }
 

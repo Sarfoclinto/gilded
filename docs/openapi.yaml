@@ -24,6 +24,7 @@ x-live-updates: |
   looking at changed; `notification` { id, kind, title, link } for one person; `resync` after the server reconnected to its database.
   The connection is closed when the access token expires; clients reconnect with a fresh one.
 tags:
+  - name: Photos
   - name: Settings
   - name: Guide
   - name: Auth
@@ -1442,6 +1443,74 @@ paths:
         content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string } } } } }
       responses:
         '200': { description: The transfer, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Transfer' } } } } } }
+  /attachments:
+    post:
+      tags: [Photos]
+      summary: Send a photo
+      description: |
+        One multipart request: `file` (the photo, JPEG, up to 8 MB), `thumb` (its small preview, JPEG, up to 512 KB, optional) and `meta` (JSON text:
+        `id` (chosen by the phone, so sending twice stores it once), `entityType` (`transfer` or `user`), `entityId`, `slot` (`release`, `receive`, `other`; `profile` for a person),
+        `fileName`, `width`, `height`, `takenAt`, `source` (`camera`, `native`, `library`), `stamped`). A transfer photo needs `transfers:create` or `transfers:receive` and a
+        branch on that transfer; a profile photo is always your own. 201 when stored, 200 when that id was already stored. No photo is ever required by any other call.
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file, meta], properties: { file: { type: string, format: binary }, thumb: { type: string, format: binary }, meta: { type: string } } } } }
+      responses:
+        '201': { description: Stored }
+        '200': { description: Already stored (the same photo sent again) }
+        '404': { description: The transfer is not one of your branches' }
+        '422': { description: Not a JPEG, too big, or not a place for a photo }
+    get:
+      tags: [Photos]
+      summary: The photos of one thing
+      description: Oldest first; removed photos are left out. For a transfer, needs `transfers:read` and a branch on the transfer.
+      parameters:
+        - { in: query, name: entityType, required: true, schema: { type: string, enum: [transfer, user] } }
+        - { in: query, name: entityId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Photos, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }
+  /attachments/{id}/file:
+    get:
+      tags: [Photos]
+      summary: The photo itself (JPEG)
+      description: Needs the sign-in header, so the app fetches it and shows it from memory. Never changes, so it is cached for a year (ETag too).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The JPEG }
+        '404': { description: Not there, removed, or not yours to see }
+  /attachments/{id}/thumb:
+    get:
+      tags: [Photos]
+      summary: The small preview of a photo (JPEG, about 320 px)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The JPEG }
+        '404': { description: Not there, removed, or not yours to see }
+  /attachments/profile/{userId}:
+    get:
+      tags: [Photos]
+      summary: A person's current profile photo
+      description: The newest one that has not been removed. Everyone in the company can see it. Kept by the browser for five minutes only, because it can change.
+      parameters:
+        - { in: path, name: userId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: thumb, schema: { type: boolean, default: true } }
+      responses:
+        '200': { description: The JPEG }
+        '404': { description: This person has no profile photo }
+  /attachments/{id}/remove:
+    post:
+      tags: [Photos]
+      summary: Take a photo off the screen
+      description: The person who took it, or anyone with `attachments:remove`. The record of the photo, and of who removed it and why, is kept; the transfer's timeline says a photo was removed.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { reason: { type: string, nullable: true } } } } }
+      responses:
+        '200': { description: Removed (removing twice is harmless) }
+        '403': { description: Not your photo and no `attachments:remove` }
   /exchanges:
     get:
       tags: [Operations]
@@ -1764,6 +1833,7 @@ components:
         id: { type: string, format: uuid }
         reference: { type: string }
         kind: { type: string, enum: [goods, cash] }
+        photos: { type: object, description: "How many photos there are at hand-over, at receipt and elsewhere. Zero is allowed and blocks nothing: the screen only says there is none, so a reviewer knows.", properties: { release: { type: integer }, receive: { type: integer }, other: { type: integer } } }
         status: { type: string, enum: [draft, released, received, received_with_discrepancy, cancelled] }
         originBranchId: { type: string, format: uuid }
         originBranchName: { type: string }

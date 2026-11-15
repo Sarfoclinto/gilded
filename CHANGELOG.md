@@ -86,3 +86,7 @@
 ## v1.11.1
 
 - A try-out page for the planned photo feature (not linked from the menu).
+
+## v1.12.0
+
+- Planned photo feature implementation
