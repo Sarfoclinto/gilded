@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CameraIcon, SmartphoneIcon, XIcon } from "lucide-react";
 import { useAuth } from "@/features/auth/store";
+import { useSettings } from "@/features/settings/api";
 import { CameraSheet } from "./CameraSheet";
 import { formatBytes, type PhotoSource } from "./model";
 import { PhotoViewer, whenText, type PhotoView } from "./PhotoViewer";
@@ -28,6 +29,7 @@ export function PhotoDraft({
   max?: number;
 }) {
   const user = useAuth((s) => s.user);
+  const cameraOnly = useSettings()["photos.cameraOnly"];
   const [sheet, setSheet] = useState<null | "camera" | "native">(null);
   const [view, setView] = useState<number | null>(null);
   const [preparing, setPreparing] = useState(0);
@@ -143,7 +145,9 @@ export function PhotoDraft({
         className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-brand"
       >
         <SmartphoneIcon className="size-3.5" aria-hidden />
-        Use the phone’s own camera app or choose from the library
+        {cameraOnly
+          ? "Use the phone’s own camera app"
+          : "Use the phone’s own camera app or choose from the library"}
       </button>
       <CameraSheet
         open={sheet !== null}

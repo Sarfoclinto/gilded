@@ -67,6 +67,19 @@ public class AttachmentsServiceTests
     }
 
     [Fact]
+    public async Task The_fingerprint_is_passed_on_only_when_it_is_a_real_one_and_gaps_need_the_library_permission()
+    {
+        var good = Meta(); good["originalSha"] = new string('A', 64);
+        await _svc.UploadAsync(Sender(), new Upload(good, Jpeg, null), default);
+        Assert.Contains(new string('a', 64), _store.LastPayload);
+        var bad = Meta(); bad["originalSha"] = "not-a-hash";
+        await _svc.UploadAsync(Sender(), new Upload(bad, Jpeg, null), default);
+        Assert.DoesNotContain("not-a-hash", _store.LastPayload);
+        await Assert.ThrowsAsync<AppException>(() => _svc.GapsAsync(Sender(), null, default));
+        await _svc.GapsAsync(new Ctx([Permissions.AttachmentsLibrary], [Tarkwa]), "30", default);
+    }
+
+    [Fact]
     public async Task Only_real_photos_of_a_sensible_size_are_kept()
     {
         await Assert.ThrowsAsync<AppException>(() => _svc.UploadAsync(Sender(), new Upload(Meta(), [1, 2, 3, 4, 5, 6], null), default));
@@ -139,6 +152,7 @@ public class AttachmentsServiceTests
         }
         public bool LastCanSeeIds;
         public Task<string> ListAsync(ICurrentContext me, string entityType, Guid entityId, bool canSeeIds, CancellationToken ct) { LastCanSeeIds = canSeeIds; return Task.FromResult("[]"); }
+        public Task<string> GapsAsync(ICurrentContext me, string filtersJson, CancellationToken ct) => Task.FromResult("[]");
         public Task<string> LibraryAsync(ICurrentContext me, string filtersJson, bool canSeeIds, CancellationToken ct) { LastPayload = filtersJson; LastCanSeeIds = canSeeIds; return Task.FromResult("{}"); }
         public Task<string?> FileAsync(ICurrentContext me, Guid id, bool canSeeIds, CancellationToken ct) => Task.FromResult<string?>(null);
         public Task<Guid?> ProfilePictureAsync(ICurrentContext me, Guid userId, CancellationToken ct) => Task.FromResult<Guid?>(null);

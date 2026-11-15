@@ -98,3 +98,7 @@
 ## v1.14.0
 
 - Photos library, purchase and customer ID photos
+
+## v1.15.0
+
+- Camera-only setting, reused-picture flag, missing-photos list, share

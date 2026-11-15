@@ -90,6 +90,7 @@ export function ProfilePhoto() {
       <CameraSheet
         open={sheet}
         mode="camera"
+        allowLibrary
         title="Your photo"
         onClose={() => setSheet(false)}
         onDone={(shots) => void pick(shots)}

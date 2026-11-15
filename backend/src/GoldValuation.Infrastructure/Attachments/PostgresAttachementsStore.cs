@@ -26,6 +26,9 @@ public sealed class PostgresAttachmentsStore(NpgsqlDataSource dataSource, ILogge
     public Task<string?> FileAsync(ICurrentContext me, Guid id, bool canSeeIds, CancellationToken ct) =>
         Scalar(me, "select gold.attachment_open($1, $2, $3)", ct, Uuid(id), Scope(me), Bool(canSeeIds));
 
+    public async Task<string> GapsAsync(ICurrentContext me, string filtersJson, CancellationToken ct) =>
+        (await Scalar(me, "select gold.photo_gaps($1, $2)", ct, Json(filtersJson), Scope(me)))!;
+
     public async Task<string> LibraryAsync(ICurrentContext me, string filtersJson, bool canSeeIds, CancellationToken ct) =>
         (await Scalar(me, "select gold.photo_library($1, $2, $3)", ct, Json(filtersJson), Scope(me), Bool(canSeeIds)))!;
 

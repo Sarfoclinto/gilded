@@ -180,6 +180,20 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
+    key: "photos",
+    title: "Photos",
+    blurb:
+      "Rules for pictures of gold, days and IDs. No picture is ever required.",
+    fields: [
+      {
+        key: "photos.cameraOnly",
+        kind: "toggle",
+        label: "Camera pictures only",
+        help: "Staff cannot choose a picture from the phone's library, drop or paste one, so an old picture cannot be passed off as today's. The phone's own camera app still works. Off: library pictures are allowed, and each picture records whether it came from the camera or the library.",
+      },
+    ],
+  },
+  {
     key: "market",
     title: "Gold market",
     blurb: "What the Gold market page and the tools panel show.",
