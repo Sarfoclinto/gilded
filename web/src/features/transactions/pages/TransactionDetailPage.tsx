@@ -12,7 +12,8 @@ import {
 import paths from "@/config/paths";
 import { PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/features/auth/store";
-import { useHasPermission } from "@/features/auth/useHasPermission";
+import { Can, useHasPermission } from "@/features/auth/useHasPermission";
+import { PhotoAttach } from "@/features/photos/PhotoAttach";
 import { useActiveDrawer } from "@/features/drawer/hooks";
 import { ExchangeModal } from "@/features/drawer/ExchangeModal";
 import { useBranchNames } from "@/features/branches/api";
@@ -544,6 +545,39 @@ export default function TransactionDetailPage() {
                 </li>
               ))}
             </ol>
+          </Section>
+
+          <Section title="Photos">
+            <div className="space-y-4">
+              <PhotoAttach
+                target={{
+                  entityType: "transaction",
+                  entityId: t.id,
+                  slot: "goods",
+                }}
+                title="The gold on the scale (optional)"
+                branchName={branchNames[t.branchId] ?? "Branch"}
+                reference={t.reference ?? "Purchase"}
+                emptyText="No photo of the gold"
+              />
+              {t.customerId ? (
+                <Can permission={PERMISSIONS.ATTACHMENTS_IDS}>
+                  <PhotoAttach
+                    target={{
+                      entityType: "customer",
+                      entityId: t.customerId,
+                      slot: "id",
+                    }}
+                    title="Customer's ID"
+                    hint="Private. Each time it is opened, the audit trail records who and when."
+                    branchName={branchNames[t.branchId] ?? "Branch"}
+                    reference="Customer ID"
+                    emptyText="No ID photo yet"
+                    max={3}
+                  />
+                </Can>
+              ) : null}
+            </div>
           </Section>
 
           <Section title="Details">

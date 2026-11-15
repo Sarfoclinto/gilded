@@ -33,7 +33,42 @@ export const attachmentSchema = z.object({
 });
 export type Attachment = z.infer<typeof attachmentSchema>;
 
+/** One picture in the library: the stored facts plus what it belongs to. */
+export const libraryItemSchema = attachmentSchema.extend({
+  label: z.string().nullable().optional(),
+  branchId: z.string().nullable().optional(),
+  branchName: z.string().nullable().optional(),
+});
+export type LibraryItem = z.infer<typeof libraryItemSchema>;
+export const librarySchema = z.object({
+  items: z.array(libraryItemSchema),
+  total: z.number(),
+  page: z.number(),
+  size: z.number(),
+});
+export interface LibraryFilters {
+  branchId?: string;
+  type?: string;
+  from?: string;
+  to?: string;
+  q?: string;
+  page?: number;
+  size?: number;
+}
+
 export const photosApi = {
+  library: (f: LibraryFilters, signal?: AbortSignal) =>
+    request(
+      {
+        method: "get",
+        url: "/attachments/library",
+        params: Object.fromEntries(
+          Object.entries(f).filter(([, v]) => v !== undefined && v !== ""),
+        ),
+        signal,
+      },
+      librarySchema,
+    ),
   list: (entityType: string, entityId: string, signal?: AbortSignal) =>
     request(
       {
@@ -54,6 +89,15 @@ export const photosApi = {
       z.object({ id: z.string(), removed: z.boolean() }),
     ),
 };
+
+export function useLibrary(f: LibraryFilters) {
+  return useApiQuery({
+    queryKey: photoKeys.custom("library", { ...f }),
+    queryFn: ({ signal }) => photosApi.library(f, signal),
+    staleTime: 20_000,
+    placeholderData: (prev) => prev,
+  });
+}
 
 export function useAttachments(
   entityType: string,

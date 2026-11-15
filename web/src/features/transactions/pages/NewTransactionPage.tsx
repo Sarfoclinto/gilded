@@ -11,7 +11,11 @@ import { Alert } from "antd";
 import { calculate } from "@gold/core";
 import paths from "@/config/paths";
 import { useAuth } from "@/features/auth/store";
+import { useBranchNames } from "@/features/branches/api";
 import { useActiveDrawer } from "@/features/drawer/hooks";
+import { PhotoDraft } from "@/features/photos/PhotoDraft";
+import { usePhotoQueue } from "@/features/photos/PhotoProvider";
+import type { Prepared } from "@/features/photos/process";
 import { useCurrentPrice } from "@/features/prices/api";
 import { cedis, percent } from "@/features/calculator/format";
 import { useSettings } from "@/features/settings/api";
@@ -156,6 +160,10 @@ function NewTransactionForm({
 
   // A purchase started earlier and left: pick it up again (not for held gold, which has its own fixed customer).
   const userId = useAuth((s) => s.user?.id);
+  const branchName = useBranchNames()[branchId ?? ""] ?? "Branch";
+  const photoQueue = usePhotoQueue();
+  const [goodsPhotos, setGoodsPhotos] = useState<Prepared[]>([]);
+  const [idPhotos, setIdPhotos] = useState<Prepared[]>([]);
   const dKey = draftKey(userId, branchId);
   const [searchOnce] = useSearchParams();
   const restored = useRef<PurchaseDraft | null>(
@@ -406,6 +414,22 @@ function NewTransactionForm({
       return;
     }
     draftDone.current = true;
+    // Pictures are optional and never held up: they go to the photo queue now and are sent in the background, also when offline.
+    if (photoQueue && userId) {
+      for (const ph of goodsPhotos)
+        void photoQueue.add(
+          ph,
+          { entityType: "transaction", entityId: cmd.id, slot: "goods" },
+          userId,
+        );
+      if (cmd.customerId)
+        for (const ph of idPhotos)
+          void photoQueue.add(
+            ph,
+            { entityType: "customer", entityId: cmd.customerId, slot: "id" },
+            userId,
+          );
+    }
     if (dKey) useDraftStore.getState().clear(dKey);
     toast.success(
       online
@@ -790,6 +814,38 @@ function NewTransactionForm({
               />
             </>
           ) : null}
+
+          <Card className="space-y-3">
+            <h2 className="text-sm font-semibold">Photos (optional)</h2>
+            <PhotoDraft
+              value={goodsPhotos}
+              onChange={setGoodsPhotos}
+              title="The gold on the scale"
+              hint="One picture of what the customer brought. Nothing is blocked if you skip it."
+              branchName={branchName}
+              reference={
+                customer.name.trim()
+                  ? `Purchase · ${customer.name.trim()}`
+                  : "Purchase"
+              }
+            />
+            {customer.id || phoneOk ? (
+              <PhotoDraft
+                value={idPhotos}
+                onChange={setIdPhotos}
+                title="The customer's ID"
+                hint="Kept private: only people allowed to see IDs can open it, and each time is logged."
+                branchName={branchName}
+                reference="Customer ID"
+                max={3}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Add the customer&rsquo;s phone number to keep a picture of their
+                ID.
+              </p>
+            )}
+          </Card>
         </div>
 
         {/* Desktop: the total and Save stay beside the form while it scrolls. */}

@@ -90,3 +90,11 @@
 ## v1.12.0
 
 - Planned photo feature implementation
+
+## v1.13.0
+
+- Completion and closing of photos feature
+
+## v1.14.0
+
+- Photos library, purchase and customer ID photos

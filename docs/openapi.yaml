@@ -1449,7 +1449,7 @@ paths:
       summary: Send a photo
       description: |
         One multipart request: `file` (the photo, JPEG, up to 8 MB), `thumb` (its small preview, JPEG, up to 512 KB, optional) and `meta` (JSON text:
-        `id` (chosen by the phone, so sending twice stores it once), `entityType` (`transfer`, `user`, `day` or `collateral`), `entityId`, `slot` (`release`, `receive`, `other`; `profile` for a person; `closing`, `opening` for a day; `collateral` for held gold),
+        `id` (chosen by the phone, so sending twice stores it once), `entityType` (`transfer`, `user`, `day`, `collateral`, `transaction` or `customer`), `entityId`, `slot` (`release`, `receive`, `other`; `profile` for a person; `closing`, `opening` for a day; `collateral` for held gold; `goods` for a purchase; `id` for a customer's ID, which needs `transactions:create`),
         `fileName`, `width`, `height`, `takenAt`, `source` (`camera`, `native`, `library`), `stamped`). A transfer photo needs `transfers:create` or `transfers:receive` and a
         branch on that transfer; a profile photo is always your own. 201 when stored, 200 when that id was already stored. No photo is ever required by any other call.
       requestBody:
@@ -1465,10 +1465,29 @@ paths:
       summary: The photos of one thing
       description: Oldest first; removed photos are left out. For a transfer, needs `transfers:read` and a branch on the transfer.
       parameters:
-        - { in: query, name: entityType, required: true, schema: { type: string, enum: [transfer, user, day, collateral] } }
+        - { in: query, name: entityType, required: true, schema: { type: string, enum: [transfer, user, day, collateral, transaction, customer] } }
+        # listing a customer's pictures (their IDs) needs attachments:ids
         - { in: query, name: entityId, required: true, schema: { type: string, format: uuid } }
       responses:
         '200': { description: Photos, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }
+  /attachments/library:
+    get:
+      tags: [Photos]
+      summary: The Photos library
+      description: |
+        Needs `attachments:library`. Every live picture from the caller's branches, newest first, each with what it belongs to (`label`, `branchName`). Profile pictures are not included.
+        Customer ID pictures appear only for callers who also hold `attachments:ids`; opening one writes `attachment.id_viewed` to the audit trail (once per person per picture per ten minutes).
+      parameters:
+        - { in: query, name: type, schema: { type: string, enum: [transfer, day, collateral, transaction, customer] } }
+        - { in: query, name: branchId, schema: { type: string, format: uuid } }
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+        - { in: query, name: uploaderId, schema: { type: string, format: uuid } }
+        - { in: query, name: q, description: Search the name or number of what the picture belongs to, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1 } }
+        - { in: query, name: size, schema: { type: integer, minimum: 1, maximum: 100, default: 40 } }
+      responses:
+        '200': { description: 'A page: { items, total, page, size }', content: { application/json: { schema: { type: object } } } }
   /attachments/{id}/file:
     get:
       tags: [Photos]

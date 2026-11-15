@@ -8,7 +8,13 @@ export type PhotoStatus = "queued" | "sending" | "sent" | "failed";
 
 /** What a picture belongs to once it is sent. A picture with no target (the lab) is only kept on the device. */
 export interface PhotoTarget {
-  entityType: "transfer" | "user" | "day" | "collateral";
+  entityType:
+    | "transfer"
+    | "user"
+    | "day"
+    | "collateral"
+    | "transaction"
+    | "customer";
   entityId: string;
   slot:
     | "release"
@@ -17,7 +23,9 @@ export interface PhotoTarget {
     | "profile"
     | "closing"
     | "opening"
-    | "collateral";
+    | "collateral"
+    | "goods"
+    | "id";
 }
 
 export interface PhotoRecord {

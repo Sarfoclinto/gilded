@@ -25,6 +25,10 @@ export const permissionLabels: Record<Permission, string> = {
     "Work the inbox of differences (take, note, resolve, reopen)",
   "transactions:cancel":
     "Cancel a wrongly saved purchase, with a reason: the gold and the cash are put back; the original is kept",
+  "attachments:library":
+    "Open the Photos page: every picture from the branches you can see, with filters",
+  "attachments:ids":
+    "See customers' ID pictures (each time one is opened, the audit trail records who and when)",
   "attachments:remove":
     "Take other people's photos off the screen (the record of them is kept)",
   "notes:exchange":

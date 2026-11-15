@@ -44,6 +44,29 @@ public class AttachmentsServiceTests
     }
 
     [Fact]
+    public async Task Purchase_photos_and_customer_IDs_follow_their_permissions()
+    {
+        var teller = new Ctx([Permissions.TransactionsCreate, Permissions.TransactionsRead], [Tarkwa]);
+        await _svc.UploadAsync(teller, new Upload(Meta(type: "transaction", slot: "goods"), Jpeg, null), default);
+        await _svc.UploadAsync(teller, new Upload(Meta(type: "customer", slot: "id"), Jpeg, null), default);
+        await Assert.ThrowsAsync<AppException>(() => _svc.UploadAsync(new Ctx([Permissions.TransfersCreate], [Tarkwa]), new Upload(Meta(type: "customer", slot: "id"), Jpeg, null), default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ListAsync(teller, "customer", Guid.NewGuid(), default));   // a teller cannot list IDs
+        await _svc.ListAsync(new Ctx([Permissions.AttachmentsIds], [Tarkwa]), "customer", Guid.NewGuid(), default);
+        Assert.True(_store.LastCanSeeIds);
+    }
+
+    [Fact]
+    public async Task The_library_needs_its_permission_and_passes_only_known_filters()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _svc.LibraryAsync(Sender(), new Dictionary<string, string?>(), default));
+        var manager = new Ctx([Permissions.AttachmentsLibrary], [Tarkwa]);
+        await _svc.LibraryAsync(manager, new Dictionary<string, string?> { ["q"] = "kofi", ["evil"] = "x", ["type"] = "day" }, default);
+        Assert.Contains("\"q\":\"kofi\"", _store.LastPayload);
+        Assert.DoesNotContain("evil", _store.LastPayload);
+        Assert.False(_store.LastCanSeeIds);
+    }
+
+    [Fact]
     public async Task Only_real_photos_of_a_sensible_size_are_kept()
     {
         await Assert.ThrowsAsync<AppException>(() => _svc.UploadAsync(Sender(), new Upload(Meta(), [1, 2, 3, 4, 5, 6], null), default));
@@ -114,10 +137,12 @@ public class AttachmentsServiceTests
             LastPayload = payloadJson;
             return Task.FromResult(new DbResult(false, "{}"));
         }
-        public Task<string> ListAsync(ICurrentContext me, string entityType, Guid entityId, CancellationToken ct) => Task.FromResult("[]");
-        public Task<string?> FileAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult<string?>(null);
+        public bool LastCanSeeIds;
+        public Task<string> ListAsync(ICurrentContext me, string entityType, Guid entityId, bool canSeeIds, CancellationToken ct) { LastCanSeeIds = canSeeIds; return Task.FromResult("[]"); }
+        public Task<string> LibraryAsync(ICurrentContext me, string filtersJson, bool canSeeIds, CancellationToken ct) { LastPayload = filtersJson; LastCanSeeIds = canSeeIds; return Task.FromResult("{}"); }
+        public Task<string?> FileAsync(ICurrentContext me, Guid id, bool canSeeIds, CancellationToken ct) => Task.FromResult<string?>(null);
         public Task<Guid?> ProfilePictureAsync(ICurrentContext me, Guid userId, CancellationToken ct) => Task.FromResult<Guid?>(null);
-        public Task<string> RemoveAsync(ICurrentContext me, Guid id, string? reason, bool canRemoveAny, CancellationToken ct) { CanAny = canRemoveAny; return Task.FromResult("{}"); }
+        public Task<string> RemoveAsync(ICurrentContext me, Guid id, string? reason, bool canRemoveAny, bool canSeeIds, CancellationToken ct) { CanAny = canRemoveAny; return Task.FromResult("{}"); }
     }
 
     private sealed class Ctx(IEnumerable<string> permissions, IEnumerable<Guid> branches) : ICurrentContext
