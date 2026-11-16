@@ -1540,10 +1540,49 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { type: string, format: uuid } } } } } } }
       responses:
         '200': { description: '{ deleted }: how many of them were yours and are now gone' }
+  /me/pictures/colleagues:
+    get:
+      tags: [My pictures]
+      summary: Colleagues one can share a picture with (active people, not oneself)
+      responses:
+        '200': { description: 'A list of { id, displayName }', content: { application/json: { schema: { type: object } } } }
+  /me/pictures/shared:
+    get:
+      tags: [My pictures]
+      summary: Pictures colleagues have shared with the caller (not hidden, not stopped)
+      parameters:
+        - { in: query, name: size, schema: { type: integer, minimum: 1, maximum: 500, default: 60 } }
+      responses:
+        '200': { description: 'A page: { items (each with sharedBy and sharedAt), total, page, size }', content: { application/json: { schema: { type: object } } } }
+  /me/pictures/share:
+    post:
+      tags: [My pictures]
+      summary: Share some of the caller's own pictures with one colleague (1 to 100)
+      description: The colleague is notified once and can look at the pictures and save a copy; they cannot share them on. Logged as "personal.shared" with only the colleague and the count.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { type: string, format: uuid } }, to: { type: string, format: uuid } } } } } }
+      responses:
+        '200': { description: '{ shared, already }' }
+        '404': { description: A picture is not the caller's, or the colleague is not an active person }
+  /me/pictures/unshare:
+    post:
+      tags: [My pictures]
+      summary: Stop sharing the caller's pictures (with one colleague, or with everyone when `to` is null)
+      description: Access ends at once. Logged as "personal.unshared".
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { type: string, format: uuid } }, to: { type: string, format: uuid, nullable: true } } } } } }
+      responses:
+        '200': { description: '{ stopped }' }
+  /me/pictures/shared/hide:
+    post:
+      tags: [My pictures]
+      summary: Take pictures off the caller's own "Shared with me" list
+      description: The owner is not told and can still stop sharing.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { type: string, format: uuid } } } } } } }
+      responses:
+        '200': { description: '{ hidden }' }
   /me/pictures/{id}/file:
     get:
       tags: [My pictures]
-      summary: A private picture (JPEG), owner only
+      summary: A private picture (JPEG), for its owner or someone it is shared with
       description: "Never cached by shared caches (Cache-Control: private, no-store)."
       parameters:
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }

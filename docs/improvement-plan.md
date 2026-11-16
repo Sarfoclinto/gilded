@@ -100,5 +100,8 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - ✅ **Done in B64 (v1.15.1). Login page refresh.** (Company settings and Change password got the same look in B64.) Make it nicer, and replace the plain `G` in a box with the real Gilded logo (also check the favicon, the header and the installer use the same mark).
   - Left from the login item: the printed receipt still has a plain `G`; it needs a one-colour version of the mark.
 - ✅ **Phase 1 done in B65 (v1.16.0). My pictures, a private camera for every user.** Round camera button on every screen, a My pictures page only the owner can open (not even admins), real delete, quota and a company on/off switch. Design: `docs/personal-pictures-design.md`.
-  - **B66 (next): sharing.** Share a picture with one named colleague (view and download), "Shared with me" tab, stop sharing, notification, audit lines for share and stop-share only.
+  - ✅ **Done in B66 (v1.17.0): sharing.** Share a picture with one named colleague (view and download), "Shared with me" tab, stop sharing, notification, audit lines for share and stop-share only.
   - Later (optional): attach a personal picture to a purchase or transfer as company evidence (a copy), encryption at rest, a "recently deleted" bin.
+
+## Asked for on 16 Nov 2026 (design written, not scheduled)
+- **Workings: a freeform scratch sheet for rough calculations (OneNote-like).** Tap anywhere to drop a labelled figure, build results by pointing at other figures (live formulas), quick totals, gold helpers (karat purity, pure weight, today's price), save/list/reopen sheets, print. Scratch only: never writes to the books; the person copies a result into a form. Private to the owner like My pictures. Design: `docs/workings-design.md` (feasible; phases 1 to 3; four decisions to confirm before building).

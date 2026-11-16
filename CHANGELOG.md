@@ -118,4 +118,9 @@
   - New login page and logo; redesigned My settings, Company settings and Change password.
 
 ## v1.16.0
+
 - My pictures, a private camera for every user
+
+## v1.17.0
+
+- Share a private picture with a colleague

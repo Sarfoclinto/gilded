@@ -33,11 +33,18 @@ public static class PersonalPicturesEndpoints
             Data(await svc.SetCaptionAsync(me, id, (string?)body["caption"], ct)));
 
         api.MapPost("/me/pictures/delete", async (JsonObject body, ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) =>
-        {
-            var ids = (body["ids"] as JsonArray)?.Select(n => Guid.TryParse((string?)n, out var g) ? g : Guid.Empty).Where(g => g != Guid.Empty).Distinct().ToArray()
-                      ?? throw AppException.Invalid("Choose the pictures to delete.");
-            return Data($"{{\"deleted\":{await svc.DeleteAsync(me, ids, ct)}}}");
-        });
+            Data($"{{\"deleted\":{await svc.DeleteAsync(me, Ids(body), ct)}}}"));
+
+        // Sharing: one colleague at a time; the colleague can look at and save a copy, never share on.
+        api.MapGet("/me/pictures/colleagues", async (ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) => Data(await svc.ColleaguesAsync(me, ct)));
+        api.MapGet("/me/pictures/shared", async (HttpContext http, ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) =>
+            Data(await svc.SharedListAsync(me, http.Request.Query.ToDictionary(k => k.Key, k => (string?)k.Value.ToString()), ct)));
+        api.MapPost("/me/pictures/share", async (JsonObject body, ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) =>
+            Data(await svc.ShareAsync(me, Ids(body), Guid.TryParse((string?)body["to"], out var to) ? to : throw AppException.Invalid("Choose a colleague to share with."), ct)));
+        api.MapPost("/me/pictures/unshare", async (JsonObject body, ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) =>
+            Data(await svc.UnshareAsync(me, Ids(body), Guid.TryParse((string?)body["to"], out var to) ? to : null, ct)));
+        api.MapPost("/me/pictures/shared/hide", async (JsonObject body, ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) =>
+            Data(await svc.HideSharedAsync(me, Ids(body), ct)));
 
         api.MapGet("/me/pictures/{id:guid}/file", async (Guid id, HttpContext http, ICurrentContext me, PersonalPicturesService svc, CancellationToken ct) =>
             Serve(http, await svc.OpenAsync(me, id, false, ct)));
@@ -45,6 +52,10 @@ public static class PersonalPicturesEndpoints
             Serve(http, await svc.OpenAsync(me, id, true, ct)));
         return api;
     }
+
+    private static Guid[] Ids(JsonObject body) =>
+        (body["ids"] as JsonArray)?.Select(n => Guid.TryParse((string?)n, out var g) ? g : Guid.Empty).Where(g => g != Guid.Empty).Distinct().ToArray()
+        ?? throw AppException.Invalid("Choose the pictures.");
 
     private static async Task<byte[]> Read(IFormFile f, CancellationToken ct)
     {
