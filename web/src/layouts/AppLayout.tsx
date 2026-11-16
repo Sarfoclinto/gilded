@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useRef, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { QuickCameraButton } from "@/features/personal/QuickCamera";
 import {
   PanelHeader,
   UtilityButton,
@@ -110,6 +111,7 @@ export default function AppLayout() {
           </div>
           {!desktop && <MobileTabBar />}
           <UtilityButton />
+          {!desktop && <QuickCameraButton variant="fab" />}
           {!desktop && <UtilitySheet />}
         </div>
       </div>

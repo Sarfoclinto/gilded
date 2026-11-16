@@ -4,6 +4,7 @@ import {
   BuildingIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  ImagesIcon,
   KeyRoundIcon,
   LogOutIcon,
   SettingsIcon,
@@ -21,7 +22,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QuickCameraButton } from "@/features/personal/QuickCamera";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
+import { useSettings } from "@/features/settings/api";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { ConnectionBadge } from "@/shared/ui/ConnectionBadge";
@@ -42,6 +45,7 @@ export function Header() {
   const logout = useLogout();
   const canCompanySettings = useHasPermission(PERMISSIONS.SETTINGS_MANAGE);
   const { waiting } = useOutbox();
+  const myPicturesOn = useSettings()["personalPictures.enabled"];
   const desktop = useIsDesktop();
   const { pathname } = useLocation();
   const crumbs = useMemo(
@@ -96,6 +100,7 @@ export function Header() {
         {desktop ? <BranchSwitcher /> : null}
         <HubPill />
         <ConnectionBadge />
+        {desktop ? <QuickCameraButton variant="header" /> : null}
         <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -133,6 +138,13 @@ export function Header() {
               <DropdownMenuItem asChild>
                 <Link to={paths.settings.company.href}>
                   <BuildingIcon className="size-4" /> Company settings
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
+            {myPicturesOn ? (
+              <DropdownMenuItem asChild>
+                <Link to={paths.myPictures.href}>
+                  <ImagesIcon className="size-4" /> My pictures
                 </Link>
               </DropdownMenuItem>
             ) : null}

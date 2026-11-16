@@ -24,4 +24,6 @@ public interface IBlobStore
     Task WriteAsync(string key, ReadOnlyMemory<byte> bytes, CancellationToken ct);
     /// <summary>Opens a stored file for reading, or null when it is not there (yet).</summary>
     Stream? Open(string key);
+    /// <summary>Removes a stored file. A file that is not there is not an error.</summary>
+    void Delete(string key);
 }

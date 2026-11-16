@@ -190,11 +190,13 @@ export function PhotoViewer({
   start,
   onClose,
   onRemove,
+  personal = false,
 }: {
   items: readonly PhotoView[];
   start: number;
   onClose: () => void;
   onRemove?: (item: PhotoView) => void | Promise<void>;
+  /** A picture of the person's own (My pictures): removing it deletes it for good, so the words say so. */ personal?: boolean;
 }) {
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -263,7 +265,9 @@ export function PhotoViewer({
               type="button"
               onClick={() => setAsking(true)}
               className="flex size-11 items-center justify-center rounded-full hover:bg-white/10"
-              aria-label="Remove this photo"
+              aria-label={
+                personal ? "Delete this picture" : "Remove this photo"
+              }
             >
               <Trash2Icon className="size-5" />
             </button>
@@ -316,12 +320,15 @@ export function PhotoViewer({
         <div
           className="absolute inset-x-0 bottom-0 z-10 space-y-3 rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-black shadow-2xl"
           role="alertdialog"
-          aria-label="Remove this photo?"
+          aria-label={personal ? "Delete this picture?" : "Remove this photo?"}
         >
-          <p className="font-semibold">Remove this photo?</p>
+          <p className="font-semibold">
+            {personal ? "Delete this picture?" : "Remove this photo?"}
+          </p>
           <p className="text-sm text-black/70">
-            It will no longer show. A record that it was taken, and who removed
-            it, is kept.
+            {personal
+              ? "It is deleted for good and cannot be brought back."
+              : "It will no longer show. A record that it was taken, and who removed it, is kept."}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -343,7 +350,13 @@ export function PhotoViewer({
               }}
               className="min-h-11 rounded-lg bg-red-600 font-semibold text-white disabled:opacity-60"
             >
-              {busy ? "Removing…" : "Remove"}
+              {busy
+                ? personal
+                  ? "Deleting…"
+                  : "Removing…"
+                : personal
+                  ? "Delete"
+                  : "Remove"}
             </button>
           </div>
         </div>

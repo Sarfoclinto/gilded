@@ -6,7 +6,7 @@ import { http, request } from "@/shared/api/client";
 import { createKeys } from "@/shared/api/queryKeys";
 import { useApiMutation, useApiQuery } from "@/shared/api/hooks";
 import { NetworkError, type Sender } from "./queue";
-import type { PhotoTarget } from "./model";
+import type { PhotoRecord, PhotoTarget } from "./model";
 
 export const photoKeys = createKeys("photos");
 
@@ -150,6 +150,32 @@ export function useRemoveAttachment() {
   });
 }
 
+/** The facts sent with a picture. My pictures are private to the person, so they carry no record to attach to and no evidence fields. */
+export function uploadMeta(record: PhotoRecord): Record<string, unknown> {
+  const t = record.target;
+  if (t?.entityType === "personal")
+    return {
+      id: record.id,
+      fileName: record.name,
+      width: record.width,
+      height: record.height,
+      takenAt: record.takenAt,
+    };
+  return {
+    id: record.id,
+    originalSha: record.originalSha256,
+    entityType: t?.entityType,
+    entityId: t?.entityId,
+    slot: t?.slot,
+    fileName: record.name,
+    width: record.width,
+    height: record.height,
+    takenAt: record.takenAt,
+    source: record.source === "paste" ? "library" : record.source,
+    stamped: record.stamped,
+  };
+}
+
 /** The real sender: one request with the picture, its preview and the facts. Safe to repeat: the server keeps one per picture id. */
 export const sendPhoto: Sender = async (
   { record, file, thumb },
@@ -163,32 +189,21 @@ export const sendPhoto: Sender = async (
   const form = new FormData();
   form.append("file", file, `${record.id}.jpg`);
   if (thumb) form.append("thumb", thumb, `${record.id}.t.jpg`);
-  form.append(
-    "meta",
-    JSON.stringify({
-      id: record.id,
-      originalSha: record.originalSha256,
-      entityType: t.entityType,
-      entityId: t.entityId,
-      slot: t.slot,
-      fileName: record.name,
-      width: record.width,
-      height: record.height,
-      takenAt: record.takenAt,
-      source: record.source === "paste" ? "library" : record.source,
-      stamped: record.stamped,
-    }),
-  );
+  form.append("meta", JSON.stringify(uploadMeta(record)));
   try {
-    await http.post("/attachments", form, {
-      signal,
-      timeout: 120_000,
-      // the app's default is JSON, which would turn the form into JSON; the browser adds the boundary itself
-      headers: { "Content-Type": "multipart/form-data" },
-      onUploadProgress: (e) => {
-        if (e.total) onProgress(Math.min(e.loaded / e.total, 0.99));
+    await http.post(
+      t.entityType === "personal" ? "/me/pictures" : "/attachments",
+      form,
+      {
+        signal,
+        timeout: 120_000,
+        // the app's default is JSON, which would turn the form into JSON; the browser adds the boundary itself
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (e) => {
+          if (e.total) onProgress(Math.min(e.loaded / e.total, 0.99));
+        },
       },
-    });
+    );
   } catch (e) {
     if (axios.isCancel(e)) throw e;
     if (axios.isAxiosError(e)) {

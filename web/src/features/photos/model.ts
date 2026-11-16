@@ -6,7 +6,7 @@ export const JPEG_QUALITY = 0.82;
 export type PhotoSource = "camera" | "native" | "library" | "paste";
 export type PhotoStatus = "queued" | "sending" | "sent" | "failed";
 
-/** What a picture belongs to once it is sent. A picture with no target (the lab) is only kept on the device. */
+/** What a picture belongs to once it is sent ('personal' = My pictures, private to the person; its entityId is the person's own id). A picture with no target (the lab) is only kept on the device. */
 export interface PhotoTarget {
   entityType:
     | "transfer"
@@ -14,7 +14,8 @@ export interface PhotoTarget {
     | "day"
     | "collateral"
     | "transaction"
-    | "customer";
+    | "customer"
+    | "personal";
   entityId: string;
   slot:
     | "release"

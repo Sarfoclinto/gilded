@@ -26,6 +26,11 @@ export const settingsSchema = z.object({
   "market.worldChart": z.boolean().default(true),
   /** Only pictures taken with the camera are kept; none can be chosen from the library. */
   "photos.cameraOnly": z.boolean().default(false),
+  /** My pictures: each person's private camera. Off hides the buttons; it never exposes or deletes anything. */
+  "personalPictures.enabled": z.boolean().default(true),
+  "personalPictures.maxPerUser": z.number().default(300),
+  "personalPictures.maxMb": z.number().default(300),
+  "personalPictures.purgeDays": z.number().default(90),
   "receipt.printer": z.boolean().default(false),
   "receipt.paper": z.enum(["80", "58", "a4"]).default("80"),
   "receipt.businessName": z.string().default(""),

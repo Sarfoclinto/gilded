@@ -99,3 +99,6 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - ✅ **Done in B64 (v1.15.1). Modernize the personal settings page (My settings).** Make it look nicer and more current: profile header with the picture, grouped cards (password, sign-in, device, preferences), better spacing on phones.
 - ✅ **Done in B64 (v1.15.1). Login page refresh.** (Company settings and Change password got the same look in B64.) Make it nicer, and replace the plain `G` in a box with the real Gilded logo (also check the favicon, the header and the installer use the same mark).
   - Left from the login item: the printed receipt still has a plain `G`; it needs a one-colour version of the mark.
+- ✅ **Phase 1 done in B65 (v1.16.0). My pictures, a private camera for every user.** Round camera button on every screen, a My pictures page only the owner can open (not even admins), real delete, quota and a company on/off switch. Design: `docs/personal-pictures-design.md`.
+  - **B66 (next): sharing.** Share a picture with one named colleague (view and download), "Shared with me" tab, stop sharing, notification, audit lines for share and stop-share only.
+  - Later (optional): attach a personal picture to a purchase or transfer as company evidence (a copy), encryption at rest, a "recently deleted" bin.
