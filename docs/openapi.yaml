@@ -1828,6 +1828,17 @@ paths:
       responses:
         '200': { description: Debts, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Debt' } } } } } } }
         '403': { $ref: '#/components/responses/Error' }
+  /customers/{id}/debts:
+    get:
+      tags: [Debts]
+      summary: What a customer already owes, across the caller's branches
+      description: |
+        Needs `debts:read`. Open receivable debts of one customer at every branch the caller can see, soonest due first, each with its branch name,
+        plus the total and `elsewhere`: how many open debts the customer has at branches the caller cannot see (counted, never shown).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ items, total, elsewhere }', content: { application/json: { schema: { type: object } } } }
   /debts/{id}:
     get:
       tags: [Customers and debts]

@@ -116,6 +116,8 @@ public static class OperationsEndpoints
         // ---- debts, loans, security ----
         api.MapGet("/debts", async (Guid branchId, string? direction, bool? openOnly, Guid? customerId, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.ListDebtsAsync(me, branchId, direction, openOnly ?? false, customerId, ct)));
+        api.MapGet("/customers/{id:guid}/debts", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
+            Data(await ops.CustomerDebtsAsync(me, id, ct)));
         api.MapGet("/debts/{id:guid}", async (Guid id, ICurrentContext me, OperationsService ops, CancellationToken ct) =>
             Data(await ops.GetDebtAsync(me, id, ct)));
         api.MapPost("/debts/loans", async (LoanCommand body, HttpContext http, ICurrentContext me, OperationsService ops, CancellationToken ct) =>

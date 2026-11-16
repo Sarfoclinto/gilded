@@ -18,6 +18,7 @@ import { decimalOnly } from "@/shared/lib/numbers";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { TextField } from "@/shared/ui/TextField";
+import { CustomerDebtNotice } from "../CustomerDebtNotice";
 import { useIssueLoan } from "../api";
 import { dateInDays } from "../model";
 
@@ -124,6 +125,11 @@ export default function LoanPage() {
           value={customer}
           onChange={setCustomer}
           branchId={branchId ?? null}
+        />
+        <CustomerDebtNotice
+          customerId={customer.id}
+          name={customer.name}
+          adding={principal}
         />
       </Card>
 

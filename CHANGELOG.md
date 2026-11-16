@@ -124,3 +124,7 @@
 ## v1.17.0
 
 - Share a private picture with a colleague
+
+## v1.17.1
+
+- Show what a customer already owes on the loan page

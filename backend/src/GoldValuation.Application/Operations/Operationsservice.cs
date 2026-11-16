@@ -449,6 +449,13 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return await store.RepayDebtAsync(me, payload.ToJsonString(), ct);
     }
 
+    /// <summary>What a customer already owes at the branches the caller can see, for deciding on a new loan. Needs permission to read debts.</summary>
+    public Task<string> CustomerDebtsAsync(ICurrentContext me, Guid customerId, CancellationToken ct)
+    {
+        me.Require(Permissions.DebtsRead);
+        return store.CustomerDebtsAsync(me, customerId, ct);
+    }
+
     public Task<string> ListDebtsAsync(ICurrentContext me, Guid branchId, string? direction, bool openOnly, Guid? customerId, CancellationToken ct)
     {
         me.Require(Permissions.DebtsRead);
