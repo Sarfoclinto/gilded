@@ -139,6 +139,7 @@ public class AttachmentsServiceTests
         public readonly List<string> Written = [];
         public Task WriteAsync(string key, ReadOnlyMemory<byte> bytes, CancellationToken ct) { Written.Add(key); return Task.CompletedTask; }
         public Stream? Open(string key) => null;
+        public void Delete(string key) { }
     }
 
     private sealed class FakeStore : IAttachmentsStore

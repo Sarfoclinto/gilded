@@ -71,6 +71,11 @@ const ACTIONS: {
     title: "Change my password",
     keywords: "password security",
   },
+  {
+    href: paths.myPictures.href,
+    title: "My pictures",
+    keywords: "private camera photos personal gallery notes reference",
+  },
 ];
 
 const MORE_WORDS: Record<string, string> = {
@@ -83,6 +88,7 @@ const MORE_WORDS: Record<string, string> = {
   [paths.drawer.account.href]: "daily account report closing figures",
   [paths.payments.href]: "momo mobile money mtn vodafone telecel airteltigo",
   [paths.debts.href]: "loans lend owe owed credit repayment",
+  [paths.photos.href]: "photos pictures images gallery evidence id scale gold",
   [paths.collateral.href]: "security collateral held gold custody",
   [paths.review.cases.href]: "discrepancies shortage surplus variance",
   [paths.review.sync.href]: "offline entries held rejected sync",

@@ -116,3 +116,6 @@
   - Photos upload in the background and wait for the connection when offline.
   - Give a loan is now its own page.
   - New login page and logo; redesigned My settings, Company settings and Change password.
+
+## v1.16.0
+- My pictures, a private camera for every user

@@ -194,6 +194,43 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
+    key: "personal",
+    title: "My pictures",
+    blurb:
+      "Each person's private camera. The company can switch it on or off and set the limits, but nobody here can see anyone's pictures.",
+    fields: [
+      {
+        key: "personalPictures.enabled",
+        kind: "toggle",
+        label: "Let people keep private pictures",
+        help: "Shows the camera button to everyone. Off: the buttons are hidden and nothing new can be kept. Pictures already kept are not deleted and are not shown to anyone but their owners. Pictures needed as company evidence belong on the transaction, not here.",
+      },
+      {
+        key: "personalPictures.maxPerUser",
+        kind: "number",
+        label: "Pictures per person",
+        help: "The most pictures one person can keep at a time.",
+        max: 5000,
+      },
+      {
+        key: "personalPictures.maxMb",
+        kind: "number",
+        label: "Space per person",
+        help: "The most space one person's pictures can use. A picture takes about half a megabyte.",
+        unit: "MB",
+        max: 5000,
+      },
+      {
+        key: "personalPictures.purgeDays",
+        kind: "number",
+        label: "Keep a leaver's pictures for",
+        help: "When a person's account is switched off, their pictures stay out of everyone's reach and are deleted for good after this many days. Switching the account back on before then restores them to that person only.",
+        unit: "days",
+        max: 3650,
+      },
+    ],
+  },
+  {
     key: "market",
     title: "Gold market",
     blurb: "What the Gold market page and the tools panel show.",

@@ -10,7 +10,8 @@ namespace GoldValuation.Infrastructure.Attachments;
 /// </summary>
 public sealed partial class FileBlobStore(string root) : IBlobStore
 {
-    [GeneratedRegex(@"^[0-9a-f]{32}/\d{4}/[0-9a-f]{32}(\.t)?\.jpg$")]
+    // company pictures: tenant/year/id.jpg; personal pictures: tenant/p/owner/id.jpg
+    [GeneratedRegex(@"^[0-9a-f]{32}/(\d{4}|p/[0-9a-f]{32})/[0-9a-f]{32}(\.t)?\.jpg$")]
     private static partial Regex KeyPattern();
 
     private string PathOf(string key)
@@ -39,5 +40,11 @@ public sealed partial class FileBlobStore(string root) : IBlobStore
     {
         var path = PathOf(key);
         return File.Exists(path) ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true) : null;
+    }
+
+    public void Delete(string key)
+    {
+        var path = PathOf(key);
+        if (File.Exists(path)) File.Delete(path);
     }
 }

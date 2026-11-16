@@ -1499,6 +1499,66 @@ paths:
         - { in: query, name: days, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
       responses:
         '200': { description: 'A list of { kind, id, label, branchId, branchName, at, missing }', content: { application/json: { schema: { type: object } } } }
+  /me/pictures:
+    get:
+      tags: [My pictures]
+      summary: The signed-in person's own private pictures
+      description: |
+        Any signed-in person; no permission is needed and none widens it. Only the caller's own pictures are ever returned (the database checks the owner), newest first.
+        The result also carries the person's use against the company limits.
+      parameters:
+        - { in: query, name: q, description: Search captions, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1 } }
+        - { in: query, name: size, schema: { type: integer, minimum: 1, maximum: 500, default: 60 } }
+      responses:
+        '200': { description: 'A page: { items, total, page, size, usage: { enabled, count, bytes, maxCount, maxMb } }', content: { application/json: { schema: { type: object } } } }
+    post:
+      tags: [My pictures]
+      summary: Keep a private picture
+      description: |
+        Multipart: `file` (JPEG), optional `thumb` (JPEG) and `meta` (JSON: id, fileName, width, height, takenAt). The id is chosen by the app, so sending again keeps one.
+        Refused with 403 `PERSONAL_OFF` when the company has switched it off and 422 `PERSONAL_FULL` over the picture or space limit.
+      responses:
+        '201': { description: Kept }
+        '200': { description: Already kept (same id) }
+        '403': { description: Switched off for this company }
+        '422': { description: Over the limit, or not a JPEG }
+  /me/pictures/{id}:
+    patch:
+      tags: [My pictures]
+      summary: Set or clear a picture's caption (owner only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { caption: { type: string, maxLength: 200 } } } } } }
+      responses:
+        '200': { description: The picture }
+        '404': { description: Not yours, or not there }
+  /me/pictures/delete:
+    post:
+      tags: [My pictures]
+      summary: Delete the caller's own pictures for good (up to 200)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { type: string, format: uuid } } } } } } }
+      responses:
+        '200': { description: '{ deleted }: how many of them were yours and are now gone' }
+  /me/pictures/{id}/file:
+    get:
+      tags: [My pictures]
+      summary: A private picture (JPEG), owner only
+      description: "Never cached by shared caches (Cache-Control: private, no-store)."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The JPEG }
+        '404': { description: Not yours, or not there }
+  /me/pictures/{id}/thumb:
+    get:
+      tags: [My pictures]
+      summary: The small preview of a private picture (JPEG)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The JPEG }
+        '404': { description: Not yours, or not there }
   /attachments/{id}/file:
     get:
       tags: [Photos]

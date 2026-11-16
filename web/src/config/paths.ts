@@ -105,6 +105,8 @@ const paths = {
   },
   collateral: { href: "/collateral", label: "Held gold" },
   photos: { href: "/photos", label: "Photos" },
+  /** A person's own private pictures. Not in the menu: the camera button and the account menu lead here. */
+  myPictures: { href: "/my-pictures", label: "My pictures" },
   unauthorized: {
     href: "/unauthorized",
     redirect: (reason: string) =>

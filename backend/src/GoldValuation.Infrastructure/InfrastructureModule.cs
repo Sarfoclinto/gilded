@@ -1,5 +1,7 @@
 using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Attachments;
+using GoldValuation.Application.Personal;
+using GoldValuation.Infrastructure.Personal;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Imports;
 using GoldValuation.Application.PriceFeed;
@@ -70,6 +72,8 @@ public static class InfrastructureModule
         var photos = configuration["Photos:Path"] ?? Path.Combine(AppContext.BaseDirectory, "photos");
         services.AddSingleton<IBlobStore>(_ => new FileBlobStore(photos));
         services.AddScoped<AttachmentsService>();
+        services.AddSingleton<IPersonalPicturesStore, PostgresPersonalPicturesStore>();
+        services.AddScoped<PersonalPicturesService>();
         return services;
     }
 
