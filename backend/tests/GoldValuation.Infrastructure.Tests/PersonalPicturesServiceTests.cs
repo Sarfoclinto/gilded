@@ -53,6 +53,16 @@ public class PersonalPicturesServiceTests
         await Assert.ThrowsAsync<AppException>(() => _svc.DeleteAsync(new Ctx(), [], default));
     }
 
+    [Fact]
+    public async Task Sharing_is_limited_to_a_sensible_number_of_pictures_and_passes_who_it_is_for()
+    {
+        var to = Guid.NewGuid();
+        await Assert.ThrowsAsync<AppException>(() => _svc.ShareAsync(new Ctx(), [], to, default));
+        await Assert.ThrowsAsync<AppException>(() => _svc.ShareAsync(new Ctx(), Enumerable.Range(0, 101).Select(_ => Guid.NewGuid()).ToArray(), to, default));
+        await _svc.ShareAsync(new Ctx(), [Guid.NewGuid(), Guid.NewGuid()], to, default);
+        Assert.Equal($"2:{to}", _store.LastPayload);
+    }
+
     private sealed class Blobs : IBlobStore
     {
         public readonly List<string> Written = [], Removed = [];
@@ -74,6 +84,11 @@ public class PersonalPicturesServiceTests
         public Task<string> SetCaptionAsync(ICurrentContext me, Guid id, string? caption, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) => Task.FromResult(Deleted);
         public Task<string?> OpenAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult<string?>(null);
+        public Task<string> ColleaguesAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("[]");
+        public Task<string> SharedListAsync(ICurrentContext me, string filtersJson, CancellationToken ct) { LastPayload = filtersJson; return Task.FromResult("{}"); }
+        public Task<string> ShareAsync(ICurrentContext me, Guid[] ids, Guid to, CancellationToken ct) { LastPayload = $"{ids.Length}:{to}"; return Task.FromResult("{}"); }
+        public Task<string> UnshareAsync(ICurrentContext me, Guid[] ids, Guid? to, CancellationToken ct) { LastPayload = $"{ids.Length}:{to}"; return Task.FromResult("{}"); }
+        public Task<string> HideSharedAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) => Task.FromResult("{}");
         public Task<IReadOnlyList<Guid>> PurgeCompaniesAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<Guid>>([]);
         public Task<string> PurgeAsync(Guid tenantId, CancellationToken ct) => Task.FromResult("[]");
     }

@@ -27,9 +27,23 @@ public sealed class PostgresPersonalPicturesStore(NpgsqlDataSource dataSource, I
         (await Scalar(me.TenantId, me.UserId, "select gold.personal_set_caption($1, $2)", ct, Uuid(id), new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)caption ?? DBNull.Value }))!;
 
     public async Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) =>
-        (await Scalar(me.TenantId, me.UserId, "select gold.personal_delete($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = ids }))!;
+        (await Scalar(me.TenantId, me.UserId, "select gold.personal_delete($1)", ct, UuidList(ids)))!;
 
     public Task<string?> OpenAsync(ICurrentContext me, Guid id, CancellationToken ct) => Scalar(me.TenantId, me.UserId, "select gold.personal_open($1)", ct, Uuid(id));
+
+    public async Task<string> ColleaguesAsync(ICurrentContext me, CancellationToken ct) => (await Scalar(me.TenantId, me.UserId, "select gold.personal_colleagues()", ct))!;
+
+    public async Task<string> SharedListAsync(ICurrentContext me, string filtersJson, CancellationToken ct) =>
+        (await Scalar(me.TenantId, me.UserId, "select gold.personal_shared_list($1)", ct, Json(filtersJson)))!;
+
+    public async Task<string> ShareAsync(ICurrentContext me, Guid[] ids, Guid to, CancellationToken ct) =>
+        (await Scalar(me.TenantId, me.UserId, "select gold.personal_share($1, $2)", ct, UuidList(ids), Uuid(to)))!;
+
+    public async Task<string> UnshareAsync(ICurrentContext me, Guid[] ids, Guid? to, CancellationToken ct) =>
+        (await Scalar(me.TenantId, me.UserId, "select gold.personal_unshare($1, $2)", ct, UuidList(ids), new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)to ?? DBNull.Value }))!;
+
+    public async Task<string> HideSharedAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) =>
+        (await Scalar(me.TenantId, me.UserId, "select gold.personal_shared_hide($1)", ct, UuidList(ids)))!;
 
     public async Task<IReadOnlyList<Guid>> PurgeCompaniesAsync(CancellationToken ct)
     {
@@ -59,6 +73,7 @@ public sealed class PostgresPersonalPicturesStore(NpgsqlDataSource dataSource, I
         }
     }
 
+    private static NpgsqlParameter UuidList(Guid[] ids) => new() { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = ids };
     private static NpgsqlParameter Uuid(Guid id) => new() { NpgsqlDbType = NpgsqlDbType.Uuid, Value = id };
     private static NpgsqlParameter Json(string json) => new() { NpgsqlDbType = NpgsqlDbType.Jsonb, Value = json };
 }

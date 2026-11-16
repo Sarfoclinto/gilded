@@ -16,6 +16,12 @@ public interface IPersonalPicturesStore
     /// <summary>Deletes the person's own pictures; returns the files to remove as JSON [{ storageKey, thumbKey }].</summary>
     Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct);
     Task<string?> OpenAsync(ICurrentContext me, Guid id, CancellationToken ct);
+    Task<string> ColleaguesAsync(ICurrentContext me, CancellationToken ct);
+    Task<string> SharedListAsync(ICurrentContext me, string filtersJson, CancellationToken ct);
+    Task<string> ShareAsync(ICurrentContext me, Guid[] ids, Guid to, CancellationToken ct);
+    /// <summary>Stops sharing the person's own pictures with one colleague, or with everyone when <paramref name="to"/> is null.</summary>
+    Task<string> UnshareAsync(ICurrentContext me, Guid[] ids, Guid? to, CancellationToken ct);
+    Task<string> HideSharedAsync(ICurrentContext me, Guid[] ids, CancellationToken ct);
     Task<IReadOnlyList<Guid>> PurgeCompaniesAsync(CancellationToken ct);
     Task<string> PurgeAsync(Guid tenantId, CancellationToken ct);
 }
@@ -76,6 +82,25 @@ public sealed class PersonalPicturesService(IPersonalPicturesStore store, IBlobS
         var stream = blobs.Open(key);
         return stream is null ? null : new Served(stream, "image/jpeg", root.GetProperty("sha256").GetString() + (thumb ? "-t" : ""), root.GetProperty("fileName").GetString() ?? "picture.jpg");
     }
+
+    public Task<string> ColleaguesAsync(ICurrentContext me, CancellationToken ct) => store.ColleaguesAsync(me, ct);
+
+    public Task<string> SharedListAsync(ICurrentContext me, IReadOnlyDictionary<string, string?> q, CancellationToken ct)
+    {
+        var f = new JsonObject();
+        foreach (var k in new[] { "page", "size" })
+            if (q.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v)) f[k] = v.Length > 80 ? v[..80] : v;
+        return store.SharedListAsync(me, f.ToJsonString(), ct);
+    }
+
+    public Task<string> ShareAsync(ICurrentContext me, Guid[] ids, Guid to, CancellationToken ct) =>
+        ids.Length is 0 or > 100 ? throw AppException.Invalid("Choose between 1 and 100 pictures.") : store.ShareAsync(me, ids, to, ct);
+
+    public Task<string> UnshareAsync(ICurrentContext me, Guid[] ids, Guid? to, CancellationToken ct) =>
+        ids.Length is 0 or > 200 ? throw AppException.Invalid("Choose between 1 and 200 pictures.") : store.UnshareAsync(me, ids, to, ct);
+
+    public Task<string> HideSharedAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) =>
+        ids.Length is 0 or > 200 ? throw AppException.Invalid("Choose between 1 and 200 pictures.") : store.HideSharedAsync(me, ids, ct);
 
     /// <summary>For the worker: companies to look at, and the clean-up of one (people who left more than the set days ago).</summary>
     public Task<IReadOnlyList<Guid>> PurgeCompaniesAsync(CancellationToken ct) => store.PurgeCompaniesAsync(ct);

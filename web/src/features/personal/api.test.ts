@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { uploadMeta } from "@/features/photos/api";
 import type { PhotoRecord } from "@/features/photos/model";
-import { nearlyFull, personalListSchema, usageText } from "./api";
+import {
+  namesText,
+  nearlyFull,
+  personalListSchema,
+  sharedListSchema,
+  usageText,
+} from "./api";
 
 const rec = (target: PhotoRecord["target"]): PhotoRecord => ({
   id: "a",
@@ -82,5 +88,37 @@ describe("My pictures", () => {
     expect(usageText(list.usage)).toBe("12 of 300 pictures · 5.4 of 300 MB");
     expect(nearlyFull(list.usage)).toBe(false);
     expect(nearlyFull({ ...list.usage, count: 280 })).toBe(true);
+  });
+
+  it("says who a picture is shared with in a short phrase", () => {
+    const p = (n: string) => ({ id: n, displayName: n });
+    expect(namesText([p("Kojo")])).toBe("Kojo");
+    expect(namesText([p("Kojo"), p("Ama")])).toBe("Kojo and Ama");
+    expect(namesText([p("Kojo"), p("Ama"), p("Yaw")])).toBe(
+      "Kojo, Ama and 1 other",
+    );
+    expect(namesText([p("Kojo"), p("Ama"), p("Yaw"), p("Efua")])).toBe(
+      "Kojo, Ama and 2 others",
+    );
+  });
+
+  it("reads the pictures shared with the person, with who shared them", () => {
+    const l = sharedListSchema.parse({
+      items: [
+        {
+          id: "p",
+          caption: "price board",
+          size: 1,
+          takenAt: "2026-11-15T10:00:00Z",
+          createdAt: "2026-11-15T10:00:01Z",
+          sharedBy: { id: "u", displayName: "Ama" },
+          sharedAt: "2026-11-16T09:00:00Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 60,
+    });
+    expect(l.items[0]?.sharedBy.displayName).toBe("Ama");
   });
 });

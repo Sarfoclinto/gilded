@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Input, Modal } from "antd";
+import { useSearchParams } from "react-router-dom";
+import { Input, Modal, Segmented, Select } from "antd";
 import {
   CameraIcon,
   CheckIcon,
@@ -8,8 +9,10 @@ import {
   LockKeyholeIcon,
   RotateCcwIcon,
   SearchIcon,
+  Share2Icon,
   Trash2Icon,
   TypeIcon,
+  UsersIcon,
 } from "lucide-react";
 import { useSettings } from "@/features/settings/api";
 import { fetchPicture, usePicture } from "@/features/photos/api";
@@ -26,17 +29,25 @@ import {
 import type { PhotoQueue } from "@/features/photos/queue";
 import { CoinEdge } from "@/shared/ui/BrandMark";
 import {
-  personalPictureUrl,
+  namesText,
   nearlyFull,
+  personalPictureUrl,
   usageText,
+  useColleagues,
   useDeleteMyPictures,
+  useHideShared,
   useMyPictures,
   useSetCaption,
+  useSharedWithMe,
+  useSharePictures,
+  useUnsharePictures,
   type PersonalPicture,
+  type SharedPicture,
 } from "./api";
 import { QuickCameraButton } from "./QuickCamera";
 
 const STEP = 60;
+type Tab = "mine" | "shared";
 
 function dayLabel(iso: string): string {
   const d = new Date(iso);
@@ -58,11 +69,13 @@ function Thumb({
   selecting,
   selected,
   onTap,
+  badge,
 }: {
   p: PersonalPicture;
   selecting: boolean;
   selected: boolean;
   onTap: () => void;
+  badge?: string;
 }) {
   const url = usePicture(personalPictureUrl(p.id, true));
   return (
@@ -71,7 +84,7 @@ function Thumb({
         type="button"
         onClick={onTap}
         aria-pressed={selecting ? selected : undefined}
-        aria-label={`${p.caption ?? "Picture"} from ${whenText(p.takenAt)}`}
+        aria-label={`${p.caption ?? "Picture"} from ${whenText(p.takenAt)}${badge ? `, ${badge}` : ""}`}
         className={`relative block aspect-square w-full overflow-hidden rounded-xl bg-muted ring-offset-2 transition ${selected ? "ring-2 ring-gold" : ""}`}
       >
         {url ? (
@@ -88,6 +101,14 @@ function Thumb({
             className={`absolute left-1.5 top-1.5 grid size-6 place-items-center rounded-full border-2 ${selected ? "border-gold bg-gold text-navy" : "border-white/90 bg-black/25 text-transparent"}`}
           >
             <CheckIcon className="size-3.5" aria-hidden />
+          </span>
+        ) : null}
+        {badge ? (
+          <span
+            title={badge}
+            className="absolute bottom-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-navy/80 text-gold"
+          >
+            <UsersIcon className="size-3.5" aria-hidden />
           </span>
         ) : null}
       </button>
@@ -137,11 +158,13 @@ function Waiting({ queue, r }: { queue: PhotoQueue; r: PhotoRecord }) {
   );
 }
 
-/** My pictures: the person's own private camera roll. Only they can ever see it. */
+/** My pictures: the person's own private camera roll, and what colleagues have shared with them. Nobody else can see the first. */
 export default function MyPicturesPage() {
   const switchedOff = !useSettings()["personalPictures.enabled"];
   const queue = usePhotoQueue();
   const queued = useQueuedPhotos(queue);
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get("tab") === "shared" ? "shared" : "mine";
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [size, setSize] = useState(STEP);
@@ -151,6 +174,8 @@ export default function MyPicturesPage() {
   const [asking, setAsking] = useState(false);
   const [captioning, setCaptioning] = useState<PersonalPicture | null>(null);
   const [caption, setCaption] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [to, setTo] = useState<string>();
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -160,10 +185,20 @@ export default function MyPicturesPage() {
     return () => clearTimeout(t);
   }, [q]);
   const list = useMyPictures({ q: term || undefined, size });
+  const sharedList = useSharedWithMe(size, tab === "shared");
+  const colleagues = useColleagues(sharing);
   const remove = useDeleteMyPictures();
   const setCap = useSetCaption();
+  const share = useSharePictures();
+  const unshare = useUnsharePictures();
+  const hide = useHideShared();
 
   const items = useMemo(() => list.data?.items ?? [], [list.data]);
+  const sharedItems = useMemo(
+    () => sharedList.data?.items ?? [],
+    [sharedList.data],
+  );
+  const shown: PersonalPicture[] = tab === "shared" ? sharedItems : items;
   const ids = useMemo(() => new Set(items.map((p) => p.id)), [items]);
   const waiting = useMemo(
     () =>
@@ -176,24 +211,46 @@ export default function MyPicturesPage() {
     [queued, ids],
   );
   const usage = list.data?.usage;
+  const sharedCount = list.data?.sharedCount ?? sharedList.data?.total ?? 0;
+  const active = tab === "shared" ? sharedList : list;
 
   const groups = useMemo(() => {
     const out: { label: string; items: PersonalPicture[] }[] = [];
-    for (const p of items) {
-      const label = dayLabel(p.takenAt);
+    for (const p of shown) {
+      const label =
+        tab === "shared"
+          ? `From ${(p as SharedPicture).sharedBy.displayName}`
+          : dayLabel(p.takenAt);
       const last = out[out.length - 1];
-      if (last && last.label === label) last.items.push(p);
+      const same =
+        tab === "shared"
+          ? out.find((g) => g.label === label)
+          : last?.label === label
+            ? last
+            : undefined;
+      if (same) same.items.push(p);
       else out.push({ label, items: [p] });
     }
     return out;
-  }, [items]);
+  }, [shown, tab]);
 
   const views: PhotoView[] = useMemo(
     () =>
-      items.map((p) => ({
+      shown.map((p) => ({
         id: p.id,
-        removable: true,
-        caption: `${p.caption ? `${p.caption} · ` : ""}${whenText(p.takenAt)} · ${formatBytes(p.size)}`,
+        removable: tab === "mine",
+        caption: [
+          p.caption,
+          tab === "shared"
+            ? `Shared by ${(p as SharedPicture).sharedBy.displayName}`
+            : p.sharedWith?.length
+              ? `Shared with ${namesText(p.sharedWith)}`
+              : null,
+          whenText(p.takenAt),
+          formatBytes(p.size),
+        ]
+          .filter(Boolean)
+          .join(" · "),
         thumb: async () => ({
           url: await fetchPicture(personalPictureUrl(p.id, true)),
         }),
@@ -201,13 +258,18 @@ export default function MyPicturesPage() {
           url: await fetchPicture(personalPictureUrl(p.id, false)),
         }),
       })),
-    [items],
+    [shown, tab],
   );
 
   const stop = () => {
     setSelecting(false);
     setPicked(new Set());
     setAsking(false);
+  };
+  const go = (t: Tab) => {
+    stop();
+    setView(null);
+    setParams(t === "shared" ? { tab: "shared" } : {}, { replace: true });
   };
   const toggle = (id: string) =>
     setPicked((s) => {
@@ -222,6 +284,8 @@ export default function MyPicturesPage() {
   };
   const only =
     picked.size === 1 ? items.find((p) => p.id === [...picked][0]) : undefined;
+  const anyShared = items.some((p) => picked.has(p.id) && p.sharedWith?.length);
+  const person = colleagues.data?.find((c) => c.id === to);
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 pb-28">
@@ -237,7 +301,7 @@ export default function MyPicturesPage() {
             </h1>
             <p className="mt-1 max-w-xl text-sm text-white/75">
               Only you can see these. Not managers, not directors, not the
-              company, unless you choose to share a picture.
+              company, unless you choose to share a picture with someone.
             </p>
             {usage ? (
               <p className="mt-3 text-xs text-white/60">{usageText(usage)}</p>
@@ -265,25 +329,45 @@ export default function MyPicturesPage() {
         </p>
       ) : null}
 
+      <Segmented
+        size="large"
+        value={tab}
+        onChange={(v) => go(v as Tab)}
+        options={[
+          { label: "Mine", value: "mine" },
+          {
+            label: sharedCount
+              ? `Shared with me (${sharedCount})`
+              : "Shared with me",
+            value: "shared",
+          },
+        ]}
+      />
+
       <div className="flex flex-wrap items-center gap-2">
-        <Input
-          allowClear
-          prefix={
-            <SearchIcon className="size-4 text-muted-foreground" aria-hidden />
-          }
-          placeholder="Search captions"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs"
-          size="large"
-        />
+        {tab === "mine" ? (
+          <Input
+            allowClear
+            prefix={
+              <SearchIcon
+                className="size-4 text-muted-foreground"
+                aria-hidden
+              />
+            }
+            placeholder="Search captions"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="max-w-xs"
+            size="large"
+          />
+        ) : null}
         <div className="ml-auto flex items-center gap-2">
-          {!switchedOff ? (
+          {tab === "mine" && !switchedOff ? (
             <span className="hidden lg:block">
               <QuickCameraButton variant="header" />
             </span>
           ) : null}
-          {items.length ? (
+          {shown.length ? (
             <button
               type="button"
               onClick={() => (selecting ? stop() : setSelecting(true))}
@@ -295,7 +379,7 @@ export default function MyPicturesPage() {
         </div>
       </div>
 
-      {list.isLoading ? (
+      {active.isLoading ? (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
@@ -305,7 +389,7 @@ export default function MyPicturesPage() {
           ))}
         </div>
       ) : null}
-      {list.isError ? (
+      {active.isError ? (
         <p
           role="alert"
           className="rounded-xl bg-red-50 p-3 text-sm text-red-800"
@@ -314,7 +398,7 @@ export default function MyPicturesPage() {
         </p>
       ) : null}
 
-      {waiting.length && queue ? (
+      {tab === "mine" && waiting.length && queue ? (
         <section aria-label="On their way" className="space-y-2">
           <h2 className="text-sm font-semibold text-muted-foreground">
             On their way
@@ -339,10 +423,15 @@ export default function MyPicturesPage() {
                 p={p}
                 selecting={selecting}
                 selected={picked.has(p.id)}
+                badge={
+                  tab === "mine" && p.sharedWith?.length
+                    ? `Shared with ${namesText(p.sharedWith)}`
+                    : undefined
+                }
                 onTap={() =>
                   selecting
                     ? toggle(p.id)
-                    : setView(items.findIndex((x) => x.id === p.id))
+                    : setView(shown.findIndex((x) => x.id === p.id))
                 }
               />
             ))}
@@ -350,36 +439,44 @@ export default function MyPicturesPage() {
         </section>
       ))}
 
-      {list.data && list.data.total > items.length ? (
+      {active.data && active.data.total > shown.length ? (
         <div className="text-center">
           <button
             type="button"
             onClick={() => setSize((n) => n + STEP)}
             className="min-h-10 rounded-full border border-border bg-card px-5 text-sm font-medium hover:bg-muted"
           >
-            Show more ({list.data.total - items.length} left)
+            Show more ({active.data.total - shown.length} left)
           </button>
         </div>
       ) : null}
 
-      {list.data && !items.length && !waiting.length ? (
+      {active.data && !shown.length && !(tab === "mine" && waiting.length) ? (
         <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <span className="grid size-14 place-items-center rounded-full bg-gold/15 text-brand">
-            {term ? (
+            {tab === "shared" ? (
+              <UsersIcon className="size-7" aria-hidden />
+            ) : term ? (
               <SearchIcon className="size-7" aria-hidden />
             ) : (
               <ImagesIcon className="size-7" aria-hidden />
             )}
           </span>
           <p className="font-display text-xl font-semibold">
-            {term ? "No caption matches that" : "Nothing here yet"}
+            {tab === "shared"
+              ? "Nothing shared with you"
+              : term
+                ? "No caption matches that"
+                : "Nothing here yet"}
           </p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            {term
-              ? "Try a different word."
-              : "Tap the camera button to take your first picture. Notes, a price board, anything you want to keep for yourself."}
+            {tab === "shared"
+              ? "When a colleague shares a picture with you, it appears here and you get a notification."
+              : term
+                ? "Try a different word."
+                : "Tap the camera button to take your first picture. Notes, a price board, anything you want to keep for yourself."}
           </p>
-          {!term && !switchedOff ? (
+          {tab === "mine" && !term && !switchedOff ? (
             <span className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <CameraIcon className="size-4" aria-hidden />
               The round camera button is always on screen.
@@ -404,7 +501,8 @@ export default function MyPicturesPage() {
                 for good?
               </p>
               <p className="text-xs text-muted-foreground">
-                This cannot be undone.
+                This cannot be undone, and anyone you shared{" "}
+                {picked.size === 1 ? "it" : "them"} with loses access.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -425,35 +523,76 @@ export default function MyPicturesPage() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-1 text-sm font-medium">
                 {picked.size
                   ? `${picked.size} selected`
                   : "Tap pictures to select"}
               </span>
-              <span className="ml-auto flex gap-2">
-                {only ? (
+              <span className="ml-auto flex flex-wrap justify-end gap-2">
+                {tab === "shared" ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      setCaptioning(only);
-                      setCaption(only.caption ?? "");
-                    }}
-                    className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium"
+                    disabled={!picked.size || hide.isPending}
+                    onClick={() =>
+                      void hide.mutateAsync([...picked]).then(stop)
+                    }
+                    className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium disabled:opacity-40"
                   >
-                    <TypeIcon className="size-4" aria-hidden />
-                    Caption
+                    Remove from my list
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={!picked.size}
-                  onClick={() => setAsking(true)}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-red-600 px-3 text-sm font-semibold text-white disabled:opacity-40"
-                >
-                  <Trash2Icon className="size-4" aria-hidden />
-                  Delete
-                </button>
+                ) : (
+                  <>
+                    {only ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCaptioning(only);
+                          setCaption(only.caption ?? "");
+                        }}
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium"
+                      >
+                        <TypeIcon className="size-4" aria-hidden />
+                        Caption
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={!picked.size}
+                      onClick={() => {
+                        setTo(undefined);
+                        setSharing(true);
+                      }}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium disabled:opacity-40"
+                    >
+                      <Share2Icon className="size-4" aria-hidden />
+                      Share
+                    </button>
+                    {anyShared ? (
+                      <button
+                        type="button"
+                        disabled={unshare.isPending}
+                        onClick={() =>
+                          void unshare
+                            .mutateAsync({ ids: [...picked] })
+                            .then(stop)
+                        }
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium"
+                      >
+                        Stop sharing
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={!picked.size}
+                      onClick={() => setAsking(true)}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-red-600 px-3 text-sm font-semibold text-white disabled:opacity-40"
+                    >
+                      <Trash2Icon className="size-4" aria-hidden />
+                      Delete
+                    </button>
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -480,11 +619,60 @@ export default function MyPicturesPage() {
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           placeholder="What is this a picture of?"
-          onPressEnter={() => undefined}
         />
         <p className="mt-2 text-xs text-muted-foreground">
           Captions are for you. You can search by them.
         </p>
+      </Modal>
+
+      <Modal
+        open={sharing}
+        title={`Share ${picked.size === 1 ? "this picture" : `${picked.size} pictures`}`}
+        okText={person ? `Share with ${person.displayName}` : "Share"}
+        okButtonProps={{ disabled: !to }}
+        onCancel={() => setSharing(false)}
+        confirmLoading={share.isPending}
+        onOk={async () => {
+          if (to && person) {
+            await share.mutateAsync({
+              ids: [...picked],
+              to,
+              name: person.displayName,
+            });
+            setSharing(false);
+            stop();
+          }
+        }}
+      >
+        <Select
+          showSearch
+          className="w-full"
+          size="large"
+          placeholder="Choose a colleague"
+          loading={colleagues.isLoading}
+          value={to}
+          onChange={setTo}
+          optionFilterProp="label"
+          options={(colleagues.data ?? []).map((c) => ({
+            value: c.id,
+            label: c.displayName,
+          }))}
+        />
+        <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+          <li>
+            They get a notification and can look at{" "}
+            {picked.size === 1 ? "it" : "them"} and save a copy. They cannot
+            share {picked.size === 1 ? "it" : "them"} on.
+          </li>
+          <li>
+            You can stop sharing any time; their access ends at once. A copy
+            they already saved cannot be taken back.
+          </li>
+          <li>
+            The company's activity log records that you shared pictures with
+            this person (not the pictures, and not when they are looked at).
+          </li>
+        </ul>
       </Modal>
 
       {view !== null ? (
@@ -493,10 +681,14 @@ export default function MyPicturesPage() {
           items={views}
           start={view}
           onClose={() => setView(null)}
-          onRemove={async (v) => {
-            await remove.mutateAsync([v.id]);
-            if (views.length <= 1) setView(null);
-          }}
+          onRemove={
+            tab === "mine"
+              ? async (v) => {
+                  await remove.mutateAsync([v.id]);
+                  if (views.length <= 1) setView(null);
+                }
+              : undefined
+          }
         />
       ) : null}
     </div>

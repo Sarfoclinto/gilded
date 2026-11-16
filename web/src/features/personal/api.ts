@@ -4,6 +4,9 @@ import { useApiMutation, useApiQuery } from "@/shared/api/hooks";
 import { photoKeys } from "@/features/photos/api";
 
 /** One of the person's own pictures (My pictures). Private: only its owner can ever list or open it. */
+const personSchema = z.object({ id: z.string(), displayName: z.string() });
+export type Person = z.infer<typeof personSchema>;
+
 export const personalPictureSchema = z.object({
   id: z.string(),
   caption: z.string().nullable().optional(),
@@ -13,6 +16,8 @@ export const personalPictureSchema = z.object({
   height: z.number().nullable().optional(),
   takenAt: z.string(),
   createdAt: z.string(),
+  /** Colleagues this picture is shared with right now (only on the owner's own list). */
+  sharedWith: z.array(personSchema).optional(),
 });
 export type PersonalPicture = z.infer<typeof personalPictureSchema>;
 
@@ -31,6 +36,20 @@ export const personalListSchema = z.object({
   page: z.number(),
   size: z.number(),
   usage: personalUsageSchema,
+  sharedCount: z.number().optional(),
+});
+
+/** A picture a colleague shared with the person. */
+export const sharedPictureSchema = personalPictureSchema.extend({
+  sharedBy: personSchema,
+  sharedAt: z.string(),
+});
+export type SharedPicture = z.infer<typeof sharedPictureSchema>;
+export const sharedListSchema = z.object({
+  items: z.array(sharedPictureSchema),
+  total: z.number(),
+  page: z.number(),
+  size: z.number(),
 });
 
 export interface PersonalFilters {
@@ -57,6 +76,35 @@ export const personalApi = {
       { method: "patch", url: `/me/pictures/${id}`, data: { caption } },
       personalPictureSchema,
     ),
+  colleagues: (signal?: AbortSignal) =>
+    request(
+      { method: "get", url: "/me/pictures/colleagues", signal },
+      z.array(personSchema),
+    ),
+  shared: (size: number, signal?: AbortSignal) =>
+    request(
+      { method: "get", url: "/me/pictures/shared", params: { size }, signal },
+      sharedListSchema,
+    ),
+  share: (ids: string[], to: string) =>
+    request(
+      { method: "post", url: "/me/pictures/share", data: { ids, to } },
+      z.object({ shared: z.number(), already: z.number() }),
+    ),
+  unshare: (ids: string[], to?: string) =>
+    request(
+      {
+        method: "post",
+        url: "/me/pictures/unshare",
+        data: { ids, to: to ?? null },
+      },
+      z.object({ stopped: z.number() }),
+    ),
+  hide: (ids: string[]) =>
+    request(
+      { method: "post", url: "/me/pictures/shared/hide", data: { ids } },
+      z.object({ hidden: z.number() }),
+    ),
   remove: (ids: string[]) =>
     request(
       { method: "post", url: "/me/pictures/delete", data: { ids } },
@@ -75,6 +123,62 @@ export function useMyPictures(f: PersonalFilters) {
     staleTime: 15_000,
     placeholderData: (prev) => prev,
   });
+}
+
+export function useSharedWithMe(size: number, enabled = true) {
+  return useApiQuery({
+    queryKey: photoKeys.custom("personal-shared", { size }),
+    queryFn: ({ signal }) => personalApi.shared(size, signal),
+    enabled,
+    staleTime: 15_000,
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useColleagues(enabled: boolean) {
+  return useApiQuery({
+    queryKey: photoKeys.custom("personal-colleagues", {}),
+    queryFn: ({ signal }) => personalApi.colleagues(signal),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSharePictures() {
+  return useApiMutation<
+    { shared: number; already: number },
+    { ids: string[]; to: string; name: string }
+  >({
+    mutationFn: ({ ids, to }) => personalApi.share(ids, to),
+    invalidates: [photoKeys.all],
+    successMessage: (r, v) =>
+      r.shared === 0
+        ? `Already shared with ${v.name}`
+        : `Shared with ${v.name}`,
+  });
+}
+
+export function useUnsharePictures() {
+  return useApiMutation<{ stopped: number }, { ids: string[]; to?: string }>({
+    mutationFn: ({ ids, to }) => personalApi.unshare(ids, to),
+    invalidates: [photoKeys.all],
+    successMessage: "Stopped sharing",
+  });
+}
+
+export function useHideShared() {
+  return useApiMutation<{ hidden: number }, string[]>({
+    mutationFn: (ids) => personalApi.hide(ids),
+    invalidates: [photoKeys.all],
+    successMessage: "Removed from your list",
+  });
+}
+
+/** "Kojo", "Kojo and Ama", "Kojo, Ama and 2 others". */
+export function namesText(people: readonly Person[]): string {
+  const n = people.map((p) => p.displayName);
+  if (n.length <= 2) return n.join(" and ");
+  return `${n[0]}, ${n[1]} and ${n.length - 2} other${n.length - 2 === 1 ? "" : "s"}`;
 }
 
 export function useSetCaption() {
