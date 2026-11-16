@@ -25,6 +25,13 @@ public class OperationsServiceTests
         new DateTimeOffset(2026, 10, 23, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 10, 23, 9, 0, 0, TimeSpan.Zero), null);
 
     [Fact]
+    public async Task What_a_customer_owes_needs_permission_to_read_debts()
+    {
+        await Assert.ThrowsAsync<AppException>(() => _ops.CustomerDebtsAsync(new Ctx([], [Tarkwa]), Guid.NewGuid(), default));
+        Assert.Equal("{}", await _ops.CustomerDebtsAsync(new Ctx([Permissions.DebtsRead], [Tarkwa]), Guid.NewGuid(), default));
+    }
+
+    [Fact]
     public async Task Price_history_is_for_a_branch_the_caller_works_in_and_the_period_is_kept_within_bounds()
     {
         await Assert.ThrowsAsync<AppException>(() => _ops.PriceHistoryAsync(Teller(), Guid.NewGuid(), 30, default));
@@ -415,6 +422,7 @@ public class OperationsServiceTests
         public Task<string> SearchCustomersAsync(ICurrentContext me, string? q, Guid? branchId, int limit, CancellationToken ct) => Task.FromResult("[]");
         public Task<DbResult> IssueLoanAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<DbResult> RepayDebtAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
+        public Task<string> CustomerDebtsAsync(ICurrentContext me, Guid c, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> ListDebtsAsync(ICurrentContext me, Guid b, string? d, bool o, Guid? c, CancellationToken ct) => Task.FromResult("[]");
         public Task<string?> GetDebtAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult<string?>(null);
         public Task<string> ListCollateralAsync(ICurrentContext me, Guid b, string? s, CancellationToken ct) => Task.FromResult("[]");

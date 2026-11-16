@@ -6,6 +6,7 @@ import { dayKeys } from "@/features/drawer/api";
 import {
   collateralSchema,
   debtSchema,
+  customerDebtsSchema,
   type Debt,
   type LoanInput,
   type RepaymentInput,
@@ -27,6 +28,11 @@ export const debtsApi = {
     request(
       { method: "get", url: "/debts", params, signal },
       z.array(debtSchema),
+    ),
+  ofCustomer: (customerId: string, signal?: AbortSignal) =>
+    request(
+      { method: "get", url: `/customers/${customerId}/debts`, signal },
+      customerDebtsSchema,
     ),
   loan: (cmd: LoanInput) =>
     request(
@@ -62,6 +68,16 @@ export const debtsApi = {
       collateralSchema,
     ),
 };
+
+/** Open amounts one customer owes across every branch the person can see (not just the active one). */
+export function useCustomerDebts(customerId: string | null | undefined) {
+  return useApiQuery({
+    queryKey: debtKeys.custom("of-customer", { customerId }),
+    queryFn: ({ signal }) => debtsApi.ofCustomer(customerId as string, signal),
+    enabled: !!customerId,
+    staleTime: 0,
+  });
+}
 
 export function useDebts(
   params: {

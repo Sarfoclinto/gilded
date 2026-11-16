@@ -80,3 +80,27 @@ export function dateInDays(days: number, now: Date = new Date()): string {
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/** What a customer already owes, as the loan page shows it. */
+export interface CustomerDebtsSummary {
+  items: (Debt & { branchName?: string })[];
+  total: string;
+  elsewhere: number;
+}
+
+/** The one-line headline for the loan page: "Kofi owes GHS 1,500 on 2 loans, 1 overdue". */
+export function owesHeadline(
+  name: string,
+  s: CustomerDebtsSummary,
+  fmt: (n: number) => string,
+  now: Date = new Date(),
+): string {
+  if (!s.items.length)
+    return s.elsewhere
+      ? `${name} has no open loans at your branches.`
+      : `${name} owes nothing.`;
+  const overdue = s.items.filter(
+    (d) => dueOf(d, now).state === "overdue",
+  ).length;
+  return `${name} already owes ${fmt(Number(s.total))} on ${s.items.length} loan${s.items.length === 1 ? "" : "s"}${overdue ? `, ${overdue} overdue` : ""}.`;
+}

@@ -43,6 +43,12 @@ export const debtSchema = z.object({
 });
 export type Debt = z.infer<typeof debtSchema>;
 
+export const customerDebtsSchema = z.object({
+  items: z.array(debtSchema.extend({ branchName: z.string().optional() })),
+  total: z.string(),
+  elsewhere: z.number(),
+});
+
 export const collateralSchema = z.object({
   id: z.string(),
   branchId: z.string(),

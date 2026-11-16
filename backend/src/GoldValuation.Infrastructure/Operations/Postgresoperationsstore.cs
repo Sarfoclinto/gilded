@@ -161,6 +161,10 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
     public async Task<DbResult> RepayDebtAsync(ICurrentContext me, string payloadJson, CancellationToken ct) =>
         Result(await Scalar(me, "select gold.repay_debt($1)", ct, Json(payloadJson)));
 
+    public async Task<string> CustomerDebtsAsync(ICurrentContext me, Guid customerId, CancellationToken ct) =>
+        (await Scalar(me, "select gold.customer_debts_json($1, $2)", ct, Uuid(customerId),
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = me.BranchIds.ToArray() }))!;
+
     public async Task<string> ListDebtsAsync(ICurrentContext me, Guid branchId, string? direction, bool openOnly, Guid? customerId, CancellationToken ct) =>
         (await Scalar(me, "select gold.debts_json($1, $2, $3, $4)", ct, Uuid(branchId),
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)direction ?? DBNull.Value },
