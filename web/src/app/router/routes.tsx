@@ -112,6 +112,8 @@ const PendingPaymentsPage = lazy(
 const DebtsPage = lazy(() => import("@/features/debts/pages/DebtsPage"));
 const PhotosPage = lazy(() => import("@/features/photos/pages/PhotosPage"));
 const MyPicturesPage = lazy(() => import("@/features/personal/MyPicturesPage"));
+const WorkingsPage = lazy(() => import("@/features/workings/WorkingsPage"));
+const SheetPage = lazy(() => import("@/features/workings/SheetPage"));
 const LoanPage = lazy(() => import("@/features/debts/pages/LoanPage"));
 const CollateralPage = lazy(
   () => import("@/features/debts/pages/CollateralPage"),
@@ -303,6 +305,12 @@ export const appRoutes: AppRoute[] = [
   { path: paths.guide.article.href, element: <GuideArticlePage /> },
   { path: paths.changePassword.href, element: <ChangePasswordPage /> },
   { path: paths.myPictures.href, element: <MyPicturesPage /> },
+  {
+    path: paths.workings.href,
+    element: <WorkingsPage />,
+    nav: { label: paths.workings.label },
+  },
+  { path: paths.workings.sheet.href, element: <SheetPage /> },
   {
     path: paths.priceFeed.href,
     element: <PriceFeedPage />,

@@ -288,7 +288,7 @@ export default function MyPicturesPage() {
   const person = colleagues.data?.find((c) => c.id === to);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 pb-28">
+    <div className="mx-auto max-w-5xl space-y-5 p-3 pb-28 sm:p-4 sm:pb-28 lg:p-6 lg:pb-28">
       <header className="relative isolate overflow-hidden rounded-2xl bg-navy p-5 text-white sm:p-7">
         <CoinEdge className="pointer-events-none absolute -right-16 -top-20 -z-10 size-64 text-gold/35 sm:size-80" />
         <div className="flex items-start gap-4">

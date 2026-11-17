@@ -29,6 +29,7 @@ import {
   CloudOffIcon,
   LineChartIcon,
   ImageIcon,
+  SigmaIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -79,6 +80,12 @@ export const appMenu: AppMenuItem[] = [
         icon: <CalculatorIcon className={icon} />,
         permission: PERMISSIONS.CALCULATOR_USE,
         mobileTab: true,
+      },
+      {
+        key: paths.workings.href,
+        label: link(paths.workings.href, paths.workings.label),
+        title: paths.workings.label,
+        icon: <SigmaIcon className={icon} />,
       },
       {
         key: "transactions",

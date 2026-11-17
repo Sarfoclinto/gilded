@@ -128,3 +128,8 @@
 ## v1.17.1
 
 - Show what a customer already owes on the loan page
+
+## v1.18.0
+
+- Workings phase 1, a freeform scratch sheet with live formulas
+  - (.1) Share, copy result, Tools tab, pinch-zoom

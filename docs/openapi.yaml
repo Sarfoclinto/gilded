@@ -1499,6 +1499,82 @@ paths:
         - { in: query, name: days, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
       responses:
         '200': { description: 'A list of { kind, id, label, branchId, branchName, at, missing }', content: { application/json: { schema: { type: object } } } }
+  /me/workings:
+    get:
+      tags: [Workings]
+      summary: The signed-in person's own scratch sheets (no contents), newest edited first
+      description: Any signed-in person; only the caller's own sheets are ever returned. Includes usage against the company limits.
+      parameters:
+        - { in: query, name: q, description: Search names, schema: { type: string } }
+      responses:
+        '200': { description: '{ items: [{ id, name, notes, version, createdAt, updatedAt }], usage: { enabled, count, maxCount, maxKb } }', content: { application/json: { schema: { type: object } } } }
+  /me/workings/shared:
+    get:
+      tags: [Workings]
+      summary: Sheets colleagues have shared with the caller (read only)
+      responses:
+        '200': { description: '{ items: [{ id, name, notes, version, updatedAt, sharedBy, sharedAt }] }', content: { application/json: { schema: { type: object } } } }
+  /me/workings/{id}/share:
+    post:
+      tags: [Workings]
+      summary: Share one of the caller's sheets with one colleague, read only
+      description: The colleague is notified, always sees the owner's latest version, can save a copy of their own, and cannot share it on. Logged as "working.shared" (colleague only, never the contents). Colleagues come from GET /me/pictures/colleagues.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { to: { type: string, format: uuid } } } } } }
+      responses:
+        '200': { description: '{ shared }: false when it was already shared with them' }
+        '404': { description: Not the caller's sheet, or the colleague is not an active person }
+  /me/workings/{id}/unshare:
+    post:
+      tags: [Workings]
+      summary: Stop sharing a sheet with one colleague, or with everyone when `to` is null
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ stopped }' }
+  /me/workings/{id}/hide:
+    post:
+      tags: [Workings]
+      summary: Take a shared sheet off the caller's "Shared with me" list (the owner is not told)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ hidden }' }
+  /me/workings/{id}:
+    get:
+      tags: [Workings]
+      summary: One sheet with its contents, for its owner or a colleague it is shared with
+      description: "`mine` says whether the caller may change it; `owner` says whose it is; `sharedWith` lists current shares (owner's view only)."
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: 'The sheet with doc: { notes: [{ id, x, y, text }], view }' }
+        '404': { description: Not yours, or not there }
+    put:
+      tags: [Workings]
+      summary: Create or save a sheet
+      description: |
+        Body { name, doc, baseVersion }. The id is chosen by the app. When the server already holds a newer version than baseVersion (edited on another device),
+        it keeps its copy, returns it with its contents as `data`, and stores the incoming one as a second sheet "<name> (other device)" returned as `copy`.
+        Refused with 403 WORKINGS_OFF (switched off, new sheets only), 422 WORKINGS_FULL (sheet limit) or 422 WORKING_TOO_BIG (size limit).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ data, copy }' }
+    patch:
+      tags: [Workings]
+      summary: Rename a sheet (owner only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The sheet }
+  /me/workings/delete:
+    post:
+      tags: [Workings]
+      summary: Delete the caller's own sheets for good (up to 200)
+      responses:
+        '200': { description: '{ deleted }' }
   /me/pictures:
     get:
       tags: [My pictures]

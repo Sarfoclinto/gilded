@@ -31,6 +31,10 @@ export const settingsSchema = z.object({
   "personalPictures.maxPerUser": z.number().default(300),
   "personalPictures.maxMb": z.number().default(300),
   "personalPictures.purgeDays": z.number().default(90),
+  /** Workings: each person's private scratch sheets. */
+  "workings.enabled": z.boolean().default(true),
+  "workings.maxPerUser": z.number().default(200),
+  "workings.maxKb": z.number().default(256),
   "receipt.printer": z.boolean().default(false),
   "receipt.paper": z.enum(["80", "58", "a4"]).default("80"),
   "receipt.businessName": z.string().default(""),

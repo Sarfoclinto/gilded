@@ -231,6 +231,35 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
+    key: "workings",
+    title: "Workings",
+    blurb:
+      "Each person's private scratch sheets for rough calculations. Nothing on a sheet touches the books.",
+    fields: [
+      {
+        key: "workings.enabled",
+        kind: "toggle",
+        label: "Let people keep scratch sheets",
+        help: "Shows Workings in the menu. Off: no new sheets; existing ones stay with their owners.",
+      },
+      {
+        key: "workings.maxPerUser",
+        kind: "number",
+        label: "Sheets per person",
+        help: "The most sheets one person can keep at a time.",
+        max: 5000,
+      },
+      {
+        key: "workings.maxKb",
+        kind: "number",
+        label: "Size of one sheet",
+        help: "A sheet of a few hundred notes is well under 100 KB.",
+        unit: "KB",
+        max: 4096,
+      },
+    ],
+  },
+  {
     key: "market",
     title: "Gold market",
     blurb: "What the Gold market page and the tools panel show.",
