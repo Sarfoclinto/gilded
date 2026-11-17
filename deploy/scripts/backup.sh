@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Makes a compressed copy of the whole database in ./backups. Run from the deploy folder:  ./scripts/backup.sh
+# Makes a compressed copy of the whole database in ./backups, by hand. Run from the deploy folder:  ./scripts/backup.sh
+# Since B71 the backup service does this every night (and sends an encrypted copy off the server): see BACKUPS.md. This script stays
+# for a quick copy before an update.
 # Keeps the newest 14 copies. Copy the files somewhere else too (another computer or cloud storage): a backup on the same machine is not enough.
 set -euo pipefail
 cd "$(dirname "$0")/.."

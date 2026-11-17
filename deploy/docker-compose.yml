@@ -65,6 +65,32 @@ services:
     depends_on:
       - api
 
+  # Nightly backups (database + photos), an encrypted copy off the server, and a weekly check that the newest copy can be put back.
+  # Copies on this server land in ./backups. Settings: BACKUP_* in .env. Run now:  docker compose exec backup backup-now
+  backup:
+    build: { context: .., dockerfile: deploy/backup/Dockerfile }
+    restart: unless-stopped
+    environment:
+      TZ: Africa/Accra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db
+      DB_NAME: gold
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-30 1 * * *}
+      RESTORE_CHECK_SCHEDULE: ${RESTORE_CHECK_SCHEDULE:-15 3 * * 0}
+      BACKUP_KEEP_LOCAL: ${BACKUP_KEEP_LOCAL:-7}
+      BACKUP_S3_PROVIDER: ${BACKUP_S3_PROVIDER:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_KEY_ID: ${BACKUP_S3_KEY_ID:-}
+      BACKUP_S3_SECRET: ${BACKUP_S3_SECRET:-}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${BACKUP_ENCRYPTION_PASSPHRASE:-}
+    volumes:
+      - ./backups:/backups
+      - photos:/data/photos
+    depends_on:
+      db: { condition: service_healthy }
+
 volumes:
   dbdata:
   photos:
