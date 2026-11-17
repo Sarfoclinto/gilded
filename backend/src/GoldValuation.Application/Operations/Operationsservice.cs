@@ -456,6 +456,13 @@ public sealed class OperationsService(IOperationsStore store, IClock clock)
         return store.CustomerDebtsAsync(me, customerId, ct);
     }
 
+    public Task<string> DebtSummaryAsync(ICurrentContext me, Guid branchId, CancellationToken ct)
+    {
+        me.Require(Permissions.DebtsRead);
+        me.RequireBranch(branchId);
+        return store.DebtSummaryAsync(me, branchId, ct);
+    }
+
     public Task<string> ListDebtsAsync(ICurrentContext me, Guid branchId, string? direction, bool openOnly, Guid? customerId, CancellationToken ct)
     {
         me.Require(Permissions.DebtsRead);

@@ -1915,6 +1915,15 @@ paths:
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
         '200': { description: '{ items, total, elsewhere }', content: { application/json: { schema: { type: object } } } }
+  /debts/summary:
+    get:
+      tags: [Debts]
+      summary: One branch's debts at a glance, counted over all of them
+      description: Needs `debts:read` and the branch. The list endpoint returns a page; these figures do not depend on it.
+      parameters:
+        - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ receivable: { open, total, overdue, held }, payable: { open, total, overdue }, allCount }', content: { application/json: { schema: { type: object } } } }
   /debts/{id}:
     get:
       tags: [Customers and debts]

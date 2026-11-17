@@ -301,6 +301,37 @@ describe("days on the hub (B53)", () => {
     return hub;
   };
 
+  it("a purchase the server is holding for review is not taken out of the next day as well (B53 limit, fixed)", () => {
+    // Monday: a purchase of 2 x 100 under day 'mon'; the server holds it for a manager, so it is never confirmed on Monday.
+    const hub = hubWith(mon({ "100": 10 }));
+    const held: DrawerCommand = {
+      id: "held",
+      type: "transaction.create",
+      payload: { branchId: B, dayId: "mon", payout: { lines: { "100": 2 } } },
+    };
+    hub.submit(from("pcA", held));
+    expect(hub.view().balance).toEqual({ "100": 8 });
+    // Tuesday: opened online with 8 x 100 counted by hand (the 2 really left on Monday). The server's answer is Tuesday's.
+    hub.setSnapshot(
+      {
+        day: {
+          id: "tue",
+          status: "open",
+          businessDate: "2026-11-10",
+          opening: { lines: { "100": 8 } },
+          closing: null,
+        },
+        balance: { "100": 8 },
+        appliedIds: ["tue"],
+        carryOver: null,
+      },
+      "2026-11-10T08:00:00.000Z",
+    );
+    expect(hub.view().balance).toEqual({ "100": 8 }); // before the fix: 6
+    // the held purchase is still waiting to be sent on, so it is not lost
+    expect(hub.unconfirmed().map((e) => e.command.id)).toContain("held");
+  });
+
   it("one closing per day: the second computer is told the day is no longer open, and nothing is recorded for it", () => {
     const hub = hubWith(mon({ "100": 10 }));
     expect(

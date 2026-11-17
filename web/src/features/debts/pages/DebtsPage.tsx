@@ -15,8 +15,8 @@ import { Card } from "@/shared/ui/Card";
 import { Chip } from "@/shared/ui/Chip";
 import { EmptyState } from "@/shared/ui/DataTable";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { useDebts } from "../api";
-import { byUrgency, dueOf, matches, repaidShare, summarize } from "../model";
+import { useDebtSummary, useDebts } from "../api";
+import { byUrgency, dueOf, matches, repaidShare } from "../model";
 import { RepayModal } from "../RepayModal";
 import type { Debt } from "../schemas";
 
@@ -161,15 +161,12 @@ export default function DebtsPage() {
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const list = useDebts({ branchId, direction, openOnly });
-  const owedToUs = useDebts({
-    branchId,
-    direction: "receivable",
-    openOnly: true,
-  });
-  const weOwe = useDebts({ branchId, direction: "payable", openOnly: true });
+  // the figures come from the server over all debts; the list below may be a page of them
+  const summary = useDebtSummary(branchId);
   const [repay, setRepay] = useState<Debt | null>(null);
-  const a = useMemo(() => summarize(owedToUs.data ?? []), [owedToUs.data]);
-  const b = useMemo(() => summarize(weOwe.data ?? []), [weOwe.data]);
+  const a = summary.data?.receivable;
+  const b = summary.data?.payable;
+  const dash = "—";
   const rows = useMemo(
     () => byUrgency(list.data ?? []).filter((d) => matches(d, q)),
     [list.data, q],
@@ -197,10 +194,10 @@ export default function DebtsPage() {
         >
           <Kpi
             label="Owed to us"
-            value={cedis(a.total)}
+            value={a ? cedis(Number(a.total)) : dash}
             sub={
               <span className="text-xs text-muted-foreground">
-                {a.open} open
+                {a ? `${a.open} open` : ""}
               </span>
             }
           />
@@ -212,10 +209,10 @@ export default function DebtsPage() {
         >
           <Kpi
             label="We owe"
-            value={cedis(b.total)}
+            value={b ? cedis(Number(b.total)) : dash}
             sub={
               <span className="text-xs text-muted-foreground">
-                {b.open} open
+                {b ? `${b.open} open` : ""}
               </span>
             }
           />
@@ -223,9 +220,13 @@ export default function DebtsPage() {
         <Kpi
           label="Overdue"
           value={
-            <span className={a.overdue + b.overdue ? "text-red-600" : ""}>
-              {a.overdue + b.overdue}
-            </span>
+            a && b ? (
+              <span className={a.overdue + b.overdue ? "text-red-600" : ""}>
+                {a.overdue + b.overdue}
+              </span>
+            ) : (
+              dash
+            )
           }
           sub={
             <span className="text-xs text-muted-foreground">
@@ -235,7 +236,7 @@ export default function DebtsPage() {
         />
         <Kpi
           label="Gold held as security"
-          value={a.held}
+          value={a ? a.held : dash}
           sub={
             <Link to={paths.collateral.href} className="text-xs underline">
               See held gold
@@ -280,6 +281,15 @@ export default function DebtsPage() {
         </label>
       ) : null}
 
+      {!openOnly &&
+      summary.data &&
+      (list.data?.length ?? 0) >= 200 &&
+      summary.data.allCount > 200 ? (
+        <p className="text-xs text-muted-foreground">
+          Showing the 200 newest of {summary.data.allCount} debts, settled ones
+          included. Open debts are always all shown under Open.
+        </p>
+      ) : null}
       {list.error ? (
         <Alert type="error" showIcon title={errorMessage(list.error)} />
       ) : null}

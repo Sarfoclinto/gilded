@@ -779,7 +779,7 @@ export function SheetView({
     <div
       className={
         compact
-          ? "flex h-[calc(100dvh-14rem)] min-h-96 flex-col overflow-hidden rounded-xl border border-border"
+          ? "flex h-[calc(100dvh-17rem)] min-h-80 flex-col overflow-hidden rounded-xl border border-border lg:h-[calc(100dvh-12rem)]"
           : "-mb-20 flex h-[calc(100dvh-8.5rem)] flex-col lg:h-[calc(100dvh-3.5rem)]"
       }
       data-sheet

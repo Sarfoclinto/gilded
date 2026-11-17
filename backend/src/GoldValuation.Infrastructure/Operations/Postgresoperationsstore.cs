@@ -166,10 +166,15 @@ public sealed class PostgresOperationsStore(NpgsqlDataSource dataSource, ILogger
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = me.BranchIds.ToArray() }))!;
 
     public async Task<string> ListDebtsAsync(ICurrentContext me, Guid branchId, string? direction, bool openOnly, Guid? customerId, CancellationToken ct) =>
-        (await Scalar(me, "select gold.debts_json($1, $2, $3, $4)", ct, Uuid(branchId),
+        // every open debt (up to 1000) so the oldest, likeliest overdue ones are never cut off; the 200 newest when settled ones are included
+        (await Scalar(me, "select gold.debts_json($1, $2, $3, $4, $5)", ct, Uuid(branchId),
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)direction ?? DBNull.Value },
             new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Boolean, Value = openOnly },
-            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)customerId ?? DBNull.Value }))!;
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)customerId ?? DBNull.Value },
+            new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, Value = openOnly ? 1000 : 200 }))!;
+
+    public async Task<string> DebtSummaryAsync(ICurrentContext me, Guid branchId, CancellationToken ct) =>
+        (await Scalar(me, "select gold.debts_summary($1)", ct, Uuid(branchId)))!;
 
     public Task<string?> GetDebtAsync(ICurrentContext me, Guid id, CancellationToken ct) =>
         Scalar(me, "select gold.debt_json($1)", ct, Uuid(id));

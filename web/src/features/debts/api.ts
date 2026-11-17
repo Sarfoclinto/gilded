@@ -7,6 +7,7 @@ import {
   collateralSchema,
   debtSchema,
   customerDebtsSchema,
+  debtSummarySchema,
   type Debt,
   type LoanInput,
   type RepaymentInput,
@@ -28,6 +29,11 @@ export const debtsApi = {
     request(
       { method: "get", url: "/debts", params, signal },
       z.array(debtSchema),
+    ),
+  summary: (branchId: string, signal?: AbortSignal) =>
+    request(
+      { method: "get", url: "/debts/summary", params: { branchId }, signal },
+      debtSummarySchema,
     ),
   ofCustomer: (customerId: string, signal?: AbortSignal) =>
     request(
@@ -68,6 +74,16 @@ export const debtsApi = {
       collateralSchema,
     ),
 };
+
+/** Counts and totals of a branch's debts, from the server, over all of them. */
+export function useDebtSummary(branchId: string | null) {
+  return useApiQuery({
+    queryKey: debtKeys.custom("summary", { branchId }),
+    queryFn: ({ signal }) => debtsApi.summary(branchId as string, signal),
+    enabled: !!branchId,
+    staleTime: 0,
+  });
+}
 
 /** Open amounts one customer owes across every branch the person can see (not just the active one). */
 export function useCustomerDebts(customerId: string | null | undefined) {
