@@ -3,13 +3,16 @@
 Legend: (fix) a defect, (imp) improvement or UI update, (new) predicted need, not yet requested.
 
 ## Phase 1 - fixes (small, do first)
-| # | Item | First suspicion (unverified) |
-|---|---|---|
-| 3 | (fix) Home still shows "price not set" after "Check and use" succeeds | Home reads a cached price query; the feed action does not invalidate it (or live event not handled). |
-| 9 | (fix) New transfer: branch select is empty | Destination list probably filtered to the user's own branches, or the branches query needs a permission the teller/manager lacks. Needs a "branches I can send to" endpoint. |
-| 12 | (fix) Mobile-money payment shows only own branch | Likely the same cause as 9. Check together. |
-| G1 | shadcn Select replaces every non-antd select | Build one shared `Select` wrapper first, then swap usages one screen at a time. |
-| 11/13 | Denomination forms: optional "typed total" field | Informational only; shows a gentle mismatch note if it differs from the notes counted; never used in the ledger. |
+✅ All done in B8a: #3 Home "price not set", #9 empty transfer destination, #12 mobile-money sending branch (new `GET /branches/all`). G1 (one shared Select) and 11/13 (optional "typed total" on note counts) were not taken up; still open as small improvements.
+
+## Priorities (review of 17 Nov 2026)
+High (money, security or data at risk):
+1. ✅ **Done in B69.** Debt totals stopped at 100 debts and the oldest open debts did not appear. Now counted by the server; every open debt is listed.
+2. ✅ **Done in B69.** Hub counted a held purchase again on a later day (B53 limit). Purchases and payouts now carry their day and count only against it.
+3. ✅ **Done in B70.** Screen lock after 5 idle minutes (company setting), PIN per device or password, five wrong PINs sign out. Possible later: one PIN that follows the person to every device (server-side).
+4. ✅ **Done in B71.** Nightly backups, encrypted off-site copy to B2/S3, weekly restore check, alerts to directors. To do on the server: create the bucket, fill BACKUP_* in .env, practise a restore once. Follow-up: system status page (#13) to show the last good backup.
+5. Process: compile and test the C# of B59 onward before deploying.
+Medium: price override approvals and fraud flags; edit conflicts on users/branches/roles; TradingView licence check; Npgsql bump and CA warnings; desktop rollout prerequisites (code signing, hub hardware tests, domain); storage growth (photo retention, hub log trim).
 
 ## Phase 2 - design system and shell (do before screen redesigns)
 - Shared tokens, spacing, typography, empty/loading/error states, one table component (filter, sort, pagination), one detail-page layout.
@@ -48,7 +51,7 @@ Ranked by my guess of value, highest first:
 7. **Float and cash top-up requests:** a teller asks for cash; the manager approves; it is recorded as a movement.
 8. **Field agents / suppliers:** agents who bring gold, commission rules, advances against future gold.
 9. **Notification centre improvements:** unread badges, "needs my action" list, optional push.
-10. **Session safety:** auto-lock after idle, quick PIN to unlock, shift handover note.
+10. **Session safety:** ~~auto-lock after idle, quick PIN to unlock~~ (done in B70); shift handover note still open.
 11. **Mobile money reconciliation:** match provider statements to recorded payments.
 12. ~~**Global search** (customer, receipt number, phone), keyboard shortcut.~~ **Done in B54** (v1.7.0).
 13. **Backups/system status page** for directors (last backup, price feed health, version).
@@ -77,7 +80,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - Optional separate permission for branch computers.
 - Edit conflicts for users, branches and roles.
 - Branch overview showing the two-session status.
-- Dashboard fixes: the owed-to-us direction filter and whole-cedi display.
+- ~~Dashboard fixes: the owed-to-us totals.~~ **Done in B69** (totals over every debt).
 - Small cleanups: CA warnings and an Npgsql bump.
 - QR-scan offline pay.
 - Town feature steps 3-4 (see "Queued" above).
@@ -85,7 +88,7 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 - ESC/POS raw receipt printing.
 - ~~World gold price chart.~~ **Done in B55** (v1.8.0). Left: email TradingView to confirm the widget may be used in a paid app behind a login; check the chart loads inside the desktop app.
 - Before wide desktop rollout: a code-signing certificate for the Windows installer; real-hardware tests of hub failure; move the domain to the company account.
-- Hub: an entry kept for a manager's review and applied on a later day may be counted once more by the hub (B53 limit); trim the hub's log file.
+- ~~Hub: an entry kept for a manager's review and applied on a later day may be counted once more by the hub (B53 limit).~~ **Fixed in B69.** Left: trim the hub's log file.
 - ~~Global search.~~ **Done in B54** (v1.7.0). Possible later: search inside guide article text; a page of their own for a debt and for held gold so results open the exact record; measure speed on a large database.
 
 ## Asked for on 14 Nov 2026 (not started)
@@ -105,3 +108,6 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 
 ## Asked for on 16 Nov 2026 (design written, not scheduled)
 - ✅ **Phase 1 done in B67 (v1.18.0). Workings: a freeform scratch sheet for rough calculations (OneNote-like).** Decisions: tablet/computer first, gold helpers in phase 1, private like My pictures, no pen. ✅ Phase 2 done in B68 (v1.18.1): share a sheet read-only, Copy result, Tools-panel Sheet tab, pinch-zoom. Later (optional): pen/ink on tablets, tables and groups, templates ("price a chain", "loan interest"), export to PDF/image. Tap anywhere to drop a labelled figure, build results by pointing at other figures (live formulas), quick totals, gold helpers (karat purity, pure weight, today's price), save/list/reopen sheets, print. Scratch only: never writes to the books; the person copies a result into a form. Private to the owner like My pictures. Design: `docs/workings-design.md` (feasible; phases 1 to 3; four decisions to confirm before building).
+
+## Asked for on 17 Nov 2026
+- ✅ **Done in B69. Tools panel redesign.** The tabs scrolled sideways once there were seven; now a navy tool rail down the left with a gold marker, the tool's name and a one-line hint above it, at every screen size.

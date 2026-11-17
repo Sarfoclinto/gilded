@@ -6,7 +6,7 @@ import { PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/features/auth/store";
 import { useHasPermission } from "@/features/auth/useHasPermission";
 import { cedis } from "@/features/calculator/format";
-import { useCollateral, useDebts } from "@/features/debts/api";
+import { useCollateral, useDebtSummary } from "@/features/debts/api";
 import { useActiveDrawer, useDayHistory } from "@/features/drawer/hooks";
 import { usePendingPayments } from "@/features/payments/api";
 import { useCurrentPrice } from "@/features/prices/api";
@@ -125,21 +125,22 @@ export function MoneyTile() {
 
 export function DebtTile() {
   const branchId = useAuth((s) => s.activeBranchId);
-  const owedToUs = useDebts({
-    branchId,
-    direction: "receivable",
-    openOnly: true,
-  });
-  const weOwe = useDebts({ branchId, direction: "payable", openOnly: true });
-  const sum = (l?: { outstanding: string }[]) =>
-    (l ?? []).reduce((s, d) => s + Number(d.outstanding), 0);
+  // counted by the server over every debt, not added up from a list that stops at a page
+  const summary = useDebtSummary(branchId);
+  const s = summary.data;
   return (
     <Tile to={paths.debts.href} title="Debts">
       <div className="tnum text-base font-semibold sm:text-lg">
-        Owed to us {cedis(sum(owedToUs.data))}
+        Owed to us {s ? cedis(Number(s.receivable.total)) : "—"}
       </div>
       <div className="tnum text-sm text-muted-foreground">
-        We owe {cedis(sum(weOwe.data))}
+        We owe {s ? cedis(Number(s.payable.total)) : "—"}
+        {s?.receivable.overdue ? (
+          <span className="text-red-600">
+            {" "}
+            · {s.receivable.overdue} overdue
+          </span>
+        ) : null}
       </div>
     </Tile>
   );

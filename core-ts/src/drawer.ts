@@ -32,16 +32,26 @@ export type DrawerCommand =
       type: "drawer.exchange";
       payload: { dayId: string; gave: Lines; took: Lines };
     }
+  /** `dayId`: the day that was open when it was made (since B69). It then counts only against that day, never a later one. */
   | {
       id: string;
       type: "transaction.create";
-      payload: { branchId: string; payout: { lines: Lines } };
+      payload: {
+        branchId: string;
+        dayId?: string | null;
+        payout: { lines: Lines };
+      };
     }
   /** Cash handed over for a purchase saved in two-step mode. The server counts it under the purchase's id. */
   | {
       id: string;
       type: "transaction.pay";
-      payload: { transactionId: string; branchId: string; lines: Lines };
+      payload: {
+        transactionId: string;
+        branchId: string;
+        dayId?: string | null;
+        lines: Lines;
+      };
     }
   /** A day opened on a device with no connection. Its id is made on the device, and the server keeps it. */
   | {
@@ -109,6 +119,19 @@ export const appliedKey = (c: DrawerCommand) =>
  * What a command does to the drawer: notes in and notes out, or null when it does not touch this drawer right now
  * (another day, another branch, two-step purchase that only saves, day not open).
  */
+/**
+ * A purchase or payout made on another day: it was paid out of that day's drawer, so it must not come out of this one as well (for example
+ * a purchase the server is holding for a manager's review, while the next day's opening count already lacks that cash). Only entries that
+ * say their day are judged: older ones, made before purchases carried a day, count as they always did.
+ */
+function fromOtherDay(
+  dayId: string | null | undefined,
+  ctx: { dayId: string | null; aliases?: Record<string, string> },
+): boolean {
+  if (!dayId || !ctx.dayId) return false;
+  return (ctx.aliases?.[dayId] ?? dayId) !== ctx.dayId;
+}
+
 export function drawerEffect(
   c: DrawerCommand,
   ctx: {
@@ -134,9 +157,11 @@ export function drawerEffect(
     case "transaction.create":
       // Two-step: saving a purchase takes no cash out of the drawer; the payout does.
       if (ctx.twoStep || c.payload.branchId !== ctx.branchId) return null;
+      if (fromOtherDay(c.payload.dayId, ctx)) return null;
       return { in: {}, out: c.payload.payout.lines };
     case "transaction.pay":
       if (c.payload.branchId !== ctx.branchId) return null;
+      if (fromOtherDay(c.payload.dayId, ctx)) return null;
       return { in: {}, out: c.payload.lines };
     case "day.open":
     case "day.close":

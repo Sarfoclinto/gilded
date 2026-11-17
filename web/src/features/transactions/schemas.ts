@@ -79,6 +79,8 @@ export const payoutSchema = z.object({
 export const createTransactionSchema = z.object({
   id: z.string(),
   branchId: z.string(),
+  /** The day open on this device when the purchase was made, so a branch computer counts it against that day only. The server ignores it. */
+  dayId: z.string().nullable().optional(),
   customerName: z.string().trim().min(1, "Enter the customer name").max(120),
   customerPhone: z.string().max(32).nullable().optional(),
   customerId: z.string().nullable().optional(),
@@ -106,6 +108,8 @@ export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 export const payTransactionSchema = z.object({
   transactionId: z.string(),
   branchId: z.string(),
+  /** The day open when the cash was paid out (see createTransactionSchema.dayId). */
+  dayId: z.string().nullable().optional(),
   lines: noteLinesSchema,
   capturedAt: z.string(),
   /** The amount worked out from the weights by the person paying (when the company asks for that check). */

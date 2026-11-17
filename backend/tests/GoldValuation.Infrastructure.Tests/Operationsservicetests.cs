@@ -423,6 +423,7 @@ public class OperationsServiceTests
         public Task<DbResult> IssueLoanAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<DbResult> RepayDebtAsync(ICurrentContext me, string p, CancellationToken ct) => Task.FromResult(new DbResult(false, "{}"));
         public Task<string> CustomerDebtsAsync(ICurrentContext me, Guid c, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> DebtSummaryAsync(ICurrentContext me, Guid b, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> ListDebtsAsync(ICurrentContext me, Guid b, string? d, bool o, Guid? c, CancellationToken ct) => Task.FromResult("[]");
         public Task<string?> GetDebtAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult<string?>(null);
         public Task<string> ListCollateralAsync(ICurrentContext me, Guid b, string? s, CancellationToken ct) => Task.FromResult("[]");

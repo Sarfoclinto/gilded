@@ -130,6 +130,71 @@ describe("log order", () => {
 });
 
 describe("replayLog", () => {
+  it("counts a purchase only against the day it was made on (one held for review is not taken out of the next day too)", () => {
+    // today (d1) was opened with 10 x 100 counted by hand; 'old' was paid out of yesterday's drawer (day d0) and is still waiting
+    const old: DrawerCommand = {
+      id: "old",
+      type: "transaction.create",
+      payload: { branchId: "b", dayId: "d0", payout: { lines: { "100": 2 } } },
+    };
+    const today: DrawerCommand = {
+      id: "new",
+      type: "transaction.create",
+      payload: { branchId: "b", dayId: "d1", payout: { lines: { "100": 1 } } },
+    };
+    const payOld: DrawerCommand = {
+      id: "p-old",
+      type: "transaction.pay",
+      payload: {
+        transactionId: "x",
+        branchId: "b",
+        dayId: "d0",
+        lines: { "100": 3 },
+      },
+    };
+    const legacy = pay("legacy", { "100": 1 }); // made before purchases said their day: counts as before
+    const log = [
+      entry(old, "pc1", "2026-11-04T16:00:00Z", { seq: 1 }),
+      entry(payOld, "pc1", "2026-11-04T16:05:00Z", { seq: 2 }),
+      entry(today, "pc2", "2026-11-05T09:00:00Z", { seq: 3 }),
+      entry(legacy, "pc2", "2026-11-05T09:10:00Z", { seq: 4 }),
+    ];
+    const { view } = replayLog(state({ "100": 10 }), log, "b");
+    expect(view.balance).toEqual({ "100": 8 });
+    expect(view.pendingCount).toBe(4); // all still waiting to reach the server
+  });
+
+  it("counts a purchase made under a day id that was merged into the open day", () => {
+    const offline: DrawerCommand = {
+      id: "off",
+      type: "day.open",
+      payload: {
+        id: "d1-offline",
+        branchId: "b",
+        businessDate: "2026-11-05",
+        lines: { "100": 10 },
+      },
+    };
+    const buy: DrawerCommand = {
+      id: "b1",
+      type: "transaction.create",
+      payload: {
+        branchId: "b",
+        dayId: "d1-offline",
+        payout: { lines: { "100": 4 } },
+      },
+    };
+    const { view } = replayLog(
+      state({ "100": 10 }),
+      [
+        entry(offline, "pc1", "2026-11-05T08:00:00Z", { seq: 1 }),
+        entry(buy, "pc1", "2026-11-05T09:00:00Z", { seq: 2 }),
+      ],
+      "b",
+    );
+    expect(view.balance).toEqual({ "100": 6 });
+  });
+
   it("two tellers race for the same notes: first by order is covered, second is short and told which", () => {
     const log = [
       entry(pay("t2", { "100": 2 }), "pc2", "2026-11-05T09:00:01Z", { seq: 2 }),

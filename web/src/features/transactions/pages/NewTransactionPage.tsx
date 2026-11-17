@@ -365,6 +365,7 @@ function NewTransactionForm({
     const cmd = {
       id: txId.current,
       branchId,
+      dayId: drawer.status === "open" ? drawer.dayId : null,
       customerId: customer.id ?? (phoneOk ? newCustomerId.current : null),
       collateralId: security?.id ?? null,
       customerName: customer.name.trim(),

@@ -43,6 +43,23 @@ export const debtSchema = z.object({
 });
 export type Debt = z.infer<typeof debtSchema>;
 
+/** One branch's debts at a glance, counted by the server over all debts (the list itself may be a page). */
+export const debtSummarySchema = z.object({
+  receivable: z.object({
+    open: z.number(),
+    total: z.string(),
+    overdue: z.number(),
+    held: z.number(),
+  }),
+  payable: z.object({
+    open: z.number(),
+    total: z.string(),
+    overdue: z.number(),
+  }),
+  allCount: z.number(),
+});
+export type DebtSummary = z.infer<typeof debtSummarySchema>;
+
 export const customerDebtsSchema = z.object({
   items: z.array(debtSchema.extend({ branchName: z.string().optional() })),
   total: z.string(),

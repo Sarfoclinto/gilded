@@ -1,10 +1,11 @@
 import { Suspense, useCallback, useRef, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { QuickCameraButton } from "@/features/personal/QuickCamera";
+import { LockScreen } from "@/features/lock/LockScreen";
+import { useIdleLock } from "@/features/lock/useIdleLock";
 import {
-  PanelHeader,
   UtilityButton,
-  UtilityContent,
+  UtilityPanelBody,
   UtilitySheet,
 } from "@/features/utility/UtilityPanel";
 import { useUtilityPanel } from "@/features/utility/store";
@@ -30,10 +31,11 @@ export default function AppLayout() {
   const desktop = useIsDesktop();
   const { open, setOpen } = useUtilityPanel();
   useNewPurchaseShortcut();
+  const locked = useIdleLock();
   const rowRef = useRef<HTMLDivElement | null>(null);
-  const [width, setWidth] = useState(380);
+  const [width, setWidth] = useState(440);
   const maxWidth = () =>
-    Math.max(300, Math.floor((rowRef.current?.clientWidth ?? 1000) / 2));
+    Math.max(360, Math.floor((rowRef.current?.clientWidth ?? 1000) / 2));
   // Dragging the bar between the page and the calculators.
   const startResize = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
@@ -43,8 +45,8 @@ export default function AppLayout() {
       const right = row.getBoundingClientRect().right;
       setWidth(
         Math.min(
-          Math.max(300, right - ev.clientX),
-          Math.max(300, Math.floor(row.clientWidth / 2)),
+          Math.max(360, right - ev.clientX),
+          Math.max(360, Math.floor(row.clientWidth / 2)),
         ),
       );
     };
@@ -95,16 +97,16 @@ export default function AppLayout() {
                     if (e.key === "ArrowLeft")
                       setWidth((w) => Math.min(maxWidth(), w + 24));
                     if (e.key === "ArrowRight")
-                      setWidth((w) => Math.max(300, w - 24));
+                      setWidth((w) => Math.max(360, w - 24));
                   }}
                   className="w-1.5 shrink-0 cursor-col-resize bg-border/60 hover:bg-primary/40 focus-visible:bg-primary/60"
                 />
                 <aside
                   style={{ width }}
-                  className="h-full shrink-0 overflow-y-auto border-l border-border bg-card"
+                  aria-label="Tools"
+                  className="h-full shrink-0 overflow-hidden border-l border-border bg-card"
                 >
-                  <PanelHeader onClose={() => setOpen(false)} />
-                  <UtilityContent />
+                  <UtilityPanelBody onClose={() => setOpen(false)} />
                 </aside>
               </>
             ) : null}
@@ -113,6 +115,7 @@ export default function AppLayout() {
           <UtilityButton />
           {!desktop && <QuickCameraButton variant="fab" />}
           {!desktop && <UtilitySheet />}
+          {locked ? <LockScreen /> : null}
         </div>
       </div>
     </LiveProvider>

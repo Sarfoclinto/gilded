@@ -58,6 +58,8 @@ public interface IOperationsStore
     Task<DbResult> RepayDebtAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     /// <summary>Open amounts a customer owes across the caller's branches, as JSON { items, total, elsewhere }.</summary>
     Task<string> CustomerDebtsAsync(ICurrentContext me, Guid customerId, CancellationToken ct);
+    /// <summary>One branch's debts at a glance, counted over all of them (not just a page of the list).</summary>
+    Task<string> DebtSummaryAsync(ICurrentContext me, Guid branchId, CancellationToken ct);
     Task<string> ListDebtsAsync(ICurrentContext me, Guid branchId, string? direction, bool openOnly, Guid? customerId, CancellationToken ct);
     Task<string?> GetDebtAsync(ICurrentContext me, Guid id, CancellationToken ct);
     Task<string> ListCollateralAsync(ICurrentContext me, Guid branchId, string? status, CancellationToken ct);

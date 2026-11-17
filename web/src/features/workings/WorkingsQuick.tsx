@@ -25,10 +25,7 @@ export function WorkingsQuick() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          Keep a sheet open beside this page. Select a result and tap Copy to
-          paste it into a form.
-        </p>
+        <p className="text-sm font-medium">Your sheets</p>
         {!off ? (
           <button
             type="button"
