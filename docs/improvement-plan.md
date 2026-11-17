@@ -111,3 +111,4 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 
 ## Asked for on 17 Nov 2026
 - ✅ **Done in B69. Tools panel redesign.** The tabs scrolled sideways once there were seven; now a navy tool rail down the left with a gold marker, the tool's name and a one-line hint above it, at every screen size.
+- **Learn Gilded: a video hub and in-app tours (planned, not scheduled).** One script per operation makes the narrated video (real app, visible cursor, typing, captions, voice), the in-app tour, and the written steps; re-run on each update so nothing goes stale. A 30-second sample was made to prove it. Plan and decisions: `docs/learning-hub-design.md`.
