@@ -1499,6 +1499,48 @@ paths:
         - { in: query, name: days, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
       responses:
         '200': { description: 'A list of { kind, id, label, branchId, branchName, at, missing }', content: { application/json: { schema: { type: object } } } }
+  /me/workings:
+    get:
+      tags: [Workings]
+      summary: The signed-in person's own scratch sheets (no contents), newest edited first
+      description: Any signed-in person; only the caller's own sheets are ever returned. Includes usage against the company limits.
+      parameters:
+        - { in: query, name: q, description: Search names, schema: { type: string } }
+      responses:
+        '200': { description: '{ items: [{ id, name, notes, version, createdAt, updatedAt }], usage: { enabled, count, maxCount, maxKb } }', content: { application/json: { schema: { type: object } } } }
+  /me/workings/{id}:
+    get:
+      tags: [Workings]
+      summary: One sheet with its contents (owner only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: 'The sheet with doc: { notes: [{ id, x, y, text }], view }' }
+        '404': { description: Not yours, or not there }
+    put:
+      tags: [Workings]
+      summary: Create or save a sheet
+      description: |
+        Body { name, doc, baseVersion }. The id is chosen by the app. When the server already holds a newer version than baseVersion (edited on another device),
+        it keeps its copy, returns it with its contents as `data`, and stores the incoming one as a second sheet "<name> (other device)" returned as `copy`.
+        Refused with 403 WORKINGS_OFF (switched off, new sheets only), 422 WORKINGS_FULL (sheet limit) or 422 WORKING_TOO_BIG (size limit).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ data, copy }' }
+    patch:
+      tags: [Workings]
+      summary: Rename a sheet (owner only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: The sheet }
+  /me/workings/delete:
+    post:
+      tags: [Workings]
+      summary: Delete the caller's own sheets for good (up to 200)
+      responses:
+        '200': { description: '{ deleted }' }
   /me/pictures:
     get:
       tags: [My pictures]

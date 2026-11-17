@@ -2,6 +2,8 @@ using GoldValuation.Application.Abstractions;
 using GoldValuation.Application.Attachments;
 using GoldValuation.Application.Personal;
 using GoldValuation.Infrastructure.Personal;
+using GoldValuation.Application.Workings;
+using GoldValuation.Infrastructure.Workings;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Imports;
 using GoldValuation.Application.PriceFeed;
@@ -74,6 +76,8 @@ public static class InfrastructureModule
         services.AddScoped<AttachmentsService>();
         services.AddSingleton<IPersonalPicturesStore, PostgresPersonalPicturesStore>();
         services.AddScoped<PersonalPicturesService>();
+        services.AddSingleton<IWorkingsStore, PostgresWorkingsStore>();
+        services.AddScoped<WorkingsService>();
         return services;
     }
 

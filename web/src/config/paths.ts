@@ -107,6 +107,16 @@ const paths = {
   photos: { href: "/photos", label: "Photos" },
   /** A person's own private pictures. Not in the menu: the camera button and the account menu lead here. */
   myPictures: { href: "/my-pictures", label: "My pictures" },
+  /** Workings: a person's private scratch sheets for rough calculations. */
+  workings: {
+    href: "/workings",
+    label: "Workings",
+    sheet: {
+      href: "/workings/:id",
+      to: (id: string) => `/workings/${encodeURIComponent(id)}`,
+      label: "Sheet",
+    },
+  },
   unauthorized: {
     href: "/unauthorized",
     redirect: (reason: string) =>
