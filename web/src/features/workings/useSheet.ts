@@ -26,10 +26,15 @@ export function useSheet(id: string, fresh: boolean) {
   const [state, setState] = useState<SaveState>("saved");
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the sheet is a colleague's, shared with this person: it can be read and copied, never changed. */
+  const [sharedBy, setSharedBy] = useState<string | null>(null);
+  const readOnly = sharedBy !== null;
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const inflight = useRef(false);
   const latest = useRef<LocalSheet | null>(null);
   latest.current = sheet;
+  const readOnlyRef = useRef(false);
+  readOnlyRef.current = readOnly;
 
   // open: the device copy first (instant, works offline), then the server's if it is newer and we have nothing unsent
   useEffect(() => {
@@ -64,6 +69,21 @@ export function useSheet(id: string, fresh: boolean) {
       try {
         const remote = await workingsApi.get(id);
         if (!alive) return;
+        if (remote.mine === false) {
+          // a colleague's sheet: shown as it is on the server, never written to this device's own sheets
+          setSharedBy(remote.owner?.displayName ?? "a colleague");
+          setSheet({
+            id,
+            owner: remote.owner?.id ?? "",
+            name: remote.name,
+            doc: remote.doc,
+            version: remote.version,
+            dirty: false,
+            updatedAt: Date.now(),
+          });
+          setState("saved");
+          return;
+        }
         const cur = latest.current;
         if (!cur || (!cur.dirty && remote.version > cur.version)) {
           const s: LocalSheet = {
@@ -172,6 +192,7 @@ export function useSheet(id: string, fresh: boolean) {
   /** Change the sheet. Written to the device now, to the server shortly. */
   const update = useCallback(
     (fn: (s: LocalSheet) => Partial<Pick<LocalSheet, "name" | "doc">>) => {
+      if (readOnlyRef.current) return;
       setSheet((cur) => {
         if (!cur) return cur;
         const next: LocalSheet = {
@@ -193,6 +214,27 @@ export function useSheet(id: string, fresh: boolean) {
   useEffect(() => {
     if (online && sheet?.dirty) schedule(300);
   }, [online, sheet?.dirty, schedule]);
+  // a shared sheet follows the owner's changes: look again every 20 seconds while it is open
+  useEffect(() => {
+    if (!readOnly) return;
+    const t = setInterval(() => {
+      if (!isOnline()) return;
+      workingsApi
+        .get(id)
+        .then((r) => {
+          if (r.mine === false && r.version !== latest.current?.version)
+            setSheet((cur) =>
+              cur
+                ? { ...cur, name: r.name, doc: r.doc, version: r.version }
+                : cur,
+            );
+        })
+        .catch((e) => {
+          if (isApiError(e) && e.status === 404) setMissing(true);
+        });
+    }, 20_000);
+    return () => clearInterval(t);
+  }, [readOnly, id]);
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
@@ -211,5 +253,14 @@ export function useSheet(id: string, fresh: boolean) {
     };
   }, [push]);
 
-  return { sheet, state, error, missing, update, saveNow: () => void push() };
+  return {
+    sheet,
+    state,
+    error,
+    missing,
+    readOnly,
+    sharedBy,
+    update,
+    saveNow: () => void push(),
+  };
 }

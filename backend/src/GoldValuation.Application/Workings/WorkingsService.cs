@@ -12,6 +12,11 @@ public interface IWorkingsStore
     Task<string> SaveAsync(ICurrentContext me, string payloadJson, CancellationToken ct);
     Task<string> RenameAsync(ICurrentContext me, Guid id, string? name, CancellationToken ct);
     Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct);
+    Task<string> SharedListAsync(ICurrentContext me, CancellationToken ct);
+    Task<string> ShareAsync(ICurrentContext me, Guid id, Guid to, CancellationToken ct);
+    /// <summary>Stops sharing a sheet with one colleague, or with everyone when <paramref name="to"/> is null.</summary>
+    Task<string> UnshareAsync(ICurrentContext me, Guid id, Guid? to, CancellationToken ct);
+    Task<string> HideSharedAsync(ICurrentContext me, Guid id, CancellationToken ct);
 }
 
 /// <summary>
@@ -45,6 +50,12 @@ public sealed class WorkingsService(IWorkingsStore store)
 
     public Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) =>
         ids.Length is 0 or > 200 ? throw AppException.Invalid("Choose between 1 and 200 sheets.") : store.DeleteAsync(me, ids, ct);
+
+    /// <summary>Sheets colleagues have shared with the caller (read only).</summary>
+    public Task<string> SharedListAsync(ICurrentContext me, CancellationToken ct) => store.SharedListAsync(me, ct);
+    public Task<string> ShareAsync(ICurrentContext me, Guid id, Guid to, CancellationToken ct) => store.ShareAsync(me, id, to, ct);
+    public Task<string> UnshareAsync(ICurrentContext me, Guid id, Guid? to, CancellationToken ct) => store.UnshareAsync(me, id, to, ct);
+    public Task<string> HideSharedAsync(ICurrentContext me, Guid id, CancellationToken ct) => store.HideSharedAsync(me, id, ct);
 
     private static int? Int(JsonNode? n) => n is JsonValue v && v.TryGetValue<int>(out var i) && i > 0 ? i : null;
     private static string? Clean(string? s, int max) => string.IsNullOrWhiteSpace(s) ? null : (s.Trim().Length > max ? s.Trim()[..max] : s.Trim());

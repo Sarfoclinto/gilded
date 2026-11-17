@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Input, Modal } from "antd";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Input, Modal, Segmented } from "antd";
 import {
   CopyIcon,
+  EyeOffIcon,
   PencilLineIcon,
   PlusIcon,
   SearchIcon,
   SigmaIcon,
   Trash2Icon,
+  UsersIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { useAuth } from "@/features/auth/store";
@@ -16,7 +18,9 @@ import { useConnectivity } from "@/shared/offline/connectivity";
 import { CoinEdge } from "@/shared/ui/BrandMark";
 import {
   useDeleteSheets,
+  useHideSharedSheet,
   useRenameSheet,
+  useSharedSheets,
   useSheets,
   workingsApi,
   type SheetMeta,
@@ -44,7 +48,12 @@ export default function WorkingsPage() {
   const [local, setLocal] = useState<LocalSheet[]>([]);
   const [renaming, setRenaming] = useState<SheetMeta | null>(null);
   const [name, setName] = useState("");
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "shared" ? "shared" : "mine";
   const list = useSheets(term || undefined);
+  const shared = useSharedSheets(tab === "shared");
+  const hide = useHideSharedSheet();
+  const sharedCount = list.data?.sharedCount ?? 0;
   const rename = useRenameSheet();
   const remove = useDeleteSheets();
 
@@ -84,6 +93,7 @@ export default function WorkingsPage() {
         createdAt: new Date(l.updatedAt).toISOString(),
         updatedAt: new Date(l.updatedAt).toISOString(),
         device: true,
+        sharedWith: [] as { id: string; displayName: string }[],
       }));
     const dirty = new Set(local.filter((l) => l.dirty).map((l) => l.id));
     return [
@@ -172,92 +182,178 @@ export default function WorkingsPage() {
         </p>
       ) : null}
 
-      <Input
-        allowClear
-        prefix={
-          <SearchIcon className="size-4 text-muted-foreground" aria-hidden />
-        }
-        placeholder="Search by name"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className="max-w-xs"
+      <Segmented
         size="large"
+        value={tab}
+        onChange={(v) =>
+          setParams(v === "shared" ? { tab: "shared" } : {}, { replace: true })
+        }
+        options={[
+          { label: "Mine", value: "mine" },
+          {
+            label: sharedCount
+              ? `Shared with me (${sharedCount})`
+              : "Shared with me",
+            value: "shared",
+          },
+        ]}
       />
 
-      {list.isLoading && !items.length ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
-          ))}
-        </div>
-      ) : null}
-
-      {items.length ? (
-        <ul className="space-y-2">
-          {items.map((s) => (
-            <li
-              key={s.id}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
-            >
-              <Link
-                to={paths.workings.sheet.to(s.id)}
-                className="min-w-0 flex-1"
-              >
-                <span className="block truncate font-semibold">{s.name}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {s.notes} note{s.notes === 1 ? "" : "s"} · {when(s.updatedAt)}
-                  {s.device ? " · on this device" : ""}
-                </span>
-              </Link>
-              <button
-                type="button"
-                aria-label={`Rename ${s.name}`}
-                onClick={() => {
-                  setRenaming(s);
-                  setName(s.name);
-                }}
-                className="grid size-10 place-items-center rounded-lg hover:bg-muted"
-              >
-                <PencilLineIcon className="size-4" aria-hidden />
-              </button>
-              {!off ? (
-                <button
-                  type="button"
-                  aria-label={`Duplicate ${s.name}`}
-                  onClick={() => void duplicate(s)}
-                  className="grid size-10 place-items-center rounded-lg hover:bg-muted"
+      {tab === "shared" ? (
+        <section aria-label="Shared with me" className="space-y-2">
+          {shared.isLoading ? (
+            <div className="h-16 animate-pulse rounded-xl bg-muted" />
+          ) : null}
+          {shared.data?.items.length ? (
+            <ul className="space-y-2">
+              {shared.data.items.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
                 >
-                  <CopyIcon className="size-4" aria-hidden />
-                </button>
-              ) : null}
-              <button
-                type="button"
-                aria-label={`Delete ${s.name}`}
-                onClick={() => void del(s)}
-                className="grid size-10 place-items-center rounded-lg text-red-700 hover:bg-red-50"
-              >
-                <Trash2Icon className="size-4" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+                  <Link
+                    to={paths.workings.sheet.to(s.id)}
+                    className="min-w-0 flex-1"
+                  >
+                    <span className="block truncate font-semibold">
+                      {s.name}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      From {s.sharedBy.displayName} · {s.notes} note
+                      {s.notes === 1 ? "" : "s"} · changed {when(s.updatedAt)} ·
+                      read only
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${s.name} from my list`}
+                    title="Remove from my list"
+                    onClick={() => void hide.mutateAsync(s.id)}
+                    className="grid size-10 place-items-center rounded-lg hover:bg-muted"
+                  >
+                    <EyeOffIcon className="size-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : shared.data ? (
+            <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+              <span className="grid size-14 place-items-center rounded-full bg-gold/15 text-brand">
+                <UsersIcon className="size-7" aria-hidden />
+              </span>
+              <p className="font-display text-xl font-semibold">
+                Nothing shared with you
+              </p>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                When a colleague shares a sheet with you, it appears here and
+                you get a notification. You can read it and save a copy of your
+                own.
+              </p>
+            </div>
+          ) : null}
+        </section>
+      ) : (
+        <>
+          <Input
+            allowClear
+            prefix={
+              <SearchIcon
+                className="size-4 text-muted-foreground"
+                aria-hidden
+              />
+            }
+            placeholder="Search by name"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="max-w-xs"
+            size="large"
+          />
 
-      {list.data && !items.length ? (
-        <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="grid size-14 place-items-center rounded-full bg-gold/15 text-brand">
-            <SigmaIcon className="size-7" aria-hidden />
-          </span>
-          <p className="font-display text-xl font-semibold">
-            {term ? "No sheet has that name" : "No sheets yet"}
-          </p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            {term
-              ? "Try another word."
-              : 'Start one for a customer, a chain, a day. Write "Weight 12.4 g", then "= Weight × price", and the answer appears.'}
-          </p>
-        </div>
-      ) : null}
+          {list.isLoading && !items.length ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 animate-pulse rounded-xl bg-muted"
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {items.length ? (
+            <ul className="space-y-2">
+              {items.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+                >
+                  <Link
+                    to={paths.workings.sheet.to(s.id)}
+                    className="min-w-0 flex-1"
+                  >
+                    <span className="block truncate font-semibold">
+                      {s.name}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {s.notes} note{s.notes === 1 ? "" : "s"} ·{" "}
+                      {when(s.updatedAt)}
+                      {s.device ? " · on this device" : ""}
+                      {s.sharedWith?.length
+                        ? ` · shared with ${s.sharedWith.map((p) => p.displayName).join(", ")}`
+                        : ""}
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label={`Rename ${s.name}`}
+                    onClick={() => {
+                      setRenaming(s);
+                      setName(s.name);
+                    }}
+                    className="grid size-10 place-items-center rounded-lg hover:bg-muted"
+                  >
+                    <PencilLineIcon className="size-4" aria-hidden />
+                  </button>
+                  {!off ? (
+                    <button
+                      type="button"
+                      aria-label={`Duplicate ${s.name}`}
+                      onClick={() => void duplicate(s)}
+                      className="grid size-10 place-items-center rounded-lg hover:bg-muted"
+                    >
+                      <CopyIcon className="size-4" aria-hidden />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label={`Delete ${s.name}`}
+                    onClick={() => void del(s)}
+                    className="grid size-10 place-items-center rounded-lg text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2Icon className="size-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {list.data && !items.length ? (
+            <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+              <span className="grid size-14 place-items-center rounded-full bg-gold/15 text-brand">
+                <SigmaIcon className="size-7" aria-hidden />
+              </span>
+              <p className="font-display text-xl font-semibold">
+                {term ? "No sheet has that name" : "No sheets yet"}
+              </p>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                {term
+                  ? "Try another word."
+                  : 'Start one for a customer, a chain, a day. Write "Weight 12.4 g", then "= Weight × price", and the answer appears.'}
+              </p>
+            </div>
+          ) : null}
+        </>
+      )}
 
       <Modal
         open={!!renaming}

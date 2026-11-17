@@ -19,6 +19,12 @@ public sealed class PostgresWorkingsStore(NpgsqlDataSource dataSource, ILogger<P
     public async Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) =>
         (await Scalar(me, "select gold.workings_delete($1)", ct, new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid, Value = ids }))!;
 
+    public async Task<string> SharedListAsync(ICurrentContext me, CancellationToken ct) => (await Scalar(me, "select gold.workings_shared_list()", ct))!;
+    public async Task<string> ShareAsync(ICurrentContext me, Guid id, Guid to, CancellationToken ct) => (await Scalar(me, "select gold.working_share($1, $2)", ct, Uuid(id), Uuid(to)))!;
+    public async Task<string> UnshareAsync(ICurrentContext me, Guid id, Guid? to, CancellationToken ct) =>
+        (await Scalar(me, "select gold.working_unshare($1, $2)", ct, Uuid(id), new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)to ?? DBNull.Value }))!;
+    public async Task<string> HideSharedAsync(ICurrentContext me, Guid id, CancellationToken ct) => (await Scalar(me, "select gold.working_shared_hide($1)", ct, Uuid(id)))!;
+
     private async Task<string?> Scalar(ICurrentContext me, string sql, CancellationToken ct, params NpgsqlParameter[] args)
     {
         try

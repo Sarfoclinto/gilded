@@ -1508,10 +1508,44 @@ paths:
         - { in: query, name: q, description: Search names, schema: { type: string } }
       responses:
         '200': { description: '{ items: [{ id, name, notes, version, createdAt, updatedAt }], usage: { enabled, count, maxCount, maxKb } }', content: { application/json: { schema: { type: object } } } }
+  /me/workings/shared:
+    get:
+      tags: [Workings]
+      summary: Sheets colleagues have shared with the caller (read only)
+      responses:
+        '200': { description: '{ items: [{ id, name, notes, version, updatedAt, sharedBy, sharedAt }] }', content: { application/json: { schema: { type: object } } } }
+  /me/workings/{id}/share:
+    post:
+      tags: [Workings]
+      summary: Share one of the caller's sheets with one colleague, read only
+      description: The colleague is notified, always sees the owner's latest version, can save a copy of their own, and cannot share it on. Logged as "working.shared" (colleague only, never the contents). Colleagues come from GET /me/pictures/colleagues.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { to: { type: string, format: uuid } } } } } }
+      responses:
+        '200': { description: '{ shared }: false when it was already shared with them' }
+        '404': { description: Not the caller's sheet, or the colleague is not an active person }
+  /me/workings/{id}/unshare:
+    post:
+      tags: [Workings]
+      summary: Stop sharing a sheet with one colleague, or with everyone when `to` is null
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ stopped }' }
+  /me/workings/{id}/hide:
+    post:
+      tags: [Workings]
+      summary: Take a shared sheet off the caller's "Shared with me" list (the owner is not told)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: '{ hidden }' }
   /me/workings/{id}:
     get:
       tags: [Workings]
-      summary: One sheet with its contents (owner only)
+      summary: One sheet with its contents, for its owner or a colleague it is shared with
+      description: "`mine` says whether the caller may change it; `owner` says whose it is; `sharedWith` lists current shares (owner's view only)."
       parameters:
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:

@@ -40,6 +40,14 @@ public class WorkingsServiceTests
         Assert.Equal("{}", await _svc.DeleteAsync(new Ctx(), [Guid.NewGuid()], default));
     }
 
+    [Fact]
+    public async Task Sharing_passes_the_sheet_and_the_colleague()
+    {
+        Guid id = Guid.NewGuid(), to = Guid.NewGuid();
+        await _svc.ShareAsync(new Ctx(), id, to, default);
+        Assert.Equal($"{id}:{to}", _store.LastPayload);
+    }
+
     private sealed class FakeStore : IWorkingsStore
     {
         public string? LastPayload;
@@ -48,6 +56,10 @@ public class WorkingsServiceTests
         public Task<string> SaveAsync(ICurrentContext me, string payloadJson, CancellationToken ct) { LastPayload = payloadJson; return Task.FromResult("{}"); }
         public Task<string> RenameAsync(ICurrentContext me, Guid id, string? name, CancellationToken ct) => Task.FromResult("{}");
         public Task<string> DeleteAsync(ICurrentContext me, Guid[] ids, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> SharedListAsync(ICurrentContext me, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> ShareAsync(ICurrentContext me, Guid id, Guid to, CancellationToken ct) { LastPayload = $"{id}:{to}"; return Task.FromResult("{}"); }
+        public Task<string> UnshareAsync(ICurrentContext me, Guid id, Guid? to, CancellationToken ct) => Task.FromResult("{}");
+        public Task<string> HideSharedAsync(ICurrentContext me, Guid id, CancellationToken ct) => Task.FromResult("{}");
     }
 
     private sealed class Ctx : ICurrentContext

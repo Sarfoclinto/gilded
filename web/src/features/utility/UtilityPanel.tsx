@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Drawer, Segmented } from "antd";
 import { Calculator, X } from "lucide-react";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
@@ -6,6 +6,7 @@ import { CalculatorBody } from "@/features/calculator/CalculatorPage";
 import { CashBody } from "@/features/cash/CashBody";
 import { useHasPermission } from "@/features/auth/useHasPermission";
 import { PERMISSIONS } from "@/config/permissions";
+import { useSettings } from "@/features/settings/api";
 import { PayoutPanel } from "@/features/calculator/PayoutPanel";
 import { TextField } from "@/shared/ui/TextField";
 import { decimalOnly } from "@/shared/lib/numbers";
@@ -15,6 +16,12 @@ import { CustomerHistory } from "./CustomerHistory";
 import { useUtilityPanel, type UtilityTab } from "./store";
 
 // The charts are only fetched when the Market tab is first opened, so they do not weigh on every screen.
+// the sheet is only loaded when the tab is first opened
+const WorkingsQuick = lazy(() =>
+  import("@/features/workings/WorkingsQuick").then((m) => ({
+    default: m.WorkingsQuick,
+  })),
+);
 const MarketQuick = lazy(() =>
   import("@/features/market/MarketQuick").then((m) => ({
     default: m.MarketQuick,
@@ -49,6 +56,11 @@ export function UtilityContent() {
   // The tab lives in the store so the button can send the person straight to the customer's history.
   const { tab, setTab } = useUtilityPanel();
   const canSeeCash = useHasPermission(PERMISSIONS.DAYS_READ);
+  const workingsOn = useSettings()["workings.enabled"];
+  const [seenSheet, setSeenSheet] = useState(false);
+  useEffect(() => {
+    if (tab === "workings") setSeenSheet(true);
+  }, [tab]);
   return (
     <div className="space-y-4 p-4">
       {/* Six tabs in a narrow panel: each takes the room its word needs (not equal widths), in smaller type, so no name is cut off. */}
@@ -71,6 +83,7 @@ export function UtilityContent() {
               ]
             : []),
           { label: "Market", value: "market" },
+          ...(workingsOn ? [{ label: "Sheet", value: "workings" }] : []),
         ]}
       />
       {/* Both stay mounted so switching tabs keeps what was typed. */}
@@ -87,6 +100,20 @@ export function UtilityContent() {
       {tab === "customer" && <CustomerHistory />}
       {tab === "closing" && canSeeCash && <ClosingStatus />}
       {/* Mounted only while looked at: the world chart is an outside service and should not load in the background. */}
+      {/* Kept mounted once opened, so an open sheet survives switching tabs. */}
+      {workingsOn && (tab === "workings" || seenSheet) ? (
+        <div hidden={tab !== "workings"}>
+          <Suspense
+            fallback={
+              <p className="text-sm text-muted-foreground">
+                Loading your sheets…
+              </p>
+            }
+          >
+            <WorkingsQuick />
+          </Suspense>
+        </div>
+      ) : null}
       {tab === "market" && (
         <Suspense
           fallback={

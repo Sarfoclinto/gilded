@@ -18,6 +18,7 @@ export const docSchema = z.object({
 });
 
 /** One sheet as the server lists it (no contents). */
+const personSchema = z.object({ id: z.string(), displayName: z.string() });
 export const sheetSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -25,9 +26,16 @@ export const sheetSchema = z.object({
   version: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** Colleagues this sheet is shared with right now (owner's view only). */
+  sharedWith: z.array(personSchema).optional(),
 });
 export type SheetMeta = z.infer<typeof sheetSchema>;
-export const sheetFullSchema = sheetSchema.extend({ doc: docSchema });
+/** A sheet with its contents. `mine` false means it was shared with the caller: read only. */
+export const sheetFullSchema = sheetSchema.extend({
+  doc: docSchema,
+  mine: z.boolean().optional(),
+  owner: personSchema.optional(),
+});
 export type SheetFull = z.infer<typeof sheetFullSchema>;
 
 export const usageSchema = z.object({
@@ -39,7 +47,13 @@ export const usageSchema = z.object({
 export const listSchema = z.object({
   items: z.array(sheetSchema),
   usage: usageSchema,
+  sharedCount: z.number().optional(),
 });
+export const sharedSheetSchema = sheetSchema.extend({
+  sharedBy: personSchema,
+  sharedAt: z.string(),
+});
+export type SharedSheet = z.infer<typeof sharedSheetSchema>;
 export const saveResultSchema = z.object({
   data: sheetSchema.extend({ doc: docSchema.optional() }),
   copy: sheetSchema.nullable(),
@@ -69,6 +83,30 @@ export const workingsApi = {
     request(
       { method: "patch", url: `/me/workings/${id}`, data: { name } },
       sheetSchema,
+    ),
+  shared: (signal?: AbortSignal) =>
+    request(
+      { method: "get", url: "/me/workings/shared", signal },
+      z.object({ items: z.array(sharedSheetSchema) }),
+    ),
+  share: (id: string, to: string) =>
+    request(
+      { method: "post", url: `/me/workings/${id}/share`, data: { to } },
+      z.object({ shared: z.boolean() }),
+    ),
+  unshare: (id: string, to?: string) =>
+    request(
+      {
+        method: "post",
+        url: `/me/workings/${id}/unshare`,
+        data: { to: to ?? null },
+      },
+      z.object({ stopped: z.number() }),
+    ),
+  hide: (id: string) =>
+    request(
+      { method: "post", url: `/me/workings/${id}/hide`, data: {} },
+      z.object({ hidden: z.number() }),
     ),
   remove: (ids: string[]) =>
     request(
@@ -100,5 +138,53 @@ export function useDeleteSheets() {
     invalidates: [workingKeys.all],
     successMessage: (r) =>
       r.deleted === 1 ? "Sheet deleted" : `${r.deleted} sheets deleted`,
+  });
+}
+
+export function useSharedSheets(enabled = true) {
+  return useApiQuery({
+    queryKey: workingKeys.custom("shared", {}),
+    queryFn: ({ signal }) => workingsApi.shared(signal),
+    enabled,
+    staleTime: 10_000,
+  });
+}
+
+/** The sharing state of one of the person's own sheets (who it is shared with), straight from the server. */
+export function useSheetShares(id: string, enabled: boolean) {
+  return useApiQuery({
+    queryKey: workingKeys.custom("shares", { id }),
+    queryFn: ({ signal }) =>
+      workingsApi.get(id, signal).then((s) => s.sharedWith ?? []),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+export function useShareSheet() {
+  return useApiMutation<
+    { shared: boolean },
+    { id: string; to: string; name: string }
+  >({
+    mutationFn: ({ id, to }) => workingsApi.share(id, to),
+    invalidates: [workingKeys.all],
+    successMessage: (r, v) =>
+      r.shared ? `Shared with ${v.name}` : `Already shared with ${v.name}`,
+  });
+}
+
+export function useUnshareSheet() {
+  return useApiMutation<{ stopped: number }, { id: string; to?: string }>({
+    mutationFn: ({ id, to }) => workingsApi.unshare(id, to),
+    invalidates: [workingKeys.all],
+    successMessage: "Stopped sharing",
+  });
+}
+
+export function useHideSharedSheet() {
+  return useApiMutation<{ hidden: number }, string>({
+    mutationFn: (id) => workingsApi.hide(id),
+    invalidates: [workingKeys.all],
+    successMessage: "Removed from your list",
   });
 }
