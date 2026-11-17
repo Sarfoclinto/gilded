@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# The nightly backup (also run by hand:  docker compose exec backup backup-now).
+#  1. a compressed copy of the whole database, checked to be readable;
+#  2. the newest BACKUP_KEEP_LOCAL copies kept on the server;
+#  3. if set up, the copy and the photos sent to the off-site bucket, encrypted; old copies there tidied (35 days of dailies,
+#     the copy from the 1st of each month kept for 400 days);
+#  4. status.json updated; on any failure the directors get a notification in the app.
+source /usr/local/bin/lib.sh
+# keep the log small: the last megabyte when it passes five
+logf="$BACKUP_DIR/backup.log"; if [ -f "$logf" ] && [ "$(stat -c %s "$logf")" -gt 5000000 ]; then tail -c 1000000 "$logf" > "$logf.tmp" && mv "$logf.tmp" "$logf"; fi
+stamp=$(date +%Y%m%d-%H%M%S)
+file="$BACKUP_DIR/gilded-$stamp.sql.gz"
+fail() { log "FAILED: $1"; set_status lastRun "$(now)" ok "false" error "$1"; notify_directors 'The nightly backup failed' "$1 Nothing is lost yet, but please ask whoever looks after the server to check the backup service."; rm -f "$file.part"; exit 1; }
+
+log "backup: database $DB_NAME"
+pg_dump -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" --no-owner | gzip > "$file.part"
+codes=("${PIPESTATUS[@]}")
+[ "${codes[0]}" = 0 ] && [ "${codes[1]}" = 0 ] || fail "The database could not be copied (pg_dump exit ${codes[0]})."
+gzip -t "$file.part" 2>/dev/null || fail "The database copy is damaged."
+[ "$(gunzip -c "$file.part" | head -c 200000 | grep -c 'PostgreSQL database dump')" -ge 1 ] || fail "The database copy does not look like a database dump."
+mv "$file.part" "$file"
+size=$(stat -c %s "$file")
+log "backup: saved $file ($size bytes)"
+ls -1t "$BACKUP_DIR"/gilded-*.sql.gz 2>/dev/null | tail -n +"$(( ${BACKUP_KEEP_LOCAL:-7} + 1 ))" | xargs -r rm -f
+
+offsite="not set up"
+offsite_ready; ready=$?
+if [ "$ready" = 2 ]; then fail "An off-site bucket is set but BACKUP_ENCRYPTION_PASSPHRASE is empty, so nothing was sent (copies must leave encrypted)."; fi
+if [ "$ready" = 0 ]; then
+  log "backup: sending to the off-site bucket"
+  rclone copy "$file" secure:db/ --retries 3 --low-level-retries 10 || fail "The copy could not be sent to the off-site bucket."
+  remote_size=$(rclone lsl "secure:db/$(basename "$file")" 2>/dev/null | awk '{print $1}')
+  [ "$remote_size" = "$size" ] || fail "The copy in the off-site bucket is not complete (sent $size bytes, found ${remote_size:-none})."
+  if [ -d "$PHOTOS_DIR" ]; then
+    # photos are never changed once stored, so only new ones travel; personal pictures a person deleted are deleted there too
+    rclone sync "$PHOTOS_DIR" secure:photos --retries 3 --low-level-retries 10 || fail "The photos could not be sent to the off-site bucket."
+  fi
+  rclone delete secure:db --min-age 35d --include 'gilded-*.sql.gz' --exclude 'gilded-??????01-*' 2>/dev/null || true
+  rclone delete secure:db --min-age 400d --include 'gilded-*.sql.gz' 2>/dev/null || true
+  offsite="sent"
+fi
+set_status lastRun "$(now)" ok "true" error "" file "$(basename "$file")" bytes "$size" offsite "$offsite" lastOk "$(now)"
+log "backup: done (off-site: $offsite)"

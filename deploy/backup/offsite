@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# The off-site copies, for when the server itself is lost or damaged.
+#   offsite list                  what is in the bucket (decrypted names and sizes)
+#   offsite fetch <file>          downloads one database copy into ./backups (then use deploy/scripts/restore.sh)
+#   offsite fetch-photos          downloads every photo into the photos volume (it ADDS the missing ones, never deletes)
+source /usr/local/bin/lib.sh
+offsite_ready; r=$?
+[ "$r" = 0 ] || { echo "The off-site bucket is not set up (BACKUP_S3_* and BACKUP_ENCRYPTION_PASSPHRASE in .env)."; exit 1; }
+case "${1:-list}" in
+  list) rclone lsl secure:db | sort -k2,3 ;;
+  fetch) f="${2:?Usage: offsite fetch gilded-YYYYMMDD-HHMMSS.sql.gz}"; rclone copy "secure:db/$f" "$BACKUP_DIR/" && echo "Saved to backups/$f" ;;
+  fetch-photos) rclone copy secure:photos "$PHOTOS_DIR" --progress && echo "Photos put back into the photos volume." ;;
+  *) echo "Use: offsite list | offsite fetch <file> | offsite fetch-photos"; exit 1 ;;
+esac

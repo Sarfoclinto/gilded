@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Proves the newest backup can be put back: loads it into a scratch database next to the real one, compares the number of rows in the
+# main tables with the live database, then removes the scratch database. Run weekly (and by hand:  docker compose exec backup restore-check).
+# Needs free disk for one more copy of the database while it runs.
+source /usr/local/bin/lib.sh
+check_db="${DB_NAME}_restore_check"
+newest=$(ls -1t "$BACKUP_DIR"/gilded-*.sql.gz 2>/dev/null | head -1)
+fail() { log "RESTORE CHECK FAILED: $1"; pg -d postgres -c "drop database if exists \"$check_db\"" >/dev/null 2>&1; set_status restoreCheckAt "$(now)" restoreCheckOk "false" restoreCheckError "$1"; notify_directors 'The weekly backup check failed' "$1 The backups may not be usable. Please ask whoever looks after the server to check them."; exit 1; }
+[ -n "$newest" ] || fail "There is no backup to check."
+log "restore check: $newest"
+pg -d postgres -c "drop database if exists \"$check_db\"" -c "create database \"$check_db\"" || fail "A scratch database could not be made."
+gunzip -c "$newest" | pg -d "$check_db" >/dev/null 2>"$BACKUP_DIR/restore-check.log" || fail "The backup could not be loaded (see backups/restore-check.log)."
+# the backup was taken earlier, so the live database may have more rows, never fewer in these append-only books
+for t in gold.tenants gold.users gold.branches gold.transactions gold.debts gold.attachments; do
+  live=$(pg -d "$DB_NAME" -At -c "select count(*) from $t" 2>/dev/null) || fail "Could not count $t in the live database."
+  copy=$(pg -d "$check_db" -At -c "select count(*) from $t" 2>/dev/null) || fail "The table $t is missing from the backup."
+  log "  $t: backup $copy, live $live"
+  [ "$copy" -le "$live" ] || fail "The backup has more rows in $t than the live database ($copy against $live)."
+  [ "$t" != gold.tenants ] || [ "$copy" -ge 1 ] || fail "The backup has no company in it."
+done
+pg -d postgres -c "drop database if exists \"$check_db\"" >/dev/null || true
+set_status restoreCheckAt "$(now)" restoreCheckOk "true" restoreCheckError "" restoreCheckFile "$(basename "$newest")"
+log "restore check: ok"

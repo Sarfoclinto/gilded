@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Shows how the backups stand:  docker compose exec backup status
+source /usr/local/bin/lib.sh
+[ -s "$STATUS" ] && cat "$STATUS" || echo '{"note":"no backup has run yet"}'
+echo "Copies on this server:"; ls -1t "$BACKUP_DIR"/gilded-*.sql.gz 2>/dev/null | head -10 | xargs -r -n1 basename
