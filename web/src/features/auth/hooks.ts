@@ -1,3 +1,5 @@
+import { clearLock } from "@/features/lock/store";
+import { forgetPins } from "@/features/lock/pin";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { clearCustomerDirectory } from "@/features/customers/directory";
 import { clearRecentSearches } from "@/features/search/recent";
@@ -63,6 +65,7 @@ export function useLogin() {
       }
     },
     onSuccess: (r) => {
+      clearLock();
       if (r.kind === "online") setSession(r.session);
       else setOfflineSession(r.user);
     },
@@ -84,6 +87,7 @@ export function useLogout() {
     },
     requiresOnline: false,
     onSuccess: () => {
+      clearLock();
       clear();
       qc.removeQueries({
         predicate: (q) => !PERSISTED_ROOTS.has(String(q.queryKey[0])),
@@ -98,6 +102,7 @@ export function useForgetDevice() {
   const clear = useAuth((s) => s.clear);
   return () => {
     forgetOfflineLogins();
+    forgetPins();
     void forgetDeviceKeys();
     wipeStoredData(qc);
     clear();

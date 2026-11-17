@@ -135,4 +135,6 @@
   - (.1) Share, copy result, Tools tab, pinch-zoom
 
 ## v1.19.0
+
 - Tools panel redesign; debt totals over every debt; a held purchase is not counted twice on the hub
+  - (.1) Screen lock with a PIN

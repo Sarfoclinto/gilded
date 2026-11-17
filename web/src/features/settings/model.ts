@@ -194,6 +194,22 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
+    key: "security",
+    title: "Screen lock",
+    blurb:
+      "Locks a counter device that is left alone, so nobody else can use the signed-in person's session.",
+    fields: [
+      {
+        key: "session.lockMinutes",
+        kind: "number",
+        label: "Lock after this many minutes with no activity",
+        help: "Unlock with a PIN chosen on each device, or the password. Five wrong PINs sign the person out. 0 never locks by itself (people can still lock from their account menu). A half-filled form is kept while locked.",
+        unit: "min",
+        max: 60,
+      },
+    ],
+  },
+  {
     key: "personal",
     title: "My pictures",
     blurb:

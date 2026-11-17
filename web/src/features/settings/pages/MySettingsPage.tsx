@@ -4,6 +4,7 @@ import { Segmented, Switch } from "antd";
 import {
   BellRingIcon,
   KeyRoundIcon,
+  LockKeyholeIcon,
   MonitorSmartphoneIcon,
   ReceiptIcon,
   ShoppingBagIcon,
@@ -24,6 +25,7 @@ import { Button } from "@/shared/ui/Button";
 import { CoinEdge } from "@/shared/ui/BrandMark";
 import { ProfilePhoto } from "@/features/photos/ProfilePhoto";
 import { DesktopRows } from "../DesktopRows";
+import { PinSettings } from "@/features/lock/PinSettings";
 import { LayoutSwitch } from "@/features/transactions/focus/LayoutSwitch";
 import { useSettings } from "../api";
 import { usePersonalSettings, type PersonalSettings } from "../personal";
@@ -57,6 +59,13 @@ const SECTIONS: {
     title: "Screen",
     blurb: "How much room the pages get.",
     icon: SlidersHorizontalIcon,
+  },
+  {
+    id: "lock",
+    title: "Screen lock",
+    blurb:
+      "Locks this device when you step away, so nobody else can use your session.",
+    icon: LockKeyholeIcon,
   },
   {
     id: "device",
@@ -424,6 +433,10 @@ export default function MySettingsPage() {
                 aria-label="Slim menu"
               />
             </Row>
+          </Section>
+
+          <Section id="lock">
+            <PinSettings Row={Row} />
           </Section>
 
           <Section id="device">

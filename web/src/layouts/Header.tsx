@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   ImagesIcon,
   KeyRoundIcon,
+  LockKeyholeIcon,
   LogOutIcon,
   SettingsIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ import {
 import { QuickCameraButton } from "@/features/personal/QuickCamera";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { useSettings } from "@/features/settings/api";
+import { useLock } from "@/features/lock/store";
 import { useOutbox } from "@/shared/offline/OutboxProvider";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { ConnectionBadge } from "@/shared/ui/ConnectionBadge";
@@ -152,6 +154,13 @@ export function Header() {
               <Link to={paths.changePassword.href}>
                 <KeyRoundIcon className="size-4" /> Change my password
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (user) useLock.getState().lockNow(user.id, "manual");
+              }}
+            >
+              <LockKeyholeIcon className="size-4" /> Lock screen
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {

@@ -31,6 +31,8 @@ export const settingsSchema = z.object({
   "personalPictures.maxPerUser": z.number().default(300),
   "personalPictures.maxMb": z.number().default(300),
   "personalPictures.purgeDays": z.number().default(90),
+  /** Minutes with no activity before the screen locks (0: never). */
+  "session.lockMinutes": z.number().default(5),
   /** Workings: each person's private scratch sheets. */
   "workings.enabled": z.boolean().default(true),
   "workings.maxPerUser": z.number().default(200),

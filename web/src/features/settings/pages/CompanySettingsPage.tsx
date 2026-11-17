@@ -12,9 +12,10 @@ import {
   WalletIcon,
   WifiOffIcon,
   UsersIcon,
-  type LucideIcon,
   ImagesIcon,
+  LockKeyholeIcon,
   SigmaIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { Receipt } from "@/features/receipt/Receipt";
 import { buildReceiptSettings } from "@/features/receipt/settings";
@@ -46,6 +47,7 @@ const ICONS: Record<string, LucideIcon> = {
   customers: UsersIcon,
   personal: ImagesIcon,
   workings: SigmaIcon,
+  security: LockKeyholeIcon,
 };
 const iconOf = (key: string): LucideIcon =>
   ICONS[key] ?? (key.startsWith("receipt") ? ReceiptIcon : SettingsIcon);

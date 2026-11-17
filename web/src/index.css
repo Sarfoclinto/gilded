@@ -115,27 +115,91 @@
 
 /* Printing a receipt: only the page's own content, on white, flowing over as many sheets as it needs. */
 @media print {
-  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
-  .ant-layout-sider, header, nav[aria-label="Main"] { display: none !important; }
-  .h-dvh { height: auto !important; display: block !important; }
-  main { height: auto !important; overflow: visible !important; padding-bottom: 0 !important; }
-  .ant-tag { border-color: #999 !important; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  .ant-layout-sider,
+  header,
+  nav[aria-label="Main"] {
+    display: none !important;
+  }
+  .h-dvh {
+    height: auto !important;
+    display: block !important;
+  }
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+  .ant-tag {
+    border-color: #999 !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 
 /* The receipt: a torn paper edge on screen, and nothing but the paper when printed. */
 .receipt-paper:not(.receipt-a4) {
   --edge: 6px;
-  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 8px 100%;
-  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 8px 100%;
+  -webkit-mask: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
+    50% / 8px 100%;
+  mask: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
+    50% / 8px 100%;
   padding-bottom: calc(6mm + var(--edge));
 }
 @media print {
-  .receipt-screen { display: block !important; }
-  .receipt-paper { box-shadow: none !important; }
-  .receipt-paper:not(.receipt-a4) { -webkit-mask: none; mask: none; }
+  .receipt-screen {
+    display: block !important;
+  }
+  .receipt-paper {
+    box-shadow: none !important;
+  }
+  .receipt-paper:not(.receipt-a4) {
+    -webkit-mask: none;
+    mask: none;
+  }
+}
+
+/* the lock screen's dots shake on a wrong PIN; still for people who asked for less motion */
+@keyframes lock-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="lock-shake"] {
+    animation: none !important;
+  }
 }
 
 @keyframes coin-turn {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
