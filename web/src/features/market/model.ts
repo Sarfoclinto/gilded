@@ -160,3 +160,37 @@ export function worldToPound(
     return null;
   return (usdPerOunce / TROY_OUNCE_GRAMS) * poundGrams * cedisPerDollar;
 }
+
+export interface WorldMove {
+  /** GoldBod's world price when it published (USD per ounce). */
+  goldbod: number;
+  /** The world price now. */
+  live: number;
+  change: number;
+  percent: number;
+  direction: "up" | "down" | "flat";
+}
+
+/** How far the world price has moved since GoldBod published its figure. Null when either number is missing. Under a cent is "flat". */
+export function worldMove(
+  goldbod: string | null | undefined,
+  live: string | null | undefined,
+): WorldMove | null {
+  const g = Number(goldbod);
+  const l = Number(live);
+  if (!goldbod || !live || !(g > 0) || !(l > 0)) return null;
+  const change = Math.round((l - g) * 100) / 100;
+  const direction =
+    Math.abs(change) < 0.01 ? "flat" : change > 0 ? "up" : "down";
+  return {
+    goldbod: g,
+    live: l,
+    change: direction === "flat" ? 0 : change,
+    percent: direction === "flat" ? 0 : (change / g) * 100,
+    direction,
+  };
+}
+
+/** "USD 3,759.35" */
+export const usd = (n: number) =>
+  `USD ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

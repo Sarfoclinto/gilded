@@ -51,6 +51,7 @@ api.MapWorkings();
 api.MapReview();
 api.MapImports();
 api.MapPriceFeed();
+api.MapMarket();
 api.MapNotifications();
 api.MapGuide();
 api.MapSync();

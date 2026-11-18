@@ -8,6 +8,7 @@ import { when } from "@/features/transactions/format";
 import { useUtilityPanel } from "@/features/utility/store";
 import { usePriceHistory } from "./api";
 import { priceLine, priceStats } from "./model";
+import { GoldbodWorldTile } from "./GoldbodWorldTile";
 import { OwnPriceChart } from "./OwnPriceChart";
 import { Step } from "./Step";
 import { WorldGoldChart } from "./WorldGoldChart";
@@ -65,6 +66,9 @@ export function MarketQuick() {
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             World price · USD per ounce
           </h3>
+          <div className="mb-2">
+            <GoldbodWorldTile goldbod={h?.goldbod} live compact />
+          </div>
           <WorldGoldChart interval="60" height={300} compact />
           <p className="mt-1 text-[11px] text-muted-foreground">
             For watching only. Not the price we pay.

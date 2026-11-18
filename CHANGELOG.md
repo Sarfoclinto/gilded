@@ -138,3 +138,6 @@
 
 - Tools panel redesign; debt totals over every debt; a held purchase is not counted twice on the hub
   - (.1) Screen lock with a PIN
+
+## v1.20.0
+- GoldBod's world price always shown, against the live price with an up/down arrow
