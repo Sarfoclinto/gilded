@@ -5,6 +5,8 @@ A backup is one file, `gilded-YYYYMMDD-HHMMSS.sql.gz`, holding the whole databas
 Run every script as `bash ./scripts/<name>.sh` from the `deploy` folder. On Windows use **Git Bash**, not PowerShell (PowerShell's `bash` is the WSL launcher and fails).
 
 ## 1. The routine in production
+> **From B71** the `backup` service takes over the nightly copy (01:30, newest 7 kept) and sends an encrypted copy off the server. Set it up with `13-offsite-backups-b2.md`, then remove the old cron line. The table below describes the older routine; the copies to your laptop and the practice restore still apply.
+
 | What | How often | Where it lives |
 |---|---|---|
 | Nightly backup (cron, 02:00) | every night, newest 14 kept | server: `~/gilded/deploy/backups/` |

@@ -38,3 +38,32 @@
 		-Server
 	}
 }
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The company website (website/ in the repository), on the bare domain, e.g. https://gildedgold.org. Plain files, nothing to build.
+# WEBSITE_ADDRESS unset (the laptop demo): it listens on port 8081 inside the container only, which nothing reaches.
+{$WEBSITE_ADDRESS} {
+	encode zstd gzip
+	root * /srv/site
+	file_server
+	# content.js holds the phone numbers and branches: always re-read so a change shows at once
+	header /content.js Cache-Control "no-cache"
+	header /index.html Cache-Control "no-cache"
+	header / Cache-Control "no-cache"
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		-Server
+	}
+	handle_errors {
+		rewrite * /index.html
+		file_server
+	}
+}
+
+# www.gildedgold.org sends visitors to the bare address (one address for search engines and for people).
+{$WEBSITE_WWW_ADDRESS} {
+	redir https://{$WEBSITE_ADDRESS}{uri} permanent
+}
+
