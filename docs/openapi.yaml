@@ -188,6 +188,7 @@ paths:
         branch's price in the period (`at`, `base` = the published reference price, `margin`, `price` = base + margin, `source`, `status`),
         oldest first, preceded by the price that was in force when the period starts. `daily` is one row per calendar day of the branch with
         purchases (`date`, `purchases`, `top`, `amount`, `avgPrice` = price per pound weighted by weight); cancelled purchases are left out.
+        `goldbod` (B73) is GoldBod's own world price from the last price read off its page: `{ usdPerOunce, rate, publishedAt }`, or null.
         Open to anyone who works in the branch, like the current price.
       parameters:
         - { in: query, name: branchId, required: true, schema: { type: string, format: uuid } }
@@ -195,6 +196,16 @@ paths:
       responses:
         '200': { description: The history, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '403': { $ref: '#/components/responses/Error' }
+  /market/world-price:
+    get:
+      tags: [Prices]
+      summary: The live world gold price (USD per troy ounce), for watching only
+      description: |
+        From xaus.com through this server, which asks it at most once a minute. Returns `{ available, usdPerOunce, at, source, stale, checkedAt }`;
+        when the source fails the last good price is given for up to 30 minutes with `stale: true`, then `{ available: false, message }`.
+        Never used for a valuation. Any signed-in user.
+      responses:
+        '200': { description: The price, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
   /prices/base:
     post:
       tags: [Prices]

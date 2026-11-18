@@ -18,6 +18,8 @@ using GoldValuation.Infrastructure.Attachments;
 using GoldValuation.Infrastructure.Auth;
 using GoldValuation.Infrastructure.Imports;
 using GoldValuation.Infrastructure.PriceFeed;
+using GoldValuation.Infrastructure.Market;
+using GoldValuation.Application.Market;
 using GoldValuation.Infrastructure.Operations;
 using GoldValuation.Infrastructure.People;
 using GoldValuation.Infrastructure.Guide;
@@ -62,6 +64,15 @@ public static class InfrastructureModule
             c.DefaultRequestHeaders.UserAgent.ParseAdd("Gilded/1.0 (+gold price reader)");
         });
         services.AddScoped<PriceFeedService>();
+        // The live world price beside GoldBod's figure (Gold market page). One shared copy, so the source is asked at most once a minute.
+        services.AddHttpClient(XausHttpClient.Name, c =>
+        {
+            c.BaseAddress = new Uri(configuration["Market:WorldPriceUrl"] ?? "https://xaus.com/");
+            c.Timeout = TimeSpan.FromSeconds(8);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("Gilded/1.0 (+gold market page)");
+        });
+        services.AddSingleton<IWorldPriceClient, XausHttpClient>();
+        services.AddSingleton<WorldPriceService>();
         services.AddSingleton<INotificationsStore, PostgresNotificationsStore>();
         services.AddScoped<NotificationsService>();
         services.AddSingleton<IGuideStore, PostgresGuideStore>();
