@@ -11,7 +11,8 @@ High (money, security or data at risk):
 2. ✅ **Done in B69.** Hub counted a held purchase again on a later day (B53 limit). Purchases and payouts now carry their day and count only against it.
 3. ✅ **Done in B70.** Screen lock after 5 idle minutes (company setting), PIN per device or password, five wrong PINs sign out. Possible later: one PIN that follows the person to every device (server-side).
 4. ✅ **Done in B71.** Nightly backups, encrypted off-site copy to B2/S3, weekly restore check, alerts to directors. To do on the server: create the bucket, fill BACKUP_* in .env, practise a restore once. Follow-up: system status page (#13) to show the last good backup.
-5. Process: compile and test the C# of B59 onward before deploying.
+5. ✅ **Done in B72.** Company website at gildedgold.org (+www redirect), served by the same Caddy; facts in `website/content.js`. Guides 12 (hosting) and 13 (off-site backups to B2/S3). To do: fill the TODO facts, add the DNS records, set WEBSITE_* in .env.
+6. Process: compile and test the C# of B59 onward before deploying.
 Medium: price override approvals and fraud flags; edit conflicts on users/branches/roles; TradingView licence check; Npgsql bump and CA warnings; desktop rollout prerequisites (code signing, hub hardware tests, domain); storage growth (photo retention, hub log trim).
 
 ## Phase 2 - design system and shell (do before screen redesigns)

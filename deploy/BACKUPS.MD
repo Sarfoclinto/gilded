@@ -1,6 +1,6 @@
 # Backups
 
-From B71 the server backs itself up. This page says what happens, how to set up the copy off the server, and how to put a backup back.
+From B71 the server backs itself up. For a click-by-click Backblaze setup, see `docs/deployment/13-offsite-backups-b2.md`. This page says what happens, how to set up the copy off the server, and how to put a backup back.
 
 ## What happens on its own
 - **Every night at 01:30 (Ghana time)** the `backup` service copies the whole database into `deploy/backups/gilded-YYYYMMDD-HHMMSS.sql.gz`, checks the copy can be read, and keeps the newest 7 on the server.

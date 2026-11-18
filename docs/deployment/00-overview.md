@@ -31,6 +31,8 @@ Everything is described in `deploy/docker-compose.yml`. One command starts it al
 | `04-go-live-checklist.md` | Funding approved: server, domain, HTTPS, firewall. |
 | `05-operations.md` | The system is live: backups, updates, trouble. |
 | `09-updates-and-releases.md` | You are live and want to change something: laptop, rehearsal copy, night install, rollback. |
+| `12-company-website.md` | Putting the company website on gildedgold.org (and www). |
+| `13-offsite-backups-b2.md` | Sending encrypted backups to Backblaze B2 (or another S3 storage) and practising a restore from there. |
 | `07-desktop-app-and-branch-hub.md` | Branches will use the Windows desktop app and the shared branch drawer (hub): installer, signing, router, firewall, cost. |
 
 ## Words you will meet
