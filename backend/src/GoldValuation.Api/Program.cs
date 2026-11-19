@@ -48,6 +48,7 @@ api.MapTransfers();
 api.MapAttachments();
 api.MapPersonalPictures();
 api.MapWorkings();
+api.MapGroupSheets();
 api.MapReview();
 api.MapImports();
 api.MapPriceFeed();

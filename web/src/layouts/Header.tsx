@@ -37,6 +37,7 @@ import { NewPurchaseButton } from "./NewPurchaseButton";
 import { SearchButton } from "@/features/search/SearchButton";
 import { appMenu } from "./menu";
 import { crumbsFor, filterMenu } from "./menuFilter";
+import { useMenuFlags } from "@/features/groupSheets/GroupSheetsSync";
 
 /**
  * One slim bar. Desktop: where you are (section > page) on the left, then branch, connection, notifications and the account.
@@ -50,9 +51,10 @@ export function Header() {
   const myPicturesOn = useSettings()["personalPictures.enabled"];
   const desktop = useIsDesktop();
   const { pathname } = useLocation();
+  const flags = useMenuFlags();
   const crumbs = useMemo(
-    () => crumbsFor(pathname, filterMenu(appMenu, user)),
-    [pathname, user],
+    () => crumbsFor(pathname, filterMenu(appMenu, user, flags)),
+    [pathname, user, flags.groupSheets],
   );
 
   return (

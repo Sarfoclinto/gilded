@@ -141,3 +141,6 @@
 
 ## v1.20.0
 - GoldBod's world price always shown, against the live price with an up/down arrow
+
+## v1.21.0
+- Group Sheets, private running records for a chosen group (phase 1)

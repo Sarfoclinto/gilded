@@ -50,6 +50,8 @@ export const GROUPS: {
       P.AUDIT_READ,
       P.BRANCHES_ALL,
       P.ATTACHMENTS_REMOVE,
+      P.ATTACHMENTS_LIBRARY,
+      P.ATTACHMENTS_IDS,
     ],
   },
   {
@@ -61,6 +63,7 @@ export const GROUPS: {
       P.IMPORTS_MANAGE,
       P.SETTINGS_MANAGE,
       P.GUIDE_MANAGE,
+      P.GROUPS_CREATE,
     ],
   },
 ];
@@ -83,6 +86,8 @@ export const RISK: Partial<Record<Permission, Risk>> = {
   [P.CUSTOMERS_MANAGE]: "medium",
   [P.TRANSACTIONS_CANCEL]: "high",
   [P.ATTACHMENTS_REMOVE]: "medium",
+  [P.ATTACHMENTS_IDS]: "high",
+  [P.ATTACHMENTS_LIBRARY]: "medium",
 };
 
 /** A permission that is of little use without another one. Offered as "add it" in the editor. */

@@ -1,27 +1,47 @@
-import { useMemo, useState } from 'react';
-import { Drawer, Menu } from 'antd';
-import Sider from 'antd/es/layout/Sider';
-import { Link, useLocation } from 'react-router-dom';
-import paths from '@/config/paths';
-import { useAuth } from '@/features/auth/store';
-import { useUI } from '@/store/ui';
-import { appMenu } from './menu';
-import { filterMenu, openKeysFor, selectedKey, toAntd } from './menuFilter';
+import { useMemo, useState } from "react";
+import { Drawer, Menu } from "antd";
+import Sider from "antd/es/layout/Sider";
+import { Link, useLocation } from "react-router-dom";
+import paths from "@/config/paths";
+import { useAuth } from "@/features/auth/store";
+import { useUI } from "@/store/ui";
+import { appMenu } from "./menu";
+import { filterMenu, openKeysFor, selectedKey, toAntd } from "./menuFilter";
+import { useMenuFlags } from "@/features/groupSheets/GroupSheetsSync";
 
-const SIDEBAR_BG = '#0D1B2E';
+const SIDEBAR_BG = "#0D1B2E";
 const SIDEBAR_WIDTH = 232;
 
 function Logo({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="flex items-center justify-center border-b border-white/10 px-5" style={{ height: 56, background: '#0A1628' }}>
-      <Link to={paths.home.href} className="group flex items-center gap-x-3 no-underline">
-        <img src="/logo-mark.svg" alt="" className="size-9 shrink-0 object-contain" />
+    <div
+      className="flex items-center justify-center border-b border-white/10 px-5"
+      style={{ height: 56, background: "#0A1628" }}
+    >
+      <Link
+        to={paths.home.href}
+        className="group flex items-center gap-x-3 no-underline"
+      >
+        <img
+          src="/logo-mark.svg"
+          alt=""
+          className="size-9 shrink-0 object-contain"
+        />
         {!collapsed && (
           <div className="flex flex-col leading-none">
-            <span className="text-sm font-bold uppercase text-white" style={{ fontFamily: "'Playfair Display', serif", letterSpacing: '0.2em' }}>
+            <span
+              className="text-sm font-bold uppercase text-white"
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                letterSpacing: "0.2em",
+              }}
+            >
               Gilded
             </span>
-            <span className="mt-0.5 text-[8px] font-medium uppercase" style={{ color: '#C9A84C', letterSpacing: '0.2em' }}>
+            <span
+              className="mt-0.5 text-[8px] font-medium uppercase"
+              style={{ color: "#C9A84C", letterSpacing: "0.2em" }}
+            >
               Gilded Gold Enterprise
             </span>
           </div>
@@ -34,12 +54,21 @@ function Logo({ collapsed }: { collapsed: boolean }) {
 function SidebarContent({ collapsed }: { collapsed: boolean }) {
   const { pathname } = useLocation();
   const user = useAuth((s) => s.user);
-  const items = useMemo(() => filterMenu(appMenu, user), [user]);
+  const flags = useMenuFlags();
+  const items = useMemo(
+    () => filterMenu(appMenu, user, flags),
+    [user, flags.groupSheets],
+  );
   const selected = selectedKey(pathname, items);
-  const [openKeys, setOpenKeys] = useState<string[]>(() => openKeysFor(selected, items));
+  const [openKeys, setOpenKeys] = useState<string[]>(() =>
+    openKeysFor(selected, items),
+  );
 
   return (
-    <div className="m-0 flex h-full flex-col" style={{ background: SIDEBAR_BG }}>
+    <div
+      className="m-0 flex h-full flex-col"
+      style={{ background: SIDEBAR_BG }}
+    >
       <Logo collapsed={collapsed} />
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
         <Menu
@@ -50,7 +79,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
           openKeys={collapsed ? [] : openKeys}
           onOpenChange={(k) => setOpenKeys(k as string[])}
           items={toAntd(items) as never}
-          style={{ background: 'transparent', border: 'none' }}
+          style={{ background: "transparent", border: "none" }}
         />
       </div>
     </div>
@@ -69,7 +98,15 @@ export function DesktopSidebar() {
       theme="dark"
       width={SIDEBAR_WIDTH}
       collapsedWidth={72}
-      style={{ background: SIDEBAR_BG, boxShadow: '4px 0 24px rgba(0,0,0,0.18)', position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', flexShrink: 0 }}
+      style={{
+        background: SIDEBAR_BG,
+        boxShadow: "4px 0 24px rgba(0,0,0,0.18)",
+        position: "sticky",
+        top: 0,
+        height: "100dvh",
+        overflow: "hidden",
+        flexShrink: 0,
+      }}
     >
       <SidebarContent collapsed={collapsed} />
     </Sider>
@@ -87,7 +124,10 @@ export function MenuDrawer() {
       placement="left"
       size={SIDEBAR_WIDTH}
       closable={false}
-      styles={{ body: { padding: 0, background: SIDEBAR_BG }, section: { padding: 0, background: SIDEBAR_BG } }}
+      styles={{
+        body: { padding: 0, background: SIDEBAR_BG },
+        section: { padding: 0, background: SIDEBAR_BG },
+      }}
     >
       <SidebarContent collapsed={false} />
     </Drawer>

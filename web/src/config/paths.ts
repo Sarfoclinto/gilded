@@ -108,6 +108,20 @@ const paths = {
   /** A person's own private pictures. Not in the menu: the camera button and the account menu lead here. */
   myPictures: { href: "/my-pictures", label: "My pictures" },
   /** Workings: a person's private scratch sheets for rough calculations. */
+  groupSheets: {
+    href: "/group-sheets",
+    label: "Group Sheets",
+    group: {
+      href: "/group-sheets/groups/:id",
+      to: (id: string) => `/group-sheets/groups/${encodeURIComponent(id)}`,
+      label: "Group",
+    },
+    sheet: {
+      href: "/group-sheets/sheets/:id",
+      to: (id: string) => `/group-sheets/sheets/${encodeURIComponent(id)}`,
+      label: "Sheet",
+    },
+  },
   workings: {
     href: "/workings",
     label: "Workings",

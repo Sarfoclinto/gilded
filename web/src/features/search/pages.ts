@@ -102,6 +102,8 @@ const MORE_WORDS: Record<string, string> = {
   [paths.imports.href]: "import excel spreadsheet upload",
   [paths.guide.home.href]: "rules help how to",
   [paths.calculator.href]: "karat density purity value weigh",
+  [paths.groupSheets.href]:
+    "group sheets kitchen fees mercury savings welfare contributions pot book record balance side",
   [paths.workings.href]:
     "scratch sheet rough calculations notes figures formula sum onenote paper",
 };
