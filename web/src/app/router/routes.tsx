@@ -114,6 +114,13 @@ const PhotosPage = lazy(() => import("@/features/photos/pages/PhotosPage"));
 const MyPicturesPage = lazy(() => import("@/features/personal/MyPicturesPage"));
 const WorkingsPage = lazy(() => import("@/features/workings/WorkingsPage"));
 const SheetPage = lazy(() => import("@/features/workings/SheetPage"));
+const GroupSheetsPage = lazy(
+  () => import("@/features/groupSheets/GroupSheetsPage"),
+);
+const GroupPage = lazy(() => import("@/features/groupSheets/GroupPage"));
+const GroupSheetPage = lazy(
+  () => import("@/features/groupSheets/GroupSheetPage"),
+);
 const LoanPage = lazy(() => import("@/features/debts/pages/LoanPage"));
 const CollateralPage = lazy(
   () => import("@/features/debts/pages/CollateralPage"),
@@ -311,6 +318,14 @@ export const appRoutes: AppRoute[] = [
     nav: { label: paths.workings.label },
   },
   { path: paths.workings.sheet.href, element: <SheetPage /> },
+  // Group Sheets: no permission here on purpose. Members see their groups whatever their role; the server decides what is shown.
+  {
+    path: paths.groupSheets.href,
+    element: <GroupSheetsPage />,
+    nav: { label: paths.groupSheets.label },
+  },
+  { path: paths.groupSheets.group.href, element: <GroupPage /> },
+  { path: paths.groupSheets.sheet.href, element: <GroupSheetPage /> },
   {
     path: paths.priceFeed.href,
     element: <PriceFeedPage />,

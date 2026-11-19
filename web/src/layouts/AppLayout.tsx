@@ -18,6 +18,7 @@ import { UpdateBanner } from "./UpdateBanner";
 import { WarmCache } from "./WarmCache";
 import { DeviceRegistration } from "./DeviceRegistration";
 import { HubSync } from "./HubSync";
+import { GroupSheetsSync } from "@/features/groupSheets/GroupSheetsSync";
 import { SearchPalette } from "@/features/search/SearchPalette";
 import { SearchHotkeys } from "@/features/search/SearchButton";
 import { MobileTabBar } from "./MobileTabBar";
@@ -75,6 +76,7 @@ export default function AppLayout() {
         <WarmCache />
         <DeviceRegistration />
         <HubSync />
+        <GroupSheetsSync />
         <SearchHotkeys />
         <SearchPalette />
         {desktop ? <DesktopSidebar /> : <MenuDrawer />}

@@ -35,6 +35,8 @@ export const permissionLabels: Record<Permission, string> = {
     "Change notes for the branch itself: smaller notes for change, bigger notes to hand out fewer",
   "sync:review":
     "Review offline entries that could not be applied, then retry or dismiss them",
+  "groups:create":
+    "Create Group Sheets groups (private running records such as kitchen fees). It opens no other group",
   "guide:manage":
     "Write and publish the business rules and guides, and set reminders to read them",
   "settings:manage":

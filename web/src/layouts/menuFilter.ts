@@ -1,16 +1,18 @@
 import { hasAccess } from "@/features/auth/access";
 import type { User } from "@/features/auth/schemas";
-import type { AppMenuItem } from "./menu";
+import type { AppMenuItem, MenuFlags } from "./menu";
 
 /**
  * Pure and easy to test.
  * 1. No permission/roles on an item: always shown.
  * 2. Otherwise shown only if the user passes hasAccess().
- * 3. Parents are filtered by their children; a parent with none left is dropped (a heading with nothing under it is noise).
+ * 3. An item with `showIf` needs that flag (things the server knows about the person, e.g. that they are in a Group Sheets group).
+ * 4. Parents are filtered by their children; a parent with none left is dropped (a heading with nothing under it is noise).
  */
 export function filterMenu(
   items: AppMenuItem[],
   user: User | null,
+  flags: MenuFlags = {},
 ): AppMenuItem[] {
   const out: AppMenuItem[] = [];
   for (const item of items) {
@@ -19,8 +21,9 @@ export function filterMenu(
       !hasAccess(user, { permission: item.permission, roles: item.roles })
     )
       continue;
+    if (item.showIf && !flags[item.showIf]) continue;
     if (item.children) {
-      const children = filterMenu(item.children, user);
+      const children = filterMenu(item.children, user, flags);
       if (children.length === 0) continue;
       out.push({ ...item, children });
     } else {

@@ -114,3 +114,9 @@ Offline mid-purchase; same record edited on two devices; teller closes with a ca
 ## Asked for on 17 Nov 2026
 - ✅ **Done in B69. Tools panel redesign.** The tabs scrolled sideways once there were seven; now a navy tool rail down the left with a gold marker, the tool's name and a one-line hint above it, at every screen size.
 - **Learn Gilded: a video hub and in-app tours (planned, not scheduled).** One script per operation makes the narrated video (real app, visible cursor, typing, captions, voice), the in-app tour, and the written steps; re-run on each update so nothing goes stale. A 30-second sample was made to prove it. Plan and decisions: `docs/learning-hub-design.md`.
+
+
+## Asked for on 18 Nov 2026
+- ✅ **Done in B72.** Company website at gildedgold.org (+www), guides 12 (hosting) and 13 (off-site backups to B2/S3).
+- ✅ **Done in B73.** GoldBod's world price always shown, against the live price with a green or red arrow.
+- **Group Sheets: private running records for a chosen group (design written, not scheduled).** Kitchen fees, mercury sales, savings: a group of handpicked people or "everyone at a branch", with keepers, writers and readers, and per-sheet access. Each sheet is a running balance: + Add or − Take out, a short note, a "day total" switch. There is no editing: a mistake is taken back with a linked opposite entry. Works offline. **No company role sees it, admins included** (enforced by the database, like My pictures). Never touches the drawer or the books. Design: `docs/group-sheets-design.md`. Decisions agreed 18 Nov: admins see nothing unless added (except a group with no keeper, to name one), offline entries after removal accepted and marked, drawer kept separate, directors and managers create groups, savings in phase 2. Next: phase 1 (B74).

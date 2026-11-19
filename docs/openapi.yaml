@@ -24,6 +24,8 @@ x-live-updates: |
   looking at changed; `notification` { id, kind, title, link } for one person; `resync` after the server reconnected to its database.
   The connection is closed when the access token expires; clients reconnect with a fresh one.
 tags:
+  - name: Group Sheets
+    description: Private running records for a chosen group (kitchen fees, mercury sales). Only members see them; no company role opens a group.
   - name: Photos
   - name: Settings
   - name: Guide
@@ -1510,6 +1512,112 @@ paths:
         - { in: query, name: days, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
       responses:
         '200': { description: 'A list of { kind, id, label, branchId, branchName, at, missing }', content: { application/json: { schema: { type: object } } } }
+  /group-sheets:
+    get:
+      tags: [Group Sheets]
+      summary: The caller's groups with their sheets and balances
+      description: |
+        Returns `{ canCreate, groups: [{ id, name, myRole, sheets }], needKeeper }`. `needKeeper` is only for people with users:manage: groups whose last
+        keeper's account was switched off, by name and remaining members (never their sheets). Every Group Sheets route runs `gold.group_sheets(action, payload)`;
+        the database decides what the caller may see and do (row-level security, no exception for any company role).
+      responses:
+        '200': { description: Groups, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/groups:
+    post:
+      tags: [Group Sheets]
+      summary: Create a group (needs groups:create); the caller becomes its keeper
+      description: 'Body `{ id, name }`. Sending the same id twice makes one group.'
+      responses:
+        '200': { description: The group, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/groups/{id}:
+    get:
+      tags: [Group Sheets]
+      summary: One group (members only)
+      description: '`{ id, name, myRole, members, keepers, rules, leftOut, sheets, access }`; `leftOut` and `access` are filled for keepers only.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The group, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Group Sheets]
+      summary: Rename (keepers)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The group, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/groups/{id}/{verb}:
+    post:
+      tags: [Group Sheets]
+      summary: Change people, branch rules or sheets of a group
+      description: |
+        `members` `{ userId, role: keeper|writer|reader }` · `members-remove` `{ userId }` (someone in through a branch is left out of it) · `members-back` `{ userId }`
+        · `leave` · `rules` `{ branchId, role: writer|reader }` · `rules-remove` `{ branchId }` · `name-keeper` `{ userId }` (users:manage, only for a group with no keeper)
+        · `sheets` `{ id, name, branchId?, openingBalance?, openingDate? }`. Keepers only, except `leave` and `name-keeper`. A change that would leave no keeper is refused (`LAST_KEEPER`).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: path, name: verb, required: true, schema: { type: string, enum: [members, members-remove, members-back, leave, rules, rules-remove, name-keeper, sheets] } }
+      responses:
+        '200': { description: The group (or the home list for name-keeper), content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/groups/{id}/activity:
+    get:
+      tags: [Group Sheets]
+      summary: The group's log (members only), newest first, 100 at a time
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: before, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: Events, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { type: object } } } } } } }
+  /group-sheets/sheets/{id}:
+    get:
+      tags: [Group Sheets]
+      summary: One sheet with its entries day by day
+      description: '`from`/`to` (dates; default the last 31 days). Returns the balance, today/week/month in and out (a taking back and the line it cancels are left out of in and out), `balanceBefore` and `days`.'
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+      responses:
+        '200': { description: The sheet, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Group Sheets]
+      summary: Rename, close or reopen (keepers)
+      description: 'Body `{ name?, closed? }`.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The sheet, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+    delete:
+      tags: [Group Sheets]
+      summary: Delete a sheet with no entries (keepers); a sheet with entries is closed instead (HAS_ENTRIES)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Deleted, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/sheets/{id}/access:
+    post:
+      tags: [Group Sheets]
+      summary: Narrow who may do what on a sheet (keepers)
+      description: 'Body `{ userId (null = everyone), access: write|read|none|null (back to the role) }`. Narrowing never makes a reader a writer.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The group, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/sheets/{id}/entries:
+    post:
+      tags: [Group Sheets]
+      summary: Add to or take from a sheet (writers)
+      description: |
+        Body `{ id, direction: in|out, amount, note?, moneyDate?, dayTotal?, writtenAt? }`. The id is made by the device, so an entry sent twice is kept once.
+        An entry written (writtenAt) before its writer lost access, sent within offline.maxDays, is accepted and marked `afterRemoval`. Entries are never edited or deleted.
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The entry, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /group-sheets/entries/{id}/take-back:
+    post:
+      tags: [Group Sheets]
+      summary: Take back an entry (writers their own, keepers anyone's)
+      description: 'Body `{ id }` for the new opposite entry. Adds a linked opposite entry on the same date; both stay in the history, struck through.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The original entry, now taken back, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
   /me/workings:
     get:
       tags: [Workings]

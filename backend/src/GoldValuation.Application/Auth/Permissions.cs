@@ -63,6 +63,9 @@ public static class Permissions
     /// <summary>See customers' ID pictures. Every time one is opened the audit trail records who and when.</summary>
     public const string AttachmentsIds = "attachments:ids";
 
+    /// <summary>Create a Group Sheets group (private running records such as kitchen fees). It makes you its keeper; it opens no other group.</summary>
+    public const string GroupsCreate = "groups:create";
+
     /// <summary>Every permission the system knows, for validating what a custom role is given.</summary>
     public static IReadOnlySet<string> All { get; } = typeof(Permissions)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
@@ -75,7 +78,7 @@ public static class Permissions
          TransfersRead, TransfersCreate, TransfersReceive];
 
     private static readonly string[] Manager =
-        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel, AttachmentsRemove, AttachmentsLibrary, AttachmentsIds];
+        [.. Teller, DaysSignoff, KumasiSetValue, ReportsRead, BranchesAll, PaymentsConfirm, CustomersManage, DiscrepanciesReview, NotesExchange, SyncReview, TransactionsCancel, AttachmentsRemove, AttachmentsLibrary, AttachmentsIds, GroupsCreate];
 
     private static readonly string[] Director =
         [.. Manager, PricesApprove, UsersManage, BranchesManage, ImportsManage, AuditRead, SettingsManage, GuideManage];

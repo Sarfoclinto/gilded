@@ -3,6 +3,8 @@ using GoldValuation.Application.Attachments;
 using GoldValuation.Application.Personal;
 using GoldValuation.Infrastructure.Personal;
 using GoldValuation.Application.Workings;
+using GoldValuation.Application.GroupSheets;
+using GoldValuation.Infrastructure.GroupSheets;
 using GoldValuation.Infrastructure.Workings;
 using GoldValuation.Application.Auth;
 using GoldValuation.Application.Imports;
@@ -89,6 +91,8 @@ public static class InfrastructureModule
         services.AddScoped<PersonalPicturesService>();
         services.AddSingleton<IWorkingsStore, PostgresWorkingsStore>();
         services.AddScoped<WorkingsService>();
+        services.AddSingleton<IGroupSheetsStore, PostgresGroupSheetsStore>();
+        services.AddScoped<GroupSheetsService>();
         return services;
     }
 

@@ -30,6 +30,7 @@ import {
   LineChartIcon,
   ImageIcon,
   SigmaIcon,
+  NotebookTabsIcon,
 } from "lucide-react";
 import paths from "@/config/paths";
 import { PERMISSIONS, type Permission } from "@/config/permissions";
@@ -52,7 +53,15 @@ export interface AppMenuItem {
   /** Show in the phone bottom tab bar. */
   mobileTab?: boolean;
   type?: "group" | "divider";
+  /** Shown only when this flag is on (see useMenuFlags). The route still decides access. */
+  showIf?: keyof MenuFlags;
   children?: AppMenuItem[];
+}
+
+/** Things about the person that decide whether some links show, beyond permissions. */
+export interface MenuFlags {
+  /** In a Group Sheets group, may create one, or must name a keeper for one. */
+  groupSheets?: boolean;
 }
 
 const icon = "size-4";
@@ -86,6 +95,13 @@ export const appMenu: AppMenuItem[] = [
         label: link(paths.workings.href, paths.workings.label),
         title: paths.workings.label,
         icon: <SigmaIcon className={icon} />,
+      },
+      {
+        key: paths.groupSheets.href,
+        label: link(paths.groupSheets.href, paths.groupSheets.label),
+        title: paths.groupSheets.label,
+        icon: <NotebookTabsIcon className={icon} />,
+        showIf: "groupSheets",
       },
       {
         key: "transactions",

@@ -34,6 +34,7 @@ export const PERMISSIONS = {
   ATTACHMENTS_IDS: "attachments:ids",
   GUIDE_MANAGE: "guide:manage",
   SYNC_REVIEW: "sync:review",
+  GROUPS_CREATE: "groups:create",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
