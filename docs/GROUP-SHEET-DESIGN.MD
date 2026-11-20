@@ -1,6 +1,6 @@
 # Group Sheets: private running records for a chosen group (concept and design)
 
-Status: DESIGN AGREED (decisions in section 12, 18 Nov 2026). Not scheduled yet. Feasible: yes. It reuses the privacy machinery of My pictures and Workings, and the offline sending of purchases.
+Status: PHASE 1 BUILT in B74 (v1.21.0) and PHASE 2 in B75 (v1.22.0). Decisions in section 12 (18 Nov 2026). Phase 3 ("maybe later") not scheduled. Feasible: yes. It reuses the privacy machinery of My pictures and Workings, and the offline sending of purchases.
 
 ## 1. What it is
 Some money at a branch is real and needs a record, but it is not the gold business and it is not the directors' concern. Examples: mercury sales, the kitchen fee pot, staff savings, a welfare fund. Today it lives in a notebook or in someone's head.
@@ -138,8 +138,9 @@ A sheet can be **closed**: kept and readable, but no new entries. A sheet is nev
 - **Size.** Entries are tiny. Receipt photos (phase 2) would use the existing photo storage, under the same group-only rule.
 
 ## 10. Phases
-1. **Groups and money sheets:** groups, keepers, writers and readers, handpicked and by-branch members, per-sheet access, money sheets with opening balance, + Add, − Take out and Day total, notes, taking back, running balance and day totals, the activity log, offline, phone and computer, join and leave notifications.
-2. **More kinds and reach:** money per person (savings), money and quantity (mercury), receipt photos on an entry, print and export, alerts on takings out, a Tools-panel tab for a quick entry beside any page.
+1. ✅ (B74) **Groups and money sheets:** groups, keepers, writers and readers, handpicked and by-branch members, per-sheet access, money sheets with opening balance, + Add, − Take out and Day total, notes, taking back, running balance and day totals, the activity log, offline, phone and computer, join and leave notifications.
+2. ✅ (B75) **More kinds and reach:** money per person (savings), money and quantity (mercury), receipt photos on an entry, print and export, alerts on takings out, a Tools-panel tab for a quick entry beside any page.
+   B75 choices: a savings sheet keeps its own list of people (a group member, or anyone by name), added and renamed by keepers, and starts at zero (each person's balance is brought over as their first entry); tapping a person shows their statement. A quantity sheet has one unit (kg, g…) and an optional quantity in hand; an entry may move money, quantity or both. Receipt photos (up to 5 per entry) live in their own table, seen only by those who can see the sheet, never in the Photos library or the audit trail; the person who added one, or a keeper, can take it off and the log says so. Alerts are per person and per sheet, any amount or from an amount up, only while the person can still see the sheet, never for one's own entries. Print uses the page itself; export is a CSV of the period on screen.
 3. **Maybe later:** linked drawer entries (decision 4), a monthly summary sent to keepers, recurring entries (a fixed weekly fee), and sheets in other currencies.
 
 ## 11. Risks and honest limits

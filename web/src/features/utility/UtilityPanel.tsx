@@ -5,6 +5,7 @@ import {
   Calculator,
   ClipboardCheck,
   LineChart,
+  NotebookTabs,
   Sigma,
   UserRoundSearch,
   Wallet,
@@ -21,6 +22,7 @@ import { PayoutPanel } from "@/features/calculator/PayoutPanel";
 import { TextField } from "@/shared/ui/TextField";
 import { decimalOnly } from "@/shared/lib/numbers";
 import { ClosingStatus } from "./ClosingStatus";
+import { useMenuFlags } from "@/features/groupSheets/GroupSheetsSync";
 
 import { CustomerHistory } from "./CustomerHistory";
 import {
@@ -34,6 +36,11 @@ import {
 const WorkingsQuick = lazy(() =>
   import("@/features/workings/WorkingsQuick").then((m) => ({
     default: m.WorkingsQuick,
+  })),
+);
+const GroupSheetsQuick = lazy(() =>
+  import("@/features/groupSheets/GroupSheetsQuick").then((m) => ({
+    default: m.GroupSheetsQuick,
   })),
 );
 const MarketQuick = lazy(() =>
@@ -123,18 +130,28 @@ const TOOLS: Tool[] = [
     hint: "A scratch sheet beside this page. Select a result and tap Copy.",
     icon: Sigma,
   },
+  {
+    key: "groupsheets",
+    label: "Group",
+    title: "Group Sheets",
+    hint: "Add to or take out of your group's sheets, beside this page. Only the group's members see them.",
+    icon: NotebookTabs,
+  },
 ];
 
 /** The tools this person has: Cash and Closing need the drawer permission, Sheet needs Workings switched on. */
 function useTools() {
   const canSeeCash = useHasPermission(PERMISSIONS.DAYS_READ);
   const workingsOn = useSettings()["workings.enabled"];
+  const groupSheets = useMenuFlags().groupSheets;
   return TOOLS.filter((t) =>
     t.key === "cash" || t.key === "closing"
       ? canSeeCash
       : t.key === "workings"
         ? workingsOn
-        : true,
+        : t.key === "groupsheets"
+          ? !!groupSheets
+          : true,
   );
 }
 
@@ -299,6 +316,18 @@ export function UtilityPanelBody({ onClose }: { onClose: () => void }) {
               </Suspense>
             </div>
           ) : null}
+          {/* Mounted only while looked at, so the balances are fresh each time. */}
+          {active === "groupsheets" && has("groupsheets") && (
+            <Suspense
+              fallback={
+                <p className="text-sm text-muted-foreground">
+                  Loading your sheets…
+                </p>
+              }
+            >
+              <GroupSheetsQuick />
+            </Suspense>
+          )}
           {/* Mounted only while looked at: the world chart is an outside service and should not load in the background. */}
           {active === "market" && (
             <Suspense

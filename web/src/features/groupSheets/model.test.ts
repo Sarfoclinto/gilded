@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { SheetDetail } from "./api";
 import type { Pending } from "./local";
-import { activityText, cleanAmount, money, signed, withPending } from "./model";
+import {
+  activityText,
+  cleanAmount,
+  cleanQuantity,
+  money,
+  qty,
+  sheetCsv,
+  signed,
+  withPending,
+} from "./model";
 
 const me = { id: "u1", displayName: "Ama" };
 const entry = (id: string, amount: string, moneyDate: string) => ({
@@ -21,6 +30,7 @@ const entry = (id: string, amount: string, moneyDate: string) => ({
 });
 const sheet = (): SheetDetail => ({
   id: "s1",
+  kind: "money",
   groupId: "g",
   name: "Kitchen fees",
   branchId: null,
@@ -190,5 +200,89 @@ describe("activityText", () => {
         (id) => (id === "s9" ? "Kitchen fees" : undefined),
       ),
     ).toContain('+10 on "Kitchen fees"');
+  });
+});
+
+describe("phase 2: quantity, savings statements, CSV", () => {
+  const qsheet = (): SheetDetail => ({
+    ...sheet(),
+    kind: "quantity",
+    unit: "kg",
+    stockBefore: "2",
+    stock: "1.5",
+    openingQuantity: "2",
+    days: [
+      {
+        date: "2026-11-18",
+        in: "1800",
+        out: "0",
+        closing: "1900",
+        qtyIn: "0",
+        qtyOut: "0.5",
+        stock: "1.5",
+        entries: [
+          {
+            ...entry("m1", "1800", "2026-11-18"),
+            quantity: "-0.5",
+            note: 'Sold, "big" one',
+          },
+        ],
+      },
+    ],
+  });
+  it("waiting entries move the quantity in hand, and an entry may carry only a quantity", () => {
+    const p: Pending = {
+      id: "q1",
+      sheetId: "s1",
+      quantity: "1.25",
+      qtyDirection: "in",
+      moneyDate: "2026-11-18",
+      dayTotal: false,
+      writtenAt: "2026-11-18T13:00:00Z",
+      problem: null,
+    };
+    const v = withPending(qsheet(), [p], me);
+    expect(v.stock).toBe("2.75");
+    expect(v.balance).toBe("1900");
+    expect(v.days[0]).toMatchObject({
+      qtyIn: "1.25",
+      qtyOut: "0.5",
+      stock: "2.75",
+    });
+    expect(v.days[0]!.entries[0]!.quantity).toBe("1.25");
+  });
+  it("a savings statement only folds in that person's waiting entries", () => {
+    const s = {
+      ...sheet(),
+      kind: "people" as const,
+      personId: "ama",
+      people: [
+        { id: "ama", name: "Ama", userId: null, balance: "0", entries: 0 },
+      ],
+    };
+    const v = withPending(
+      s,
+      [
+        pending("a", "in", "10", "2026-11-18"),
+        { ...pending("b", "in", "20", "2026-11-18"), personId: "ama" },
+      ],
+      me,
+    );
+    expect(v.waiting).toBe(1);
+    expect(v.days[0]!.entries[0]!.person?.name).toBe("Ama");
+  });
+  it("quantities and CSV read well", () => {
+    expect(qty("-0.5", "kg")).toBe("−0.5 kg");
+    expect(qty("1.25", "kg", true)).toBe("+1.25 kg");
+    expect(cleanQuantity("0.5")).toBe("0.5");
+    expect(cleanQuantity("1.2345")).toBeNull();
+    const csv = sheetCsv(qsheet(), withPending(qsheet(), [], me).days).split(
+      "\r\n",
+    );
+    expect(csv[0]).toBe(
+      "Date,Note,In (GHS),Out (GHS),In (kg),Out (kg),Written by,Written at,Status",
+    );
+    expect(csv[2]).toContain('"Sold, ""big"" one",1800,,,0.5,Ama');
+    expect(csv[3]).toContain("Closing,1800,0,0,0.5");
   });
 });

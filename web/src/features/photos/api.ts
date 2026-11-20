@@ -150,10 +150,10 @@ export function useRemoveAttachment() {
   });
 }
 
-/** The facts sent with a picture. My pictures are private to the person, so they carry no record to attach to and no evidence fields. */
+/** The facts sent with a picture. My pictures and Group Sheets receipts are private, so they carry no evidence fields (the entry is in the address). */
 export function uploadMeta(record: PhotoRecord): Record<string, unknown> {
   const t = record.target;
-  if (t?.entityType === "personal")
+  if (t?.entityType === "personal" || t?.entityType === "gsentry")
     return {
       id: record.id,
       fileName: record.name,
@@ -192,7 +192,11 @@ export const sendPhoto: Sender = async (
   form.append("meta", JSON.stringify(uploadMeta(record)));
   try {
     await http.post(
-      t.entityType === "personal" ? "/me/pictures" : "/attachments",
+      t.entityType === "personal"
+        ? "/me/pictures"
+        : t.entityType === "gsentry"
+          ? `/group-sheets/entries/${t.entityId}/photos` // a Group Sheets receipt: private to the group (B75)
+          : "/attachments",
       form,
       {
         signal,

@@ -7,7 +7,8 @@ export type UtilityTab =
   | "customer"
   | "closing"
   | "market"
-  | "workings";
+  | "workings"
+  | "groupsheets";
 
 /** The customer the person is working on, shared by the New transaction page (which writes it) and the panel (which only reads it). */
 export interface LookupCustomer {

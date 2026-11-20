@@ -15,7 +15,8 @@ export interface PhotoTarget {
     | "collateral"
     | "transaction"
     | "customer"
-    | "personal";
+    | "personal"
+    | "gsentry";
   entityId: string;
   slot:
     | "release"
@@ -26,7 +27,8 @@ export interface PhotoTarget {
     | "opening"
     | "collateral"
     | "goods"
-    | "id";
+    | "id"
+    | "receipt";
 }
 
 export interface PhotoRecord {

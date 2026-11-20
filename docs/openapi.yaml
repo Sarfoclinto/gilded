@@ -1569,7 +1569,7 @@ paths:
   /group-sheets/sheets/{id}:
     get:
       tags: [Group Sheets]
-      summary: One sheet with its entries day by day
+      summary: One sheet with its entries day by day (personId for one person's savings statement)
       description: '`from`/`to` (dates; default the last 31 days). Returns the balance, today/week/month in and out (a taking back and the line it cancels are left out of in and out), `balanceBefore` and `days`.'
       parameters:
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
@@ -1610,6 +1610,52 @@ paths:
       responses:
         '200': { description: The entry, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
         '403': { $ref: '#/components/responses/Error' }
+  /group-sheets/sheets/{id}/people:
+    post:
+      tags: [Group Sheets]
+      summary: Add a person to a savings sheet (keepers)
+      description: 'Body `{ id, userId?, name? }`: a group member by id, or anyone by name. Names are unique on a sheet.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The sheet, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/people/{id}:
+    patch:
+      tags: [Group Sheets]
+      summary: Rename a person on a savings sheet (keepers)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The sheet, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/sheets/{id}/alert:
+    post:
+      tags: [Group Sheets]
+      summary: Be told when money is taken out of a sheet (the caller's own alert)
+      description: 'Body `{ on, minAmount? }`. Sent only while the caller can see the sheet, never for their own entries.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: The sheet, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/entries/{id}/photos:
+    post:
+      tags: [Group Sheets]
+      summary: Add a receipt photo to an entry (multipart; up to 5 per entry)
+      description: 'Form fields `file` (JPEG), `thumb` (JPEG, optional), `meta` `{ id, width?, height?, takenAt? }`. The id is made by the device, so a photo sent twice is kept once. 404 while the entry has not reached the server.'
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '201': { description: Stored, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
+  /group-sheets/photos/{id}/file:
+    get:
+      tags: [Group Sheets]
+      summary: A receipt photo (or /thumb for its preview), for people who can see its sheet
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: JPEG, content: { image/jpeg: {} } }
+        '404': { description: Not found, or not visible to the caller }
+  /group-sheets/photos/{id}/remove:
+    post:
+      tags: [Group Sheets]
+      summary: Take a receipt photo off (the person who added it, or a keeper); the group's log keeps that it happened
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Removed, content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } } }
   /group-sheets/entries/{id}/take-back:
     post:
       tags: [Group Sheets]
