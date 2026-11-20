@@ -32,8 +32,9 @@ import {
   type Access,
   type Group,
   type GroupRole,
+  type SheetKind,
 } from "./api";
-import { activityText, money, roleLabel } from "./model";
+import { activityText, money, qty, roleLabel } from "./model";
 
 type Tab = "sheets" | "people" | "access" | "activity";
 const roleOptions = [
@@ -181,12 +182,16 @@ function SheetsTab({ group: g }: { group: Group }) {
   const online = useConnectivity((s) => s.online);
   const branches = useAllBranches();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const blank = {
     name: "",
+    kind: "money" as SheetKind,
+    unit: "kg",
+    openingQuantity: "",
     branchId: undefined as string | undefined,
     opening: "",
     openingDate: "",
-  });
+  };
+  const [form, setForm] = useState(blank);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
     null,
   );
@@ -195,10 +200,17 @@ function SheetsTab({ group: g }: { group: Group }) {
       gsApi.createSheet(g.id, {
         id: crypto.randomUUID(),
         name: f.name.trim(),
+        kind: f.kind,
+        unit: f.kind === "quantity" ? f.unit.trim() : undefined,
+        openingQuantity:
+          f.kind === "quantity" && f.openingQuantity.trim()
+            ? f.openingQuantity.replace(/[,\s]/g, "")
+            : undefined,
         branchId: f.branchId ?? null,
-        openingBalance: f.opening.trim()
-          ? f.opening.replace(/[,\s]/g, "")
-          : undefined,
+        openingBalance:
+          f.kind !== "people" && f.opening.trim()
+            ? f.opening.replace(/[,\s]/g, "")
+            : undefined,
         openingDate: f.openingDate || null,
       }),
     "Sheet started",
@@ -214,6 +226,14 @@ function SheetsTab({ group: g }: { group: Group }) {
   const openingOk =
     !form.opening.trim() ||
     /^-?\d{1,12}(\.\d{1,2})?$/.test(form.opening.replace(/[,\s]/g, ""));
+  const quantityOk =
+    form.kind !== "quantity" ||
+    (!!form.unit.trim() &&
+      form.unit.trim().length <= 12 &&
+      (!form.openingQuantity.trim() ||
+        /^\d{1,12}(\.\d{1,3})?$/.test(
+          form.openingQuantity.replace(/[,\s]/g, ""),
+        )));
 
   return (
     <section className="space-y-3">
@@ -222,12 +242,7 @@ function SheetsTab({ group: g }: { group: Group }) {
           type="button"
           disabled={!online}
           onClick={() => {
-            setForm({
-              name: "",
-              branchId: undefined,
-              opening: "",
-              openingDate: "",
-            });
+            setForm(blank);
             setOpen(true);
           }}
           className={`${btn} bg-navy text-white disabled:opacity-50`}
@@ -263,6 +278,11 @@ function SheetsTab({ group: g }: { group: Group }) {
                 className={`tnum font-semibold ${Number(s.balance) < 0 ? "text-red-700" : ""}`}
               >
                 {money(s.balance)}
+                {s.kind === "quantity" ? (
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    {qty(s.stock, s.unit)} in hand
+                  </span>
+                ) : null}
               </span>
               {keeper ? (
                 <span className="flex gap-1">
@@ -338,7 +358,9 @@ function SheetsTab({ group: g }: { group: Group }) {
         title="New sheet"
         okText="Start sheet"
         confirmLoading={create.isPending}
-        okButtonProps={{ disabled: !form.name.trim() || !openingOk }}
+        okButtonProps={{
+          disabled: !form.name.trim() || !openingOk || !quantityOk,
+        }}
         onCancel={() => setOpen(false)}
         onOk={async () => {
           await create.mutateAsync(form);
@@ -352,11 +374,71 @@ function SheetsTab({ group: g }: { group: Group }) {
               autoFocus
               size="large"
               maxLength={80}
-              placeholder="For example: Kitchen fees"
+              placeholder={
+                form.kind === "people"
+                  ? "For example: Welfare savings"
+                  : form.kind === "quantity"
+                    ? "For example: Mercury"
+                    : "For example: Kitchen fees"
+              }
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </label>
+          <div>
+            <span className="mb-1 block text-sm font-medium">
+              What it keeps
+            </span>
+            <Segmented
+              block
+              value={form.kind}
+              onChange={(v) => setForm({ ...form, kind: v as SheetKind })}
+              options={[
+                { label: "Money", value: "money" },
+                { label: "Savings per person", value: "people" },
+                { label: "Money and quantity", value: "quantity" },
+              ]}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {form.kind === "people"
+                ? "One balance for each person, and the total. You add the people after."
+                : form.kind === "quantity"
+                  ? "Each entry can also carry an amount of something, like kg of mercury. The sheet shows what is in hand as well as the cash."
+                  : "One running balance in cedis: kitchen fees, a welfare pot."}
+            </p>
+          </div>
+          {form.kind === "quantity" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">Unit</span>
+                <Input
+                  size="large"
+                  maxLength={12}
+                  placeholder="kg"
+                  value={form.unit}
+                  status={form.unit.trim() ? undefined : "error"}
+                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">
+                  In hand now{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </span>
+                <Input
+                  size="large"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={form.openingQuantity}
+                  onChange={(e) =>
+                    setForm({ ...form, openingQuantity: e.target.value })
+                  }
+                />
+              </label>
+            </div>
+          ) : null}
           <label className="block">
             <span className="mb-1 block text-sm font-medium">
               Branch{" "}
@@ -377,38 +459,43 @@ function SheetsTab({ group: g }: { group: Group }) {
               }))}
             />
           </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">
-                Opening balance{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
+          {form.kind !== "people" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">
+                  Opening balance{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
                 </span>
-              </span>
-              <Input
-                size="large"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={form.opening}
-                status={openingOk ? undefined : "error"}
-                onChange={(e) => setForm({ ...form, opening: e.target.value })}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">As of</span>
-              <input
-                type="date"
-                value={form.openingDate}
-                onChange={(e) =>
-                  setForm({ ...form, openingDate: e.target.value })
-                }
-                className="min-h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-              />
-            </label>
-          </div>
+                <Input
+                  size="large"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={form.opening}
+                  status={openingOk ? undefined : "error"}
+                  onChange={(e) =>
+                    setForm({ ...form, opening: e.target.value })
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">As of</span>
+                <input
+                  type="date"
+                  value={form.openingDate}
+                  onChange={(e) =>
+                    setForm({ ...form, openingDate: e.target.value })
+                  }
+                  className="min-h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                />
+              </label>
+            </div>
+          ) : null}
           <p className="text-xs text-muted-foreground">
-            Carrying over a notebook? Put its balance here, so the sheet starts
-            where the notebook ends.
+            {form.kind === "people"
+              ? "A savings sheet starts at zero. Bring each person's balance over as their first entry."
+              : "Carrying over a notebook? Put its balance here, so the sheet starts where the notebook ends."}
           </p>
         </div>
       </Modal>

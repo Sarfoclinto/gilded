@@ -76,6 +76,7 @@ export function PhotoProvider({ children }: PropsWithChildren) {
         void Promise.allSettled([
           qc.invalidateQueries({ queryKey: photoKeys.all }),
           qc.invalidateQueries({ queryKey: ["transfers"] }),
+          qc.invalidateQueries({ queryKey: ["group-sheets"] }),
         ]).then(() => queue.remove(r.id));
       }
     });
